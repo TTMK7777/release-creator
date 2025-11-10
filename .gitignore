@@ -1,0 +1,40 @@
+# Excel temporary files
+~$*.xlsx
+~$*.xlsm
+*.tmp
+
+# VBA backup files
+*.bak
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test files
+*_Test.xlsm
+*_test.xlsm
+test_*.xlsm
+
+# Output files
+output/
+*.log

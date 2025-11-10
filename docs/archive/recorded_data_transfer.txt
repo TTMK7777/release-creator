@@ -1,0 +1,139 @@
+Sub リリース自動化くん()
+'
+' リリース自動化くん Macro
+'
+
+'
+    Range("C5").Select
+    Selection.Copy
+    ActiveWindow.SmallScroll Down:=6
+    Range("C11").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Windows("【資料】携帯キャリア_ランキング結果2024.xlsx").Activate
+    Range("C6").Select
+    Application.CutCopyMode = False
+    Selection.Copy
+    Windows("【テンプレ】リリース内表.xlsx").Activate
+    Range("C12").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Windows("【資料】携帯キャリア_ランキング結果2024.xlsx").Activate
+    Range("C7").Select
+    Application.CutCopyMode = False
+    Selection.Copy
+    Windows("【テンプレ】リリース内表.xlsx").Activate
+    Range("C13").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Windows("【資料】携帯キャリア_ランキング結果2024.xlsx").Activate
+    Range("C8").Select
+    Application.CutCopyMode = False
+    Selection.Copy
+    Windows("【テンプレ】リリース内表.xlsx").Activate
+    Range("C14").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Windows("【資料】携帯キャリア_ランキング結果2024.xlsx").Activate
+    Range("G5:G8").Select
+    Application.CutCopyMode = False
+    Selection.Copy
+    Windows("【テンプレ】リリース内表.xlsx").Activate
+    Range("D11").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    ActiveWindow.SmallScroll Down:=-3
+    Windows("【資料】携帯キャリア_ランキング結果2024.xlsx").Activate
+    Application.CutCopyMode = False
+    Range("E9").Select
+    ActiveCell.FormulaR1C1 = ""
+    Range("D9").Select
+    Application.CutCopyMode = False
+    Range("D9").Select
+    Application.CutCopyMode = False
+    Application.CutCopyMode = False
+    ActiveCell.FormulaR1C1 = "=SUM(R[-4]C:R[-1]C)"
+    Range("D9").Select
+    Selection.Copy
+    Windows("【テンプレ】リリース内表.xlsx").Activate
+    Range("C7:D9").Select
+    Application.CutCopyMode = False
+    ActiveCell.FormulaR1C1 = "2025年 オリコン顧客満足度R調査" & Chr(10) & "ランキング名 総合ランキング (回答者数：8,464名)"
+    With ActiveCell.Characters(Start:=1, Length:=15).Font
+        .Name = "BIZ UDPゴシック"
+        .FontStyle = "太字"
+        .Size = 12
+        .Strikethrough = False
+        .Superscript = False
+        .Subscript = False
+        .OutlineFont = False
+        .Shadow = False
+        .Underline = xlUnderlineStyleNone
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .ThemeFont = xlThemeFontNone
+    End With
+    With ActiveCell.Characters(Start:=16, Length:=1).Font
+        .Name = "BIZ UDPゴシック"
+        .FontStyle = "太字"
+        .Size = 12
+        .Strikethrough = False
+        .Superscript = True
+        .Subscript = False
+        .OutlineFont = False
+        .Shadow = False
+        .Underline = xlUnderlineStyleNone
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .ThemeFont = xlThemeFontNone
+    End With
+    With ActiveCell.Characters(Start:=17, Length:=31).Font
+        .Name = "BIZ UDPゴシック"
+        .FontStyle = "太字"
+        .Size = 12
+        .Strikethrough = False
+        .Superscript = False
+        .Subscript = False
+        .OutlineFont = False
+        .Shadow = False
+        .Underline = xlUnderlineStyleNone
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .ThemeFont = xlThemeFontNone
+    End With
+    ActiveCell.Characters(5, 1).PhoneticCharacters = "ネン"
+    ActiveCell.Characters(11, 2).PhoneticCharacters = "コキャク"
+    ActiveCell.Characters(13, 3).PhoneticCharacters = "マンゾクド"
+    ActiveCell.Characters(17, 2).PhoneticCharacters = "チョウサ"
+    ActiveCell.Characters(25, 1).PhoneticCharacters = "メイ"
+    ActiveCell.Characters(27, 2).PhoneticCharacters = "ソウゴウ"
+    Range("C10").Select
+    ActiveWindow.SmallScroll Down:=7
+    Range("D15").Select
+    Range(Selection, Selection.End(xlToLeft)).Select
+    Selection.Delete Shift:=xlUp
+    Range("B15:D15").Select
+    ActiveCell.FormulaR1C1 = _
+        "※上記順位以降はサイトに掲載しております。" & Chr(10) & "調査主体：株式会社oricon ME（2025年12月1日発表）"
+    ActiveCell.Characters(2, 6).PhoneticCharacters = "ジョウキジュンイイコウ"
+    ActiveCell.Characters(13, 2).PhoneticCharacters = "ケイサイ"
+    Range("B15:D15").Select
+    Selection.End(xlUp).Select
+    Selection.End(xlUp).Select
+    Selection.End(xlUp).Select
+    Selection.End(xlUp).Select
+    Selection.End(xlDown).Select
+    Range("B7:D9").Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Range(Selection, Selection.End(xlDown)).Select
+    Application.Left = 645.25
+    Application.Top = -815
+    Application.Width = 1452
+    Application.Height = 786
+    ActiveWindow.SmallScroll Down:=-7
+    Selection.Copy
+    ActiveSheet.Shapes.Range(Array("Picture 1")).Select
+    Range("B17").Select
+    Application.CutCopyMode = False
+    Windows("【資料】携帯キャリア_ランキング結果2024.xlsx").Activate
+End Sub
