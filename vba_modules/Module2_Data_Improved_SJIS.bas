@@ -83,8 +83,12 @@ Public Function TransferRankingData( _
         .Font.Size = 12
     End With
 
-    ' (R)マークを上付き文字に (16文字目 = "(R)"の位置)
-    targetWs.Range("C7:D9").Characters(16, 1).Font.Superscript = True
+    ' (R)マークを上付き文字に (動的に検索)
+    Dim regMarkPos As Long
+    regMarkPos = InStr(titleText, "(R)")
+    If regMarkPos > 0 Then
+        targetWs.Range("C7:D9").Characters(regMarkPos, 1).Font.Superscript = True
+    End If
 
     Module1_Main.LogMessage "  [OK] タイトル生成完了"
 

@@ -58,15 +58,26 @@ if __name__ == "__main__":
     else:
         print(f"[ERROR] ファイルが見つかりません: {input_path1}")
 
-    # Module3_Image_Improved_v2.1.bas
-    input_path2 = os.path.join(utf8_dir, "Module3_Image_Improved_v2.1.bas")
-    output_path2 = os.path.join(vba_dir, "Module3_Image_Improved_v2.1_SJIS.bas")
+    # Module2_Data_Improved.bas
+    input_path2 = os.path.join(utf8_dir, "Module2_Data_Improved.bas")
+    output_path2 = os.path.join(vba_dir, "Module2_Data_Improved_SJIS.bas")
 
     if os.path.exists(input_path2):
-        print(f"変換中: Module3_Image_Improved_v2.1.bas")
+        print(f"変換中: Module2_Data_Improved.bas")
         convert_to_sjis(input_path2, output_path2)
         print()
     else:
         print(f"[ERROR] ファイルが見つかりません: {input_path2}")
+
+    # Module3_Image_Improved_v2.1.bas
+    input_path3 = os.path.join(utf8_dir, "Module3_Image_Improved_v2.1.bas")
+    output_path3 = os.path.join(vba_dir, "Module3_Image_Improved_v2.1_SJIS.bas")
+
+    if os.path.exists(input_path3):
+        print(f"変換中: Module3_Image_Improved_v2.1.bas")
+        convert_to_sjis(input_path3, output_path3)
+        print()
+    else:
+        print(f"[ERROR] ファイルが見つかりません: {input_path3}")
 
     print("変換完了")
