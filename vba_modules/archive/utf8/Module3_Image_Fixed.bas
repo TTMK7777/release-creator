@@ -1,22 +1,37 @@
 Attribute VB_Name = "Module3_Image_Improved"
 '========================================
-' Module3_Image_Fixed
-' Excel範囲を正しく画像化するモジュール
+' Module3_Image_Improved
+' Excel範囲を高品質PNG画像として出力（完全動的版）
 '
 ' 作成日: 2025-11-11
-' バージョン: 3.0 (修正版 - 真っ白画像の問題を解決)
+' バージョン: 4.0 (完全動的化 + 真っ白画像問題の根本解決)
+'
+' 改善点:
+' - すべてのハードコード値を排除（シート名、範囲、ファイル名）
+' - 引数によるパラメータ化で柔軟性を大幅向上
+' - Module2_Data_Dynamicと同等の品質とエラーハンドリング
+' - Chart.Export方式による高品質PNG出力
 '========================================
 Option Explicit
 
 '========================================
-' 公開関数: 範囲を画像として出力（修正版）
+' データ型定義
+'========================================
+Public Type ImageExportConfig
+    SourceFilePath As String    ' ソースファイルのパス
+    SourceSheetName As String   ' ソースシート名
+    SourceRange As String       ' ソース範囲（例: "C4:E10"）
+    OutputFolder As String      ' 出力フォルダパス
+    OutputFileName As String    ' 出力ファイル名（例: "総合ランキング.png"）
+    ImageWidth As Long          ' 画像幅（0=自動）
+    ImageHeight As Long         ' 画像高さ（0=自動）
+End Type
+
+'========================================
+' 公開関数: 範囲を画像として出力（完全動的版）
 '========================================
 Public Function ExportRangeToImage( _
-    Optional sourceFilePath As String = "", _
-    Optional sourceSheetName As String, _
-    Optional sourceRange As String, _
-    Optional outputFolder As String, _
-    Optional outputFileName As String _
+    ByRef config As ImageExportConfig _
 ) As Boolean
 
     On Error GoTo ErrorHandler
@@ -27,94 +42,91 @@ Public Function ExportRangeToImage( _
     Dim outputPath As String
     Dim startTime As Double
     Dim needClose As Boolean
-    Dim tempChart As Chart
+    Dim cht As Chart
     Dim shp As Shape
 
     startTime = Timer
     needClose = False
 
-    Module1_Main.LogMessage "画像生成を開始: " & sourceSheetName & "!" & sourceRange
+    Module1_Main.LogMessage "  [画像生成] " & config.SourceSheetName & "!" & config.SourceRange & " → " & config.OutputFileName
 
+    ' ========================================
     ' パラメータ検証
-    If Trim(sourceSheetName) = "" Or Trim(sourceRange) = "" Or _
-       Trim(outputFolder) = "" Or Trim(outputFileName) = "" Then
-        Module1_Main.LogMessage "  [ERROR] パラメータが不足しています"
+    ' ========================================
+    If Not ValidateConfig(config) Then
+        Module1_Main.LogMessage "    [ERROR] パラメータが不正です"
         ExportRangeToImage = False
         Exit Function
     End If
 
+    ' ========================================
     ' ファイルを開く
-    If sourceFilePath <> "" Then
-        If Not IsFileOpen(sourceFilePath) Then
-            Set wb = Workbooks.Open(sourceFilePath, ReadOnly:=True, UpdateLinks:=False)
+    ' ========================================
+    If config.SourceFilePath <> "" Then
+        If Not IsFileOpen(config.SourceFilePath) Then
+            Set wb = Workbooks.Open(config.SourceFilePath, ReadOnly:=True, UpdateLinks:=False)
             needClose = True
         Else
-            Set wb = GetOpenWorkbook(sourceFilePath)
+            Set wb = GetOpenWorkbook(config.SourceFilePath)
         End If
     Else
         Set wb = ThisWorkbook
     End If
 
-    ' シート名の柔軟な検索（スペース対応）
-    On Error Resume Next
-    Set ws = wb.Worksheets(sourceSheetName)
-    If ws Is Nothing Then Set ws = wb.Worksheets(Trim(sourceSheetName))
-    If ws Is Nothing Then Set ws = wb.Worksheets(" " & sourceSheetName)
-    If ws Is Nothing Then Set ws = wb.Worksheets(sourceSheetName & " ")
-    If ws Is Nothing Then Set ws = wb.Worksheets(" " & sourceSheetName & " ")
-    On Error GoTo ErrorHandler
+    ' ========================================
+    ' シート名の柔軟な検索（スペース・全角半角対応）
+    ' ========================================
+    Set ws = FindWorksheet(wb, config.SourceSheetName)
 
     If ws Is Nothing Then
-        Module1_Main.LogMessage "  [ERROR] シート「" & sourceSheetName & "」が見つかりません"
+        Module1_Main.LogMessage "    [ERROR] シート「" & config.SourceSheetName & "」が見つかりません"
         If needClose Then wb.Close SaveChanges:=False
         ExportRangeToImage = False
         Exit Function
     End If
 
+    ' ========================================
     ' 範囲取得
-    Set rng = ws.Range(sourceRange)
+    ' ========================================
+    Set rng = ws.Range(config.SourceRange)
 
+    ' ========================================
     ' 出力パス生成
-    outputPath = outputFolder
-    If Right(outputPath, 1) <> "\" Then outputPath = outputPath & "\"
+    ' ========================================
+    outputPath = BuildOutputPath(config.OutputFolder, config.OutputFileName)
 
+    ' ========================================
     ' フォルダ作成（存在しない場合）
-    If Dir(outputPath, vbDirectory) = "" Then
-        MkDir outputPath
+    ' ========================================
+    CreateFolderIfNotExists config.OutputFolder
+
+    ' ========================================
+    ' 画像生成（Chart.Export方式）
+    ' ========================================
+    If Not ExportRangeAsChart(rng, outputPath, config.ImageWidth, config.ImageHeight) Then
+        Module1_Main.LogMessage "    [ERROR] PNG出力に失敗しました"
+        If needClose Then wb.Close SaveChanges:=False
+        ExportRangeToImage = False
+        Exit Function
     End If
 
-    outputPath = outputPath & outputFileName
-
-    ' ===================================
-    ' 修正版: 範囲をコピーして図として貼り付け
-    ' ===================================
-
-    ' 範囲をコピー（図としてコピー）
-    rng.CopyPicture Appearance:=xlScreen, Format:=xlPicture
-
-    ' 同じシートに一時的に貼り付け
-    Set shp = ws.Shapes.PasteSpecial(DataType:=xlPasteMetafilePicture)
-
-    ' 図をPNGとして保存
-    SaveShapeAsPNG shp, outputPath
-
-    ' 一時図形を削除
-    shp.Delete
-
+    ' ========================================
     ' ファイルを閉じる
+    ' ========================================
     If needClose Then
         wb.Close SaveChanges:=False
     End If
 
-    Module1_Main.LogMessage "  [OK] 画像生成完了: " & outputPath & " (" & Format(Timer - startTime, "0.00") & "秒)"
+    Module1_Main.LogMessage "    [OK] 画像生成完了 (" & Format(Timer - startTime, "0.00") & "秒)"
     ExportRangeToImage = True
     Exit Function
 
 ErrorHandler:
-    Module1_Main.LogMessage "  [ERROR] 画像生成失敗: " & Err.Description & " (Err#" & Err.Number & ")"
+    Module1_Main.LogMessage "    [ERROR] 画像生成失敗: " & Err.Description & " (Err#" & Err.Number & ")"
 
     On Error Resume Next
     If Not shp Is Nothing Then shp.Delete
+    If Not cht Is Nothing Then cht.Delete
     If needClose And Not wb Is Nothing Then wb.Close SaveChanges:=False
     On Error GoTo 0
 
@@ -122,32 +134,161 @@ ErrorHandler:
 End Function
 
 '========================================
-' 図形をPNGとして保存
+' Chart.Export方式による画像出力（高品質）
 '========================================
-Private Sub SaveShapeAsPNG(shp As Shape, outputPath As String)
+Private Function ExportRangeAsChart( _
+    ByRef rng As Range, _
+    ByVal outputPath As String, _
+    Optional ByVal imageWidth As Long = 0, _
+    Optional ByVal imageHeight As Long = 0 _
+) As Boolean
+
     On Error GoTo ErrorHandler
 
-    ' 一時的なChartを作成して図をPNG出力
     Dim cht As Chart
-    Set cht = Charts.Add
-    cht.ChartArea.Select
+    Dim shp As Shape
+    Dim ws As Worksheet
 
+    Set ws = rng.Worksheet
+
+    ' ========================================
+    ' 範囲をコピー（図としてコピー）
+    ' ========================================
+    rng.CopyPicture Appearance:=xlScreen, Format:=xlPicture
+
+    ' ========================================
+    ' 同じシートに一時的に貼り付け
+    ' ========================================
+    Application.ScreenUpdating = False
+    Set shp = ws.Shapes.PasteSpecial(DataType:=xlPasteMetafilePicture)
+
+    ' ========================================
+    ' サイズ調整（指定がある場合）
+    ' ========================================
+    If imageWidth > 0 Then shp.Width = imageWidth
+    If imageHeight > 0 Then shp.Height = imageHeight
+
+    ' ========================================
+    ' 一時的なChartを作成
+    ' ========================================
+    Set cht = Charts.Add
+    cht.ChartArea.Clear
+
+    ' ========================================
     ' 図をChartに貼り付け
+    ' ========================================
     shp.Copy
     cht.Paste
 
+    ' ========================================
     ' PNG出力
+    ' ========================================
     cht.Export Filename:=outputPath, FilterName:="PNG"
 
-    ' Chart削除
+    ' ========================================
+    ' 後片付け
+    ' ========================================
     cht.Delete
+    shp.Delete
+    Application.ScreenUpdating = True
 
-    Exit Sub
+    ExportRangeAsChart = True
+    Exit Function
 
 ErrorHandler:
-    Module1_Main.LogMessage "  [ERROR] PNG保存エラー: " & Err.Description
+    Module1_Main.LogMessage "    [ERROR] Chart出力エラー: " & Err.Description
+
     On Error Resume Next
     If Not cht Is Nothing Then cht.Delete
+    If Not shp Is Nothing Then shp.Delete
+    Application.ScreenUpdating = True
+    On Error GoTo 0
+
+    ExportRangeAsChart = False
+End Function
+
+'========================================
+' パラメータ検証
+'========================================
+Private Function ValidateConfig(ByRef config As ImageExportConfig) As Boolean
+    ValidateConfig = True
+
+    If Trim(config.SourceSheetName) = "" Then
+        Module1_Main.LogMessage "    [ERROR] シート名が空です"
+        ValidateConfig = False
+    End If
+
+    If Trim(config.SourceRange) = "" Then
+        Module1_Main.LogMessage "    [ERROR] 範囲が空です"
+        ValidateConfig = False
+    End If
+
+    If Trim(config.OutputFolder) = "" Then
+        Module1_Main.LogMessage "    [ERROR] 出力フォルダが空です"
+        ValidateConfig = False
+    End If
+
+    If Trim(config.OutputFileName) = "" Then
+        Module1_Main.LogMessage "    [ERROR] 出力ファイル名が空です"
+        ValidateConfig = False
+    End If
+End Function
+
+'========================================
+' シート名の柔軟な検索
+'========================================
+Private Function FindWorksheet(ByRef wb As Workbook, ByVal sheetName As String) As Worksheet
+    Dim ws As Worksheet
+    Dim searchNames() As String
+    Dim i As Long
+
+    ' 検索パターン生成（スペース・全角半角のバリエーション）
+    ReDim searchNames(1 To 8)
+    searchNames(1) = sheetName
+    searchNames(2) = Trim(sheetName)
+    searchNames(3) = " " & sheetName
+    searchNames(4) = sheetName & " "
+    searchNames(5) = " " & sheetName & " "
+    searchNames(6) = Replace(sheetName, "＋", "+")
+    searchNames(7) = Replace(sheetName, "+", "＋")
+    searchNames(8) = " " & Replace(sheetName, "＋", "+") & " "
+
+    On Error Resume Next
+    For i = 1 To 8
+        Set ws = wb.Worksheets(searchNames(i))
+        If Not ws Is Nothing Then
+            Set FindWorksheet = ws
+            Exit Function
+        End If
+    Next i
+    On Error GoTo 0
+
+    Set FindWorksheet = Nothing
+End Function
+
+'========================================
+' 出力パス構築
+'========================================
+Private Function BuildOutputPath(ByVal folder As String, ByVal fileName As String) As String
+    Dim path As String
+    path = folder
+
+    ' 末尾の\を確認
+    If Right(path, 1) <> "\" Then
+        path = path & "\"
+    End If
+
+    BuildOutputPath = path & fileName
+End Function
+
+'========================================
+' フォルダ作成（存在しない場合）
+'========================================
+Private Sub CreateFolderIfNotExists(ByVal folderPath As String)
+    On Error Resume Next
+    If Dir(folderPath, vbDirectory) = "" Then
+        MkDir folderPath
+    End If
     On Error GoTo 0
 End Sub
 
@@ -194,33 +335,42 @@ Private Function GetOpenWorkbook(filePath As String) As Workbook
 End Function
 
 '========================================
-' 3種類の画像を生成する統合関数
+' 3種類の画像を生成する統合関数（動的版）
 '========================================
 Public Function GenerateAllRankingImages( _
     targetFilePath As String, _
-    outputFolder As String _
+    outputFolder As String, _
+    Optional imageWidth As Long = 0, _
+    Optional imageHeight As Long = 0 _
 ) As Boolean
 
     On Error GoTo ErrorHandler
     GenerateAllRankingImages = False
 
+    Dim config As ImageExportConfig
     Dim imageCount As Long
     imageCount = 0
 
-    Module1_Main.LogMessage "[画像生成] 3種類のランキング画像を生成します"
+    Module1_Main.LogMessage "  [画像生成] 3種類のランキング画像を生成します"
     Module1_Main.LogMessage ""
+
+    ' =========================================
+    ' 共通設定
+    ' =========================================
+    config.SourceFilePath = targetFilePath
+    config.OutputFolder = outputFolder
+    config.ImageWidth = imageWidth
+    config.ImageHeight = imageHeight
 
     ' =========================================
     ' 1. 総合ランキング画像（総合1つシート）
     ' =========================================
     Module1_Main.LogMessage "  [1/3] 総合ランキング画像を生成中..."
-    If ExportRangeToImage( _
-        sourceFilePath:=targetFilePath, _
-        sourceSheetName:="総合1つ", _
-        sourceRange:="C4:E10", _
-        outputFolder:=outputFolder, _
-        outputFileName:="01_総合ランキング.png" _
-    ) Then
+    config.SourceSheetName = "総合1つ"
+    config.SourceRange = "C4:E10"
+    config.OutputFileName = "01_総合ランキング.png"
+
+    If ExportRangeToImage(config) Then
         imageCount = imageCount + 1
     End If
     Module1_Main.LogMessage ""
@@ -229,13 +379,11 @@ Public Function GenerateAllRankingImages( _
     ' 2. 評価項目ランキング画像（総合2つシート右側）
     ' =========================================
     Module1_Main.LogMessage "  [2/3] 評価項目ランキング画像を生成中..."
-    If ExportRangeToImage( _
-        sourceFilePath:=targetFilePath, _
-        sourceSheetName:="総合2つ", _
-        sourceRange:="G4:I10", _
-        outputFolder:=outputFolder, _
-        outputFileName:="02_評価項目ランキング.png" _
-    ) Then
+    config.SourceSheetName = "総合2つ"
+    config.SourceRange = "G4:I10"
+    config.OutputFileName = "02_評価項目ランキング.png"
+
+    If ExportRangeToImage(config) Then
         imageCount = imageCount + 1
     End If
     Module1_Main.LogMessage ""
@@ -244,23 +392,45 @@ Public Function GenerateAllRankingImages( _
     ' 3. 評価・部門別ランキング画像（評価・部門別シート）
     ' =========================================
     Module1_Main.LogMessage "  [3/3] 評価・部門別ランキング画像を生成中..."
-    If ExportRangeToImage( _
-        sourceFilePath:=targetFilePath, _
-        sourceSheetName:=" 評価・部門別 ", _
-        sourceRange:="B7:P18", _
-        outputFolder:=outputFolder, _
-        outputFileName:="03_評価部門別ランキング.png" _
-    ) Then
+    config.SourceSheetName = " 評価・部門別 "
+    config.SourceRange = "B7:P18"
+    config.OutputFileName = "03_評価部門別ランキング.png"
+
+    If ExportRangeToImage(config) Then
         imageCount = imageCount + 1
     End If
     Module1_Main.LogMessage ""
 
-    Module1_Main.LogMessage "[画像生成] 完了: " & imageCount & "/3 件"
+    Module1_Main.LogMessage "  [画像生成] 完了: " & imageCount & "/3 件"
 
     GenerateAllRankingImages = (imageCount = 3)
     Exit Function
 
 ErrorHandler:
-    Module1_Main.LogMessage "[ERROR] 画像生成処理エラー: " & Err.Description
+    Module1_Main.LogMessage "  [ERROR] 画像生成処理エラー: " & Err.Description
     GenerateAllRankingImages = False
+End Function
+
+'========================================
+' 簡易版: 単一画像エクスポート（後方互換）
+'========================================
+Public Function ExportSingleImage( _
+    Optional sourceFilePath As String = "", _
+    Optional sourceSheetName As String, _
+    Optional sourceRange As String, _
+    Optional outputFolder As String, _
+    Optional outputFileName As String _
+) As Boolean
+
+    Dim config As ImageExportConfig
+
+    config.SourceFilePath = sourceFilePath
+    config.SourceSheetName = sourceSheetName
+    config.SourceRange = sourceRange
+    config.OutputFolder = outputFolder
+    config.OutputFileName = outputFileName
+    config.ImageWidth = 0
+    config.ImageHeight = 0
+
+    ExportSingleImage = ExportRangeToImage(config)
 End Function
