@@ -58,12 +58,12 @@ if __name__ == "__main__":
     else:
         print(f"[ERROR] ファイルが見つかりません: {input_path1}")
 
-    # Module2_Data_Improved.bas
-    input_path2 = os.path.join(utf8_dir, "Module2_Data_Improved.bas")
-    output_path2 = os.path.join(vba_dir, "Module2_Data_Improved_SJIS.bas")
+    # Module2_Data_Complete.bas (完全版)
+    input_path2 = os.path.join(utf8_dir, "Module2_Data_Complete.bas")
+    output_path2 = os.path.join(vba_dir, "Module2_Data_Complete_SJIS.bas")
 
     if os.path.exists(input_path2):
-        print(f"変換中: Module2_Data_Improved.bas")
+        print(f"変換中: Module2_Data_Complete.bas")
         convert_to_sjis(input_path2, output_path2)
         print()
     else:
