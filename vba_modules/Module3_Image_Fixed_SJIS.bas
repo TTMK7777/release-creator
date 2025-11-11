@@ -31,7 +31,7 @@ End Type
 ' 公開関数: 範囲を画像として出力（完全動的版）
 '========================================
 Public Function ExportRangeToImage( _
-    ByRef config As ImageExportConfig _
+    config As ImageExportConfig _
 ) As Boolean
 
     On Error GoTo ErrorHandler
@@ -133,10 +133,10 @@ End Function
 ' Chart.Export方式による画像出力（高品質）
 '========================================
 Private Function ExportRangeAsChart( _
-    ByRef rng As Range, _
-    ByVal outputPath As String, _
-    Optional ByVal imageWidth As Long = 0, _
-    Optional ByVal imageHeight As Long = 0 _
+    rng As Range, _
+    outputPath As String, _
+    Optional imageWidth As Long = 0, _
+    Optional imageHeight As Long = 0 _
 ) As Boolean
 
     On Error GoTo ErrorHandler
@@ -206,7 +206,7 @@ End Function
 '========================================
 ' パラメータ検証
 '========================================
-Private Function ValidateConfig(ByRef config As ImageExportConfig) As Boolean
+Private Function ValidateConfig(config As ImageExportConfig) As Boolean
     ValidateConfig = True
 
     If Trim(config.SourceSheetName) = "" Then
@@ -233,7 +233,7 @@ End Function
 '========================================
 ' シート名の柔軟な検索
 '========================================
-Private Function FindWorksheet(ByRef wb As Workbook, ByVal sheetName As String) As Worksheet
+Private Function FindWorksheet(wb As Workbook, sheetName As String) As Worksheet
     Dim ws As Worksheet
     Dim searchNames() As String
     Dim i As Long
@@ -265,7 +265,7 @@ End Function
 '========================================
 ' 出力パス構築
 '========================================
-Private Function BuildOutputPath(ByVal folder As String, ByVal fileName As String) As String
+Private Function BuildOutputPath(folder As String, fileName As String) As String
     Dim path As String
     path = folder
 
@@ -280,7 +280,7 @@ End Function
 '========================================
 ' フォルダ作成（存在しない場合）
 '========================================
-Private Sub CreateFolderIfNotExists(ByVal folderPath As String)
+Private Sub CreateFolderIfNotExists(folderPath As String)
     On Error Resume Next
     If Dir(folderPath, vbDirectory) = "" Then
         MkDir folderPath
