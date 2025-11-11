@@ -41,7 +41,7 @@ Public Function ExportRangeToImage( _
     startTime = Timer
     needClose = False
 
-    Call Module1_Main_Optimized.LogMessage("画像生成を開始: " & sourceSheetName & "!" & sourceRange)
+    Call Module1_Main.LogMessage("画像生成を開始: " & sourceSheetName & "!" & sourceRange)
 
     ' パラメータ検証
     If Not ValidateParameters(sourceFilePath, sourceSheetName, sourceRange, outputFolder, outputFileName) Then
@@ -98,7 +98,7 @@ Public Function ExportRangeToImage( _
     End If
 
     ' 成功ログ
-    Call Module1_Main_Optimized.LogMessage("  [OK] 画像生成完了: " & outputPath & " (" & Format(Timer - startTime, "0.00") & "秒)")
+    Call Module1_Main.LogMessage("  [OK] 画像生成完了: " & outputPath & " (" & Format(Timer - startTime, "0.00") & "秒)")
     ExportRangeToImage = True
     Exit Function
 
@@ -106,7 +106,7 @@ ErrorHandler:
     ' エラーハンドリング
     If Not chartObj Is Nothing Then chartObj.Delete
     If needClose And Not wb Is Nothing Then wb.Close SaveChanges:=False
-    Call Module1_Main_Optimized.LogMessage("  [ERROR] 画像生成失敗: " & Err.Description & " (Err#" & Err.Number & ")")
+    Call Module1_Main.LogMessage("  [ERROR] 画像生成失敗: " & Err.Description & " (Err#" & Err.Number & ")")
     ExportRangeToImage = False
 End Function
 
@@ -126,7 +126,7 @@ Private Function ValidateParameters( _
     ' ファイル存在確認（外部ファイルの場合）
     If sourceFilePath <> "" Then
         If Dir(sourceFilePath) = "" Then
-            Call Module1_Main_Optimized.LogMessage("  [ERROR] ソースファイルが見つかりません: " & sourceFilePath)
+            Call Module1_Main.LogMessage("  [ERROR] ソースファイルが見つかりません: " & sourceFilePath)
             ValidateParameters = False
             Exit Function
         End If
@@ -134,28 +134,28 @@ Private Function ValidateParameters( _
 
     ' シート名検証
     If Trim(sourceSheetName) = "" Then
-        Call Module1_Main_Optimized.LogMessage("  [ERROR] シート名が空です")
+        Call Module1_Main.LogMessage("  [ERROR] シート名が空です")
         ValidateParameters = False
         Exit Function
     End If
 
     ' 範囲検証
     If Trim(sourceRange) = "" Then
-        Call Module1_Main_Optimized.LogMessage("  [ERROR] 範囲が空です")
+        Call Module1_Main.LogMessage("  [ERROR] 範囲が空です")
         ValidateParameters = False
         Exit Function
     End If
 
     ' 出力フォルダ検証
     If Not FolderExists(outputFolder) Then
-        Call Module1_Main_Optimized.LogMessage("  [ERROR] 出力フォルダが見つかりません: " & outputFolder)
+        Call Module1_Main.LogMessage("  [ERROR] 出力フォルダが見つかりません: " & outputFolder)
         ValidateParameters = False
         Exit Function
     End If
 
     ' ファイル名検証
     If Trim(outputFileName) = "" Then
-        Call Module1_Main_Optimized.LogMessage("  [ERROR] ファイル名が空です")
+        Call Module1_Main.LogMessage("  [ERROR] ファイル名が空です")
         ValidateParameters = False
         Exit Function
     End If
@@ -164,7 +164,7 @@ Private Function ValidateParameters( _
     Exit Function
 
 ErrorHandler:
-    Call Module1_Main_Optimized.LogMessage("  [ERROR] パラメータ検証エラー: " & Err.Description)
+    Call Module1_Main.LogMessage("  [ERROR] パラメータ検証エラー: " & Err.Description)
     ValidateParameters = False
 End Function
 

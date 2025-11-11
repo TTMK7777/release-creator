@@ -1,4 +1,4 @@
-Attribute VB_Name = "Module1_Main_Optimized"
+Attribute VB_Name = "Module1_Main"
 '========================================
 ' Module1_Main_Optimized
 ' プレスリリース自動生成マクロ - メイン制御モジュール（最適化版）
@@ -272,7 +272,11 @@ Public Sub 実行最適化版()
     ' Module2にファイルパスを渡して実行
     result = Module2_Data_Improved.TransferRankingData( _
         sourceFilePath:=g_SourceFilePath, _
-        targetFilePath:=g_TargetFilePath _
+        targetFilePath:=g_TargetFilePath, _
+        rankingYear:="2025", _
+        rankingName:="携帯キャリア", _
+        totalRespondents:=8464, _
+        rankingCount:=4 _
     )
 
     If Not result Then
