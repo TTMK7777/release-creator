@@ -382,7 +382,7 @@ Private Function GenerateImages() As Boolean
     LogMessage "  [INFO] 総合ランキング表を画像化..."
     result = Module3_Image_Improved.ExportRangeToImage( _
         sourceFilePath:=g_TargetFilePath, _
-        sourceSheetName:="総合3つ", _
+        sourceSheetName:="総合2つ", _
         sourceRange:="B7:D15", _
         outputFolder:=outputFolder, _
         outputFileName:="総合ランキング.png" _
