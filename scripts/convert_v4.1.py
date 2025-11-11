@@ -40,13 +40,15 @@ def convert_to_sjis(input_file, output_file):
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     vba_dir = os.path.join(os.path.dirname(script_dir), "vba_modules")
+    utf8_dir = os.path.join(vba_dir, "archive", "utf8")
 
     print("=== v4.1 変換 (UTF-8 → Shift_JIS) ===")
-    print(f"対象ディレクトリ: {vba_dir}")
+    print(f"UTF-8ディレクトリ: {utf8_dir}")
+    print(f"出力ディレクトリ: {vba_dir}")
     print()
 
     # Module1_Main_Optimized_v4.1.bas
-    input_path1 = os.path.join(vba_dir, "Module1_Main_Optimized_v4.1.bas")
+    input_path1 = os.path.join(utf8_dir, "Module1_Main_Optimized_v4.1.bas")
     output_path1 = os.path.join(vba_dir, "Module1_Main_Optimized_v4.1_SJIS.bas")
 
     if os.path.exists(input_path1):
@@ -54,10 +56,10 @@ if __name__ == "__main__":
         convert_to_sjis(input_path1, output_path1)
         print()
     else:
-        print(f"[ERROR] ファイルが見つかりません: Module1_Main_Optimized_v4.1.bas")
+        print(f"[ERROR] ファイルが見つかりません: {input_path1}")
 
     # Module3_Image_Improved_v2.1.bas
-    input_path2 = os.path.join(vba_dir, "Module3_Image_Improved_v2.1.bas")
+    input_path2 = os.path.join(utf8_dir, "Module3_Image_Improved_v2.1.bas")
     output_path2 = os.path.join(vba_dir, "Module3_Image_Improved_v2.1_SJIS.bas")
 
     if os.path.exists(input_path2):
@@ -65,6 +67,6 @@ if __name__ == "__main__":
         convert_to_sjis(input_path2, output_path2)
         print()
     else:
-        print(f"[ERROR] ファイルが見つかりません: Module3_Image_Improved_v2.1.bas")
+        print(f"[ERROR] ファイルが見つかりません: {input_path2}")
 
     print("変換完了")

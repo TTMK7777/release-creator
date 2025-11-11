@@ -270,7 +270,7 @@ Public Sub 実行最適化版()
     LogMessage "[PHASE 1] データ転記を開始..."
 
     ' Module2にファイルパスを渡して実行
-    result = Module2_Data_Improved.TransferRankingData( _
+    result = Module2_Data.TransferRankingData( _
         sourceFilePath:=g_SourceFilePath, _
         targetFilePath:=g_TargetFilePath, _
         rankingYear:="2025", _
