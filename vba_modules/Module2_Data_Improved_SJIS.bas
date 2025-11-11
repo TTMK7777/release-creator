@@ -43,10 +43,25 @@ Public Function TransferRankingData( _
 
     ' シートを取得 (記録から判明した実際のシート名)
     Module1_Main.LogMessage "  [DEBUG] シートを取得しています..."
+
+    ' デバッグ: ターゲットファイルのシート名を全て表示
+    Dim ws As Worksheet
+    Module1_Main.LogMessage "  [DEBUG] ターゲットファイルのシート一覧:"
+    For Each ws In targetWb.Worksheets
+        Module1_Main.LogMessage "    - " & ws.Name
+    Next ws
+
     Set sourceWs = sourceWb.Worksheets("総合対象企業")  ' または適切なシート名
     Module1_Main.LogMessage "  [DEBUG] ソースシート取得: 総合対象企業"
 
+    On Error Resume Next
     Set targetWs = targetWb.Worksheets("総合3つ")        ' または適切なシート名
+    If targetWs Is Nothing Then
+        Module1_Main.LogMessage "  [ERROR] 「総合3つ」シートが見つかりません"
+        On Error GoTo ErrorHandler
+        Err.Raise 9, "Module2_Data", "ターゲットファイルに「総合3つ」シートがありません"
+    End If
+    On Error GoTo ErrorHandler
     Module1_Main.LogMessage "  [DEBUG] ターゲットシート取得: 総合3つ"
 
     Module1_Main.LogMessage "  ランキング企業数: " & rankingCount & "社"
