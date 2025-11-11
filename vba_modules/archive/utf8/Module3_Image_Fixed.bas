@@ -130,7 +130,8 @@ ErrorHandler:
 End Function
 
 '========================================
-' Chart.Export方式による画像出力（高品質）
+' Chart.Export方式による画像出力（最も安定版）
+' AI推奨: Claude Sonnet 4.5 解決策4
 '========================================
 Private Function ExportRangeAsChart( _
     rng As Range, _
@@ -141,51 +142,48 @@ Private Function ExportRangeAsChart( _
 
     On Error GoTo ErrorHandler
 
-    Dim cht As Chart
-    Dim shp As Shape
-    Dim ws As Worksheet
+    Dim chtObj As ChartObject
+    Dim tempSheet As Worksheet
+    Dim defaultWidth As Long
+    Dim defaultHeight As Long
 
-    Set ws = rng.Worksheet
+    ' デフォルトサイズ設定
+    defaultWidth = IIf(imageWidth > 0, imageWidth, 600)
+    defaultHeight = IIf(imageHeight > 0, imageHeight, 400)
 
-    ' ========================================
-    ' 範囲をコピー（図としてコピー）
-    ' ========================================
-    rng.CopyPicture Appearance:=xlScreen, Format:=xlPicture
-
-    ' ========================================
-    ' 同じシートに一時的に貼り付け
-    ' ========================================
+    ' 一時シートを作成
+    Set tempSheet = ThisWorkbook.Worksheets.Add
     Application.ScreenUpdating = False
-    Set shp = ws.Shapes.PasteSpecial(DataType:=xlPasteMetafilePicture)
 
-    ' ========================================
-    ' サイズ調整（指定がある場合）
-    ' ========================================
-    If imageWidth > 0 Then shp.Width = imageWidth
-    If imageHeight > 0 Then shp.Height = imageHeight
+    ' 範囲を画像としてコピー（xlBitmap形式）
+    rng.CopyPicture Appearance:=xlScreen, Format:=xlBitmap
 
-    ' ========================================
-    ' 一時的なChartを作成
-    ' ========================================
-    Set cht = Charts.Add
-    cht.ChartArea.Clear
+    ' チャートオブジェクトを作成
+    Set chtObj = tempSheet.ChartObjects.Add(0, 0, defaultWidth, defaultHeight)
 
-    ' ========================================
-    ' 図をChartに貼り付け
-    ' ========================================
-    shp.Copy
-    cht.Paste
+    With chtObj
+        With .Chart
+            ' チャートエリアをクリア
+            .ChartArea.Clear
 
-    ' ========================================
-    ' PNG出力
-    ' ========================================
-    cht.Export Filename:=outputPath, FilterName:="PNG"
+            ' 画像を貼り付け
+            .Paste
 
-    ' ========================================
-    ' 後片付け
-    ' ========================================
-    cht.Delete
-    shp.Delete
+            ' 余白を削除
+            On Error Resume Next
+            .ChartArea.Format.Line.Visible = msoFalse
+            On Error GoTo ErrorHandler
+
+            ' PNG出力
+            .Export Filename:=outputPath, FilterName:="PNG"
+        End With
+    End With
+
+    ' クリーンアップ
+    Application.DisplayAlerts = False
+    tempSheet.Delete
+    Application.DisplayAlerts = True
+    Application.CutCopyMode = False
     Application.ScreenUpdating = True
 
     ExportRangeAsChart = True
@@ -194,9 +192,12 @@ Private Function ExportRangeAsChart( _
 ErrorHandler:
     Module1_Main.LogMessage "    [ERROR] Chart出力エラー: " & Err.Description
 
+    ' クリーンアップ
     On Error Resume Next
-    If Not cht Is Nothing Then cht.Delete
-    If Not shp Is Nothing Then shp.Delete
+    Application.DisplayAlerts = False
+    If Not tempSheet Is Nothing Then tempSheet.Delete
+    Application.DisplayAlerts = True
+    Application.CutCopyMode = False
     Application.ScreenUpdating = True
     On Error GoTo 0
 
