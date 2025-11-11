@@ -270,16 +270,21 @@ Private Function Transfer_EvaluationItems_Dynamic( _
     End If
 
     ' 転記先の配置パターン（テンプレート側の固定レイアウト）
-    ' 上段4カラム + 下段3カラム = 最大7項目
+    ' 上段6カラム + 下段6カラム = 最大12項目
     Dim targetColumns As Variant
     targetColumns = Array( _
         Array(2, 10), _
         Array(6, 10), _
         Array(10, 10), _
         Array(14, 10), _
+        Array(18, 10), _
+        Array(22, 10), _
         Array(2, 16), _
         Array(6, 16), _
-        Array(10, 16) _
+        Array(10, 16), _
+        Array(14, 16), _
+        Array(18, 16), _
+        Array(22, 16) _
     )
 
     ' 各評価項目を転記
@@ -324,10 +329,10 @@ Private Function Transfer_EvaluationItems_Dynamic( _
                                 items(itemIndex).Name & " 転記完了 (" & maxRank & "位まで)"
     Next itemIndex
 
-    ' 検出項目数が7より多い場合の警告
-    If UBound(items) > 7 Then
+    ' 検出項目数が12より多い場合の警告
+    If UBound(items) > 12 Then
         Module1_Main.LogMessage "  [WARN] 評価項目が" & UBound(items) & "個検出されましたが、" & _
-                                "テンプレートは7項目までしか対応していません"
+                                "テンプレートは12項目までしか対応していません"
     End If
 
     Module1_Main.LogMessage "  [OK] 評価項目転記完了: " & maxItems & "項目"
