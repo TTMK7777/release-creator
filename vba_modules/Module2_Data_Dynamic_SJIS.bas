@@ -121,19 +121,42 @@ Private Function DetectEvaluationItems(sourceWs As Worksheet) As EvaluationItem(
     Dim itemCount As Long
     Dim currentRow As Long
     Dim lastRow As Long
+    Dim maxSearchRow As Long
     Dim prevItemName As String
     Dim currentItemName As String
     Dim itemStartRow As Long
 
     itemCount = 0
     lastRow = sourceWs.Cells(sourceWs.Rows.Count, 1).End(xlUp).Row
+
+    ' 評価項目の検索範囲を制限（テンプレートに応じて動的に判断）
+    ' B26以降は「部門別」エリアのため、評価項目検索はB24までに制限
+    maxSearchRow = Application.Min(lastRow, 60)  ' 最大60行まで検索
+
+    ' テンプレートで「部門別」等の区切りを検出
+    Dim checkRow As Long
+    For checkRow = 20 To 40
+        Dim cellValue As String
+        cellValue = Trim(sourceWs.Cells(checkRow, 1).Value)
+        ' 「部門別」「その他」等の区切り文字を検出したらそこまでに制限
+        If InStr(cellValue, "部門") > 0 Or InStr(cellValue, "その他") > 0 Then
+            maxSearchRow = checkRow - 1
+            Exit For
+        End If
+        ' 空白行が連続したら評価項目エリアの終了と判断
+        If cellValue = "" And Trim(sourceWs.Cells(checkRow + 1, 1).Value) = "" Then
+            maxSearchRow = checkRow - 1
+            Exit For
+        End If
+    Next checkRow
+
+    Module1_Main.LogMessage "  [自動検出] 評価項目を検出中（検索範囲: 5-" & maxSearchRow & "行）..."
+
     prevItemName = ""
     itemStartRow = 0
 
-    Module1_Main.LogMessage "  [自動検出] 評価項目を検出中..."
-
     ' A列をスキャンして評価項目の切り替わりを検出
-    For currentRow = 5 To lastRow
+    For currentRow = 5 To maxSearchRow
         currentItemName = Trim(sourceWs.Cells(currentRow, 1).Value)
 
         ' 「評価項目」という汎用ヘッダーはスキップ
