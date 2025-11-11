@@ -136,6 +136,11 @@ Private Function DetectEvaluationItems(sourceWs As Worksheet) As EvaluationItem(
     For currentRow = 5 To lastRow
         currentItemName = Trim(sourceWs.Cells(currentRow, 1).Value)
 
+        ' 「評価項目」という汎用ヘッダーはスキップ
+        If currentItemName = "評価項目" Then
+            GoTo NextRow
+        End If
+
         ' 評価項目名が変わった = 新しい評価項目の開始
         If currentItemName <> "" And currentItemName <> prevItemName Then
             ' 前の評価項目を配列に追加
@@ -157,6 +162,8 @@ Private Function DetectEvaluationItems(sourceWs As Worksheet) As EvaluationItem(
             itemStartRow = currentRow
             prevItemName = currentItemName
         End If
+
+NextRow:
     Next currentRow
 
     ' 最後の評価項目を追加
@@ -263,6 +270,12 @@ Private Function Transfer_EvaluationItems_Dynamic( _
     maxItems = Application.Min(UBound(items), UBound(targetColumns) + 1)
 
     For itemIndex = 1 To maxItems
+        ' 配列の範囲チェック
+        If itemIndex - 1 > UBound(targetColumns) Then
+            Module1_Main.LogMessage "    [WARN] テンプレートの配置枠を超えました（項目" & itemIndex & "）"
+            Exit For
+        End If
+
         nameCol = targetColumns(itemIndex - 1)(0)        ' 転記先の列（企業名列の-1）
         dataStartRow = targetColumns(itemIndex - 1)(1)   ' 転記先のデータ開始行
 
