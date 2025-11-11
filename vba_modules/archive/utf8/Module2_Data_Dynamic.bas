@@ -270,21 +270,24 @@ Private Function Transfer_EvaluationItems_Dynamic( _
     End If
 
     ' 転記先の配置パターン（テンプレート側の固定レイアウト）
-    ' 上段6カラム + 下段6カラム = 最大12項目
+    ' 横4列 × 縦3行 = 最大12項目
+    ' 1行目 (row 10): 列 2, 6, 10, 14
+    ' 2行目 (row 16): 列 2, 6, 10, 14
+    ' 3行目 (row 22): 列 2, 6, 10, 14
     Dim targetColumns As Variant
     targetColumns = Array( _
         Array(2, 10), _
         Array(6, 10), _
         Array(10, 10), _
         Array(14, 10), _
-        Array(18, 10), _
-        Array(22, 10), _
         Array(2, 16), _
         Array(6, 16), _
         Array(10, 16), _
         Array(14, 16), _
-        Array(18, 16), _
-        Array(22, 16) _
+        Array(2, 22), _
+        Array(6, 22), _
+        Array(10, 22), _
+        Array(14, 22) _
     )
 
     ' 各評価項目を転記
