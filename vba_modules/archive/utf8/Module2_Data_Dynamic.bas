@@ -43,6 +43,14 @@ Public Function TransferRankingData( _
     Set sourceWb = Workbooks.Open(sourceFilePath, ReadOnly:=True)
     Set targetWb = Workbooks.Open(targetFilePath)
 
+    ' デバッグ: ターゲットファイルのシート名を全て表示
+    Module1_Main.LogMessage "  [DEBUG] ターゲットファイルのシート一覧:"
+    Dim ws As Worksheet
+    For Each ws In targetWb.Worksheets
+        Module1_Main.LogMessage "    [" & ws.Index & "] " & ws.Name
+    Next ws
+    Module1_Main.LogMessage ""
+
     ' ================================================
     ' Phase 1: 総合ランキング転記 (3シート)
     ' ================================================
@@ -427,9 +435,22 @@ Private Function Transfer_Overall_WithPrevRank( _
     Dim i As Long
 
     Set sourceWs = sourceWb.Worksheets("総合対象企業")
-    Set targetWs = targetWb.Worksheets("総合＋前回順位")
 
-    Module1_Main.LogMessage "  [3/3] 総合＋前回順位シートに転記中..."
+    ' シート名の存在確認
+    On Error Resume Next
+    Set targetWs = targetWb.Worksheets("総合＋前回順位")
+    If targetWs Is Nothing Then
+        ' 半角+で試す
+        Set targetWs = targetWb.Worksheets("総合+前回順位")
+    End If
+    If targetWs Is Nothing Then
+        Module1_Main.LogMessage "  [SKIP] 総合＋前回順位シートが見つかりません（スキップ）"
+        Transfer_Overall_WithPrevRank = True
+        Exit Function
+    End If
+    On Error GoTo ErrorHandler
+
+    Module1_Main.LogMessage "  [3/3] " & targetWs.Name & "シートに転記中..."
 
     ' タイトル生成
     Dim titleText As String
