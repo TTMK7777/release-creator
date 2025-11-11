@@ -42,8 +42,6 @@ Public Function ExportRangeToImage( _
     Dim outputPath As String
     Dim startTime As Double
     Dim needClose As Boolean
-    Dim cht As Chart
-    Dim shp As Shape
 
     startTime = Timer
     needClose = False
@@ -125,8 +123,6 @@ ErrorHandler:
     Module1_Main.LogMessage "    [ERROR] 画像生成失敗: " & Err.Description & " (Err#" & Err.Number & ")"
 
     On Error Resume Next
-    If Not shp Is Nothing Then shp.Delete
-    If Not cht Is Nothing Then cht.Delete
     If needClose And Not wb Is Nothing Then wb.Close SaveChanges:=False
     On Error GoTo 0
 
