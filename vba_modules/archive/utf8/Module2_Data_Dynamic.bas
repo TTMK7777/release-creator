@@ -202,7 +202,25 @@ Private Function Transfer_EvaluationItems_Dynamic( _
     Dim targetWs As Worksheet
 
     Set sourceWs = sourceWb.Worksheets("評価項目")
+
+    ' シート名の柔軟な検索（前後のスペース対応）
+    On Error Resume Next
     Set targetWs = targetWb.Worksheets("評価・部門別")
+    If targetWs Is Nothing Then
+        Set targetWs = targetWb.Worksheets(" 評価・部門別")
+    End If
+    If targetWs Is Nothing Then
+        Set targetWs = targetWb.Worksheets("評価・部門別 ")
+    End If
+    If targetWs Is Nothing Then
+        Set targetWs = targetWb.Worksheets(" 評価・部門別 ")
+    End If
+    If targetWs Is Nothing Then
+        Module1_Main.LogMessage "  [ERROR] 評価・部門別シートが見つかりません"
+        On Error GoTo ErrorHandler
+        Err.Raise 9, "Module2_Data", "評価・部門別シートが見つかりません"
+    End If
+    On Error GoTo ErrorHandler
 
     Module1_Main.LogMessage "  評価項目別ランキング転記中（動的検出）..."
 
@@ -436,13 +454,16 @@ Private Function Transfer_Overall_WithPrevRank( _
 
     Set sourceWs = sourceWb.Worksheets("総合対象企業")
 
-    ' シート名の存在確認
+    ' シート名の柔軟な検索（全角/半角、前後のスペース対応）
     On Error Resume Next
     Set targetWs = targetWb.Worksheets("総合＋前回順位")
-    If targetWs Is Nothing Then
-        ' 半角+で試す
-        Set targetWs = targetWb.Worksheets("総合+前回順位")
-    End If
+    If targetWs Is Nothing Then Set targetWs = targetWb.Worksheets("総合+前回順位")
+    If targetWs Is Nothing Then Set targetWs = targetWb.Worksheets("総合＋前回順位 ")
+    If targetWs Is Nothing Then Set targetWs = targetWb.Worksheets("総合+前回順位 ")
+    If targetWs Is Nothing Then Set targetWs = targetWb.Worksheets(" 総合＋前回順位")
+    If targetWs Is Nothing Then Set targetWs = targetWb.Worksheets(" 総合+前回順位")
+    If targetWs Is Nothing Then Set targetWs = targetWb.Worksheets(" 総合＋前回順位 ")
+    If targetWs Is Nothing Then Set targetWs = targetWb.Worksheets(" 総合+前回順位 ")
     If targetWs Is Nothing Then
         Module1_Main.LogMessage "  [SKIP] 総合＋前回順位シートが見つかりません（スキップ）"
         Transfer_Overall_WithPrevRank = True
