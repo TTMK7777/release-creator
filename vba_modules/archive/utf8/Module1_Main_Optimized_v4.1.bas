@@ -378,20 +378,20 @@ Private Function GenerateImages() As Boolean
         MkDir outputFolder
     End If
 
-    ' リリース内表ファイルから画像生成
-    LogMessage "  [INFO] 総合ランキング表を画像化..."
-    result = Module3_Image_Improved.ExportRangeToImage( _
-        sourceFilePath:=g_TargetFilePath, _
-        sourceSheetName:="総合2つ", _
-        sourceRange:="B7:D15", _
-        outputFolder:=outputFolder, _
-        outputFileName:="総合ランキング.png" _
+    ' リリース内表ファイルから3種類の画像を生成
+    LogMessage "  [INFO] ランキング画像を生成中..."
+    result = Module3_Image_Improved.GenerateAllRankingImages( _
+        targetFilePath:=g_TargetFilePath, _
+        outputFolder:=outputFolder _
     )
 
-    If result Then imageCount = imageCount + 1
-
-    LogMessage "  [INFO] 画像生成完了: " & imageCount & " 件"
-    GenerateImages = (imageCount > 0)
+    If result Then
+        LogMessage "  [INFO] 画像生成完了: 3種類"
+        GenerateImages = True
+    Else
+        LogMessage "  [WARN] 一部の画像生成に失敗しました"
+        GenerateImages = False
+    End If
     Exit Function
 
 ErrorHandler:
