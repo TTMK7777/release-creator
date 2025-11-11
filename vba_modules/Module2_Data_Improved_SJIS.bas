@@ -33,12 +33,21 @@ Public Function TransferRankingData( _
     Module1_Main.LogMessage "  出力先: " & targetFilePath
 
     ' ファイルを開く
+    Module1_Main.LogMessage "  [DEBUG] ソースファイルを開いています..."
     Set sourceWb = Workbooks.Open(sourceFilePath, ReadOnly:=True)
+    Module1_Main.LogMessage "  [DEBUG] ソースファイルを開きました"
+
+    Module1_Main.LogMessage "  [DEBUG] ターゲットファイルを開いています..."
     Set targetWb = Workbooks.Open(targetFilePath)
+    Module1_Main.LogMessage "  [DEBUG] ターゲットファイルを開きました"
 
     ' シートを取得 (記録から判明した実際のシート名)
+    Module1_Main.LogMessage "  [DEBUG] シートを取得しています..."
     Set sourceWs = sourceWb.Worksheets("総合対象企業")  ' または適切なシート名
+    Module1_Main.LogMessage "  [DEBUG] ソースシート取得: 総合対象企業"
+
     Set targetWs = targetWb.Worksheets("総合3つ")        ' または適切なシート名
+    Module1_Main.LogMessage "  [DEBUG] ターゲットシート取得: 総合3つ"
 
     Module1_Main.LogMessage "  ランキング企業数: " & rankingCount & "社"
 
@@ -68,26 +77,36 @@ Public Function TransferRankingData( _
     ' ================================================
     ' 2. タイトルの動的生成 (記録から判明: C7:D9)
     ' ================================================
+    Module1_Main.LogMessage "  [DEBUG] タイトル生成開始..."
     Dim titleText As String
     titleText = rankingYear & "年 オリコン顧客満足度(R)調査" & vbLf & _
                 rankingName & " 総合ランキング (回答者数：" & _
                 Format(totalRespondents, "#,##0") & "名)"
+    Module1_Main.LogMessage "  [DEBUG] タイトルテキスト生成完了 (長さ: " & Len(titleText) & "文字)"
 
     ' タイトルセルに設定
+    Module1_Main.LogMessage "  [DEBUG] タイトルをセルに設定中..."
     targetWs.Range("C7:D9").Value = titleText
+    Module1_Main.LogMessage "  [DEBUG] セルへの設定完了"
 
     ' フォント書式設定 (記録されたフォーマットを適用)
+    Module1_Main.LogMessage "  [DEBUG] フォント書式設定中..."
     With targetWs.Range("C7:D9")
         .Font.Name = "BIZ UDPゴシック"
         .Font.Bold = True
         .Font.Size = 12
     End With
+    Module1_Main.LogMessage "  [DEBUG] フォント書式設定完了"
 
     ' (R)マークを上付き文字に (動的に検索)
+    Module1_Main.LogMessage "  [DEBUG] (R)マーク検索中..."
     Dim regMarkPos As Long
     regMarkPos = InStr(titleText, "(R)")
+    Module1_Main.LogMessage "  [DEBUG] (R)マーク位置: " & regMarkPos
     If regMarkPos > 0 Then
+        Module1_Main.LogMessage "  [DEBUG] (R)マークを上付き文字に設定中..."
         targetWs.Range("C7:D9").Characters(regMarkPos, 1).Font.Superscript = True
+        Module1_Main.LogMessage "  [DEBUG] 上付き文字設定完了"
     End If
 
     Module1_Main.LogMessage "  [OK] タイトル生成完了"
@@ -130,7 +149,10 @@ Public Function TransferRankingData( _
     Exit Function
 
 ErrorHandler:
-    Module1_Main.LogMessage "エラー発生: " & Err.Description & " (行: " & Erl & ")"
+    Module1_Main.LogMessage "[ERROR] データ転記エラー: " & Err.Description
+    Module1_Main.LogMessage "        エラー番号: " & Err.Number
+    Module1_Main.LogMessage "        エラー発生行: " & Erl
+    Module1_Main.LogMessage "        エラー発生元: " & Err.Source
 
     ' クリーンアップ
     On Error Resume Next
