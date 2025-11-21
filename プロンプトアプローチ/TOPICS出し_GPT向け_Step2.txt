@@ -1,0 +1,39 @@
+## Step 2: 評価項目別の全社得点を取得
+
+### 前提
+Step 1で取得した評価項目リストを使用します。
+
+### 実行内容
+以下の各URLにアクセスして、全社の得点・順位を取得してください：
+
+1. https://life.oricon.co.jp/rank-mobile-carrier/evaluation-item/procedure.html
+2. https://life.oricon.co.jp/rank-mobile-carrier/evaluation-item/campaign.html
+3. https://life.oricon.co.jp/rank-mobile-carrier/evaluation-item/initial.html
+4. https://life.oricon.co.jp/rank-mobile-carrier/evaluation-item/connection.html
+5. https://life.oricon.co.jp/rank-mobile-carrier/evaluation-item/plan.html
+6. https://life.oricon.co.jp/rank-mobile-carrier/evaluation-item/lineup.html
+7. https://life.oricon.co.jp/rank-mobile-carrier/evaluation-item/cost-performance.html
+8. https://life.oricon.co.jp/rank-mobile-carrier/evaluation-item/support.html
+9. https://life.oricon.co.jp/rank-mobile-carrier/evaluation-item/option.html
+
+### 出力フォーマット
+
+#### 評価項目別ランキング（全社得点）
+| 項目 | 1位 | 得点 | 2位 | 得点 | 3位 | 得点 | 4位 | 得点 |
+|------|-----|------|-----|------|-----|------|-----|------|
+| 加入手続き | | | | | | | | |
+| キャンペーン | | | | | | | | |
+| 初期設定 | | | | | | | | |
+| 通信速度 | | | | | | | | |
+| 料金プラン | | | | | | | | |
+| 端末ラインナップ | | | | | | | | |
+| 利用料金 | | | | | | | | |
+| サポート | | | | | | | | |
+| 付帯サービス | | | | | | | | |
+
+#### 項目別1位獲得数
+- 〇〇: X項目
+- △△: Y項目
+
+---
+次のステップでは、過去データとTOPICS分析を行います。
