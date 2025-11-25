@@ -38,10 +38,18 @@ class OriconScraper:
         """
         Args:
             ranking_slug: URL用のランキング名（例: mobile-carrier, _fx, card-loan/nonbank）
+                          @type02 などを付与すると、そのセクションのみを抽出
             ranking_name: 表示用のランキング名（例: 携帯キャリア）
         """
-        self.ranking_slug = ranking_slug
         self.ranking_name = ranking_name
+
+        # 調査タイプを分離（例: _fx@type02 → _fx, type02）
+        if "@" in ranking_slug:
+            ranking_slug, self.survey_type = ranking_slug.split("@", 1)
+        else:
+            self.survey_type = "type01"  # デフォルトは顧客満足度調査
+
+        self.ranking_slug = ranking_slug
 
         # サブパスを分離（例: card-loan/nonbank → card-loan, nonbank）
         if "/" in ranking_slug:
@@ -92,13 +100,13 @@ class OriconScraper:
                 # 過去年度
                 url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/"
 
-            data = self._fetch_ranking_page(url)
+            data = self._fetch_ranking_page(url, self.survey_type)
             if data:
                 results[year] = data
-                self.used_urls["overall"].append({"year": year, "url": url, "status": "success"})
+                self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "success"})
                 pass  # データ取得成功
             else:
-                self.used_urls["overall"].append({"year": year, "url": url, "status": "not_found"})
+                self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "not_found"})
                 pass  # データなし
 
             time.sleep(0.3)  # サーバー負荷軽減
@@ -143,18 +151,20 @@ class OriconScraper:
                     # 過去年度
                     url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/evaluation-item/{item_slug}.html"
 
-                data = self._fetch_ranking_page(url)
+                data = self._fetch_ranking_page(url, self.survey_type)
                 if data:
                     results[item_name][year] = data
                     self.used_urls["items"].append({
                         "name": f"{item_name}({year}年)",
                         "url": url,
+                        "survey_type": self.survey_type,
                         "status": "success"
                     })
                 else:
                     self.used_urls["items"].append({
                         "name": f"{item_name}({year}年)",
                         "url": url,
+                        "survey_type": self.survey_type,
                         "status": "not_found"
                     })
 
@@ -202,18 +212,20 @@ class OriconScraper:
                     # 例: age/50s.html → 2023/age/50s.html
                     url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/{dept_path}"
 
-                data = self._fetch_ranking_page(url)
+                data = self._fetch_ranking_page(url, self.survey_type)
                 if data:
                     results[dept_name][year] = data
                     self.used_urls["departments"].append({
                         "name": f"{dept_name}({year}年)",
                         "url": url,
+                        "survey_type": self.survey_type,
                         "status": "success"
                     })
                 else:
                     self.used_urls["departments"].append({
                         "name": f"{dept_name}({year}年)",
                         "url": url,
+                        "survey_type": self.survey_type,
                         "status": "not_found"
                     })
 
@@ -319,9 +331,13 @@ class OriconScraper:
             pass  # 評価項目リスト取得エラー
             return {}
 
-    def _fetch_ranking_page(self, url: str) -> List[Dict]:
+    def _fetch_ranking_page(self, url: str, survey_type: str = "type01") -> List[Dict]:
         """
         ランキングページからデータを抽出
+
+        Args:
+            url: 取得するURL
+            survey_type: 調査タイプ（"type01"=顧客満足度調査, "type02"=FP調査など）
 
         Returns:
             [{"rank": 1, "company": "...", "score": 69.5}, ...]
@@ -332,28 +348,53 @@ class OriconScraper:
             soup = BeautifulSoup(response.text, "html.parser")
 
             rankings = []
+            seen_companies = set()  # 重複チェック用
+
+            # まず特定の調査タイプのセクションを探す（type01-main, type01-topなど）
+            target_section = None
+
+            # 優先順位: main > top > side-top
+            for suffix in ["-main", "-top", "-side-top", ""]:
+                section_id = f"{survey_type}{suffix}"
+                target_section = soup.find(id=section_id)
+                if target_section:
+                    break
+
+            # セクションが見つからない場合は、ページ全体から探すが、
+            # type02関連のセクションは除外する
+            if not target_section:
+                # type02セクションを除外したsoupを作成
+                for exclude_type in ["type02-main", "type02-top", "type02-side-top", "type02-side-btm"]:
+                    exclude_section = soup.find(id=exclude_type)
+                    if exclude_section:
+                        exclude_section.decompose()  # DOMから削除
+                target_section = soup
 
             # ランキングボックスを探す（複数のパターンに対応）
-            ranking_boxes = soup.find_all("article", class_=re.compile(r"ranking"))
+            ranking_boxes = target_section.find_all("article", class_=re.compile(r"ranking"))
 
             if not ranking_boxes:
                 # 別のパターンを試す
-                ranking_boxes = soup.find_all("div", class_=re.compile(r"ranking-box"))
+                ranking_boxes = target_section.find_all("div", class_=re.compile(r"ranking-box"))
 
             if not ranking_boxes:
                 # さらに別のパターン
-                ranking_boxes = soup.find_all("li", class_=re.compile(r"rank"))
+                ranking_boxes = target_section.find_all("li", class_=re.compile(r"rank"))
 
             for box in ranking_boxes:
                 try:
                     data = self._extract_ranking_data(box)
                     if data:
-                        rankings.append(data)
+                        company = data.get("company", "")
+                        # 重複企業をスキップ
+                        if company and company not in seen_companies:
+                            rankings.append(data)
+                            seen_companies.add(company)
                 except Exception as e:
                     continue
 
-            # 順位でソート
-            rankings.sort(key=lambda x: x.get("rank", 999))
+            # 順位でソート、同順位の場合は得点で降順ソート
+            rankings.sort(key=lambda x: (x.get("rank", 999), -x.get("score", 0)))
 
             return rankings
 
