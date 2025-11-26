@@ -1105,9 +1105,8 @@ if st.session_state.results_data:
     st.markdown("---")
 
     # タブで結果表示（新しい構成）
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "⭐ 推奨TOPICS",
-        "🎯 見出し案",
         "🏆 歴代記録・得点推移",
         "📊 総合ランキング",
         "📋 評価項目別",
@@ -1118,10 +1117,8 @@ if st.session_state.results_data:
     with tab1:
         st.header("⭐ 推奨TOPICS")
         for i, topic in enumerate(topics["recommended"], 1):
-            importance = topic.get("importance", "重要")
-            st.markdown(f"### {i}. [{importance}] {topic['title']}")
+            st.markdown(f"### {i}. {topic['title']}")
             st.markdown(f"- **根拠**: {topic['evidence']}")
-            st.markdown(f"- **インパクト**: {'★' * topic.get('impact', 3)}")
             st.divider()
 
         if topics.get("other"):
@@ -1129,8 +1126,9 @@ if st.session_state.results_data:
             for topic in topics["other"]:
                 st.markdown(f"- {topic}")
 
-    with tab2:
-        st.header("🎯 見出し案")
+        # 見出し案セクション（推奨TOPICSタブ内に統合）
+        st.divider()
+        st.subheader("🎯 見出し案")
         for i, headline in enumerate(topics.get("headlines", []), 1):
             st.markdown(f"**パターン{i}**: {headline}")
 
@@ -1145,7 +1143,7 @@ if st.session_state.results_data:
         ])
         st.text_area("コピー用", copy_text, height=300, label_visibility="collapsed")
 
-    with tab3:
+    with tab2:
         st.header("🏆 歴代記録・得点推移")
         records = historical_data.get("historical_records", {})
         trends = historical_data.get("score_trends", {})
@@ -1307,7 +1305,73 @@ if st.session_state.results_data:
                     dept_records.sort(key=lambda x: -int(x["連続年数"].replace("年", "")))
                     st.dataframe(pd.DataFrame(dept_records[:15]), use_container_width=True, hide_index=True)
 
-    with tab4:
+            # 評価項目別 平均得点推移（縦棒グラフ）
+            st.divider()
+            st.subheader("📊 評価項目別 平均得点推移")
+            if item_data:
+                # 各評価項目の年度別平均得点を計算
+                item_avg_data = []
+                for item_name, year_data in item_data.items():
+                    if isinstance(year_data, dict):
+                        for year, data in year_data.items():
+                            scores = [d.get("score") for d in data if d.get("score")]
+                            if scores:
+                                item_avg_data.append({
+                                    "評価項目": item_name[:15],  # 長すぎる項目名を短縮
+                                    "年度": str(year),
+                                    "平均得点": round(sum(scores) / len(scores), 2)
+                                })
+
+                if item_avg_data:
+                    item_avg_df = pd.DataFrame(item_avg_data)
+                    # 最新3年度に絞る
+                    latest_years = sorted(item_avg_df["年度"].unique(), reverse=True)[:3]
+                    item_avg_df = item_avg_df[item_avg_df["年度"].isin(latest_years)]
+
+                    chart = alt.Chart(item_avg_df).mark_bar().encode(
+                        x=alt.X('評価項目:N', title='評価項目', sort='-y'),
+                        y=alt.Y('平均得点:Q', title='平均得点', scale=alt.Scale(domain=[60, 80])),
+                        color=alt.Color('年度:N', title='年度'),
+                        xOffset='年度:N',
+                        tooltip=['評価項目', '年度', '平均得点']
+                    ).properties(height=400)
+                    st.altair_chart(chart, use_container_width=True)
+            else:
+                st.info("評価項目別データがありません")
+
+            # 部門別 平均得点推移（縦棒グラフ）
+            st.subheader("📊 部門別 平均得点推移")
+            if dept_data:
+                dept_avg_data = []
+                for dept_name, year_data in dept_data.items():
+                    if isinstance(year_data, dict):
+                        for year, data in year_data.items():
+                            scores = [d.get("score") for d in data if d.get("score")]
+                            if scores:
+                                dept_avg_data.append({
+                                    "部門": dept_name[:15],
+                                    "年度": str(year),
+                                    "平均得点": round(sum(scores) / len(scores), 2)
+                                })
+
+                if dept_avg_data:
+                    dept_avg_df = pd.DataFrame(dept_avg_data)
+                    latest_years = sorted(dept_avg_df["年度"].unique(), reverse=True)[:3]
+                    dept_avg_df = dept_avg_df[dept_avg_df["年度"].isin(latest_years)]
+
+                    chart = alt.Chart(dept_avg_df).mark_bar().encode(
+                        x=alt.X('部門:N', title='部門', sort='-y'),
+                        y=alt.Y('平均得点:Q', title='平均得点', scale=alt.Scale(domain=[60, 80])),
+                        color=alt.Color('年度:N', title='年度'),
+                        xOffset='年度:N',
+                        tooltip=['部門', '年度', '平均得点']
+                    ).properties(height=400)
+                    st.altair_chart(chart, use_container_width=True)
+            else:
+                st.info("部門別データがありません")
+
+
+    with tab3:
         st.header("📊 総合ランキング（経年詳細）")
 
         # トップに歴代記録を表示
@@ -1323,7 +1387,16 @@ if st.session_state.results_data:
                 source_mark = "📁" if year in uploaded_years else "🌐"
                 with st.expander(f"{source_mark} {year}年", expanded=(year == max(overall_data.keys()))):
                     df = pd.DataFrame(overall_data[year])
+                    # 空白列名や数字のみの列名を除外
+                    valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
+                    df = df[valid_cols]
                     st.dataframe(df, use_container_width=True)
+                    # 該当年度のURL表示
+                    if used_urls:
+                        for url_item in used_urls.get("overall", []):
+                            if url_item.get("year") == year:
+                                st.caption(f"🔗 {url_item.get('url', '')}")
+                                break
 
             # 経年比較テーブル
             st.subheader("📈 経年比較（全社得点推移）")
@@ -1351,7 +1424,7 @@ if st.session_state.results_data:
             if comparison_data:
                 st.dataframe(pd.DataFrame(comparison_data), use_container_width=True)
 
-    with tab5:
+    with tab4:
         st.header("📋 評価項目別ランキング（経年）")
 
         # トップに評価項目別の連続1位記録
@@ -1377,10 +1450,19 @@ if st.session_state.results_data:
         if item_data:
             for item_name, year_data in item_data.items():
                 with st.expander(f"📌 {item_name}", expanded=False):
+                    # 該当評価項目のURL表示
+                    if used_urls:
+                        for url_item in used_urls.get("items", []):
+                            if url_item.get("name") == item_name:
+                                st.caption(f"🔗 {url_item.get('url', '')}")
+                                break
                     if isinstance(year_data, dict):
                         for year in sorted(year_data.keys(), reverse=True):
                             st.markdown(f"**{year}年**")
                             df = pd.DataFrame(year_data[year])
+                            # 空白列名や数字のみの列名を除外
+                            valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
+                            df = df[valid_cols]
                             st.dataframe(df, use_container_width=True)
 
                         if len(year_data) > 1:
@@ -1402,7 +1484,7 @@ if st.session_state.results_data:
         else:
             st.info("評価項目別データは取得できませんでした")
 
-    with tab6:
+    with tab5:
         st.header("🏷️ 部門別ランキング（経年）")
 
         # トップに部門別の連続1位記録
@@ -1428,10 +1510,19 @@ if st.session_state.results_data:
         if dept_data:
             for dept_name, year_data in dept_data.items():
                 with st.expander(f"📌 {dept_name}", expanded=False):
+                    # 該当部門のURL表示
+                    if used_urls:
+                        for url_item in used_urls.get("departments", []):
+                            if url_item.get("name") == dept_name:
+                                st.caption(f"🔗 {url_item.get('url', '')}")
+                                break
                     if isinstance(year_data, dict):
                         for year in sorted(year_data.keys(), reverse=True):
                             st.markdown(f"**{year}年**")
                             df = pd.DataFrame(year_data[year])
+                            # 空白列名や数字のみの列名を除外
+                            valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
+                            df = df[valid_cols]
                             st.dataframe(df, use_container_width=True)
 
                         if len(year_data) > 1:
@@ -1450,7 +1541,7 @@ if st.session_state.results_data:
         else:
             st.info("部門別データは存在しないか取得できませんでした")
 
-    with tab7:
+    with tab6:
         st.header("📎 参考資料（使用したURL）")
 
         if used_urls:
@@ -1466,14 +1557,11 @@ if st.session_state.results_data:
                     }
                     for item in overall_urls
                 ])
-                # URLをクリック可能なリンクとして表示
+                # URL全文表示
                 st.dataframe(
                     url_df,
                     use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "URL": st.column_config.LinkColumn("URL", display_text="🔗 リンクを開く")
-                    }
+                    hide_index=True
                 )
             else:
                 st.info("総合ランキングのURLデータがありません")
@@ -1495,10 +1583,7 @@ if st.session_state.results_data:
                 st.dataframe(
                     url_df,
                     use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "URL": st.column_config.LinkColumn("URL", display_text="🔗 リンクを開く")
-                    }
+                    hide_index=True
                 )
             else:
                 st.info("評価項目別のURLデータがありません")
@@ -1520,10 +1605,7 @@ if st.session_state.results_data:
                 st.dataframe(
                     url_df,
                     use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "URL": st.column_config.LinkColumn("URL", display_text="🔗 リンクを開く")
-                    }
+                    hide_index=True
                 )
             else:
                 st.info("部門別のURLデータがありません")
