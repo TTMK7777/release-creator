@@ -38,3 +38,29 @@ test_*.xlsm
 # Output files
 output/
 *.log
+
+# ===== 社内ファイル除外 =====
+# Excel/Wordファイル（テンプレート・実データ）
+*.xlsx
+*.xlsm
+*.docx
+
+# VBAモジュール（社内業務フロー）
+vba_modules/
+
+# テンプレートフォルダ
+テンプレート/
+
+# ドキュメント（ローカルパス含む）
+docs/
+scripts/
+
+# プロンプト・分析レポート
+プロンプトアプローチ/
+*.md
+!streamlit-app/*.md
+!README.md
+
+# その他
+files/
+HANDOFF*.md
