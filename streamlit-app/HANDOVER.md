@@ -129,6 +129,29 @@ Row 5〜: データ行
   4. **項目特徴分析のスコアチェック** (602-606行目)
      - 修正: `if score1 is not None and score2 is not None`
 
+**問題6: 評価項目別/部門別 平均得点推移グラフが表示されない (未解決)**
+- 症状: 歴代記録タブの「評価項目別 平均得点推移」「部門別 平均得点推移」グラフが表示されない
+- 該当箇所: `app.py` 1312-1376行目
+- 原因調査:
+  1. `item_data` / `dept_data` の構造が期待と異なる可能性
+  2. 各データ内の `score` キーが存在しない、または異なるキー名の可能性
+  3. Webスクレイピングで取得したデータとExcelアップロードデータで構造が異なる可能性
+- 現在の実装:
+  ```python
+  for item_name, year_data in item_data.items():
+      if isinstance(year_data, dict):
+          for year, data in year_data.items():
+              scores = [d.get("score") for d in data if d.get("score") is not None]
+  ```
+- デバッグ方法:
+  1. `st.write(item_data)` でデータ構造を確認
+  2. 各企業データに `score` キーが含まれているか確認
+  3. スクレイピングとExcelで取得されるキー名を比較
+- 推奨対応:
+  1. `scraper.py` と `app.py` の Excel パース部分でスコアのキー名を統一
+  2. データ構造のバリデーション追加
+  3. グラフ表示前にデータ件数をログ出力
+
 ### 3. データ統合
 
 ```python
