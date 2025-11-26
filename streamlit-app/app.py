@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度®調査 TOPICSサポートシステム
-Streamlit版 v3.5 - 年度列検出ロジック改善版
+Streamlit版 v3.7 - 順位抽出ロジック修正版
+- 順位抽出: icon-rankクラス優先、評価項目別テーブル除外
 - 年度列の誤検出を防止（回答者数（最新年）等を除外）
 - 年度値の妥当性チェック（2000-2030範囲外は指定年度を使用）
 - オリコン内部Excelフォーマット対応（ヘッダー行自動検出）
-- 年度列がない場合はファイル名から年度を推測
-- 列名の柔軟な検出（ランキング対象企業名、スコア等）
 """
 
 import streamlit as st
@@ -1542,4 +1541,4 @@ if st.session_state.results_data:
 st.sidebar.divider()
 st.sidebar.markdown("---")
 st.sidebar.markdown("📌 **データソース**: life.oricon.co.jp")
-st.sidebar.markdown("🔧 **バージョン**: 3.6")
+st.sidebar.markdown("🔧 **バージョン**: 3.7")
