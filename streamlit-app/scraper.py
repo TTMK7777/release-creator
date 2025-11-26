@@ -495,35 +495,64 @@ class OriconScraper:
 
         Returns:
             {"rank": 1, "company": "楽天モバイル", "score": 69.5}
+
+        Note:
+            順位抽出の優先順位:
+            1. icon-rank クラス（総合順位の正しい表示場所）
+            2. imgタグのalt属性（ただし td.rank 内は除外）
+            3. クラス名から（rank-1, rank01 など）
+
+            評価項目別テーブル内の順位（td.rank 内の img）を
+            誤って総合順位として取得しないよう注意が必要。
         """
         data = {}
 
         # 順位を抽出
         rank = None
 
-        # パターン1: imgタグのalt属性
-        img = element.find("img", alt=re.compile(r"\d+位"))
-        if img:
-            match = re.search(r"(\d+)位", img.get("alt", ""))
+        # パターン1（最優先）: icon-rank クラスから総合順位を取得
+        # これが正しい総合順位の表示場所（評価項目別テーブル内の順位と混同しない）
+        icon_rank = element.find(class_=re.compile(r"icon-rank"))
+        if icon_rank:
+            rank_text = icon_rank.get_text(strip=True)
+            match = re.search(r"(\d+)", rank_text)
             if match:
                 rank = int(match.group(1))
 
-        # パターン2: クラス名から
+        # パターン2: imgタグのalt属性から（ただし td.rank 内は除外）
+        # 評価項目別テーブル内の順位を誤取得しないため
+        if not rank:
+            imgs = element.find_all("img", alt=re.compile(r"\d+位"))
+            for img in imgs:
+                # 親要素をチェック - td.rank（評価項目別テーブル内）は除外
+                parent = img.parent
+                if parent and parent.name == "td" and "rank" in parent.get("class", []):
+                    continue  # テーブル内の順位はスキップ
+                # ranking-score セクション内も除外（評価項目別・ジャンル別テーブル）
+                if img.find_parent(class_="ranking-score"):
+                    continue
+                match = re.search(r"(\d+)位", img.get("alt", ""))
+                if match:
+                    rank = int(match.group(1))
+                    break
+
+        # パターン3: クラス名から（例: rank-1, rank01）
         if not rank:
             class_str = " ".join(element.get("class", []))
             match = re.search(r"rank-?(\d+)", class_str)
             if match:
                 rank = int(match.group(1))
 
-        # パターン3: テキストから
+        # パターン4: フォールバック - icon クラスを持つ要素のテキストから
         if not rank:
-            rank_text = element.find(class_=re.compile(r"rank|icon"))
-            if rank_text:
-                match = re.search(r"(\d+)", rank_text.get_text())
+            rank_elem = element.find(class_=re.compile(r"^icon"))
+            if rank_elem:
+                match = re.search(r"(\d+)", rank_elem.get_text())
                 if match:
                     rank = int(match.group(1))
 
-        if not rank:
+        # 順位の検証（1-100の範囲内であること）
+        if not rank or rank < 1 or rank > 100:
             return None
 
         data["rank"] = rank
