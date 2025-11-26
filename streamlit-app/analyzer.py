@@ -76,7 +76,7 @@ class HistoricalAnalyzer:
         return records
 
     def _calc_consecutive_wins(self) -> List[Dict]:
-        """連続1位記録を計算"""
+        """連続1位記録を計算（年度欠落を考慮）"""
         if not self.overall:
             return []
 
@@ -85,6 +85,8 @@ class HistoricalAnalyzer:
 
         current_company = None
         streak_start = None
+        prev_year = None
+        actual_consecutive_years = 0  # 実際の連続年数
 
         for year in years:
             if not self.overall[year]:
@@ -92,27 +94,32 @@ class HistoricalAnalyzer:
 
             top_company = self.overall[year][0].get("company", "")
 
-            if top_company == current_company:
+            # 年度が連続しているかチェック（欠落年度がある場合は連続を切る）
+            is_consecutive_year = prev_year is None or year == prev_year + 1
+
+            if top_company == current_company and is_consecutive_year:
                 # 連続中
-                pass
+                actual_consecutive_years += 1
             else:
                 # 連続が途切れた or 新しい連続開始
-                if current_company and streak_start:
-                    prev_year = years[years.index(year) - 1] if years.index(year) > 0 else year
+                if current_company and streak_start and actual_consecutive_years >= 1:
                     company_streaks[current_company].append({
                         "start": streak_start,
                         "end": prev_year,
-                        "years": prev_year - streak_start + 1
+                        "years": actual_consecutive_years
                     })
                 current_company = top_company
                 streak_start = year
+                actual_consecutive_years = 1
+
+            prev_year = year
 
         # 最後の連続記録
-        if current_company and streak_start:
+        if current_company and streak_start and actual_consecutive_years >= 1:
             company_streaks[current_company].append({
                 "start": streak_start,
-                "end": years[-1],
-                "years": years[-1] - streak_start + 1
+                "end": prev_year,
+                "years": actual_consecutive_years
             })
 
         # 結果を整形
@@ -494,10 +501,11 @@ class TopicsAnalyzer:
         first = data[0]
         second = data[1]
 
-        score1 = first.get("score", 0)
-        score2 = second.get("score", 0)
+        score1 = first.get("score")
+        score2 = second.get("score")
 
-        if not score1 or not score2:
+        # 0点も有効な値として扱う（Noneのみを除外）
+        if score1 is None or score2 is None:
             return None
 
         diff = round(score1 - score2, 1)
@@ -526,7 +534,7 @@ class TopicsAnalyzer:
 
         # 各社の1位獲得数をカウント
         wins = {}
-        total_items = len(self.items)
+        actual_items = 0  # 実際にデータがある項目数（空データを除外）
 
         for item_name, year_data in self.items.items():
             # 新形式（経年データ）の場合は最新年度を使用
@@ -540,21 +548,22 @@ class TopicsAnalyzer:
                 data = year_data
 
             if data:
+                actual_items += 1  # データがある項目のみカウント
                 top_company = data[0].get("company", "")
                 if top_company:
                     wins[top_company] = wins.get(top_company, 0) + 1
 
-        if not wins:
+        if not wins or actual_items == 0:
             return None
 
         # 最多1位獲得企業
         top_winner = max(wins.items(), key=lambda x: x[1])
         company, count = top_winner
 
-        if count >= total_items * 0.6:  # 60%以上で「独占」
+        if count >= actual_items * 0.6:  # 60%以上で「独占」（実データ数基準）
             return {
                 "importance": "重要",
-                "title": f"{company}が{total_items}項目中{count}項目で1位を独占",
+                "title": f"{company}が{actual_items}項目中{count}項目で1位を独占",
                 "evidence": f"評価項目別ランキングで圧倒的な強さ",
                 "impact": 4
             }
@@ -590,10 +599,11 @@ class TopicsAnalyzer:
                 first = data[0]
                 second = data[1]
 
-                score1 = first.get("score", 0)
-                score2 = second.get("score", 0)
+                score1 = first.get("score")
+                score2 = second.get("score")
 
-                if score1 and score2:
+                # 0点も有効な値として扱う（Noneのみを除外）
+                if score1 is not None and score2 is not None:
                     diff = round(score1 - score2, 1)
 
                     if diff >= 3.0:

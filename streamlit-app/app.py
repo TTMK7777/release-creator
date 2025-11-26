@@ -74,8 +74,8 @@ def create_excel_export(ranking_name, overall_data, item_data, dept_data, histor
                         score = item.get("score")
                         rank = item.get("rank")
                         break
-                row[f"{year}年_得点"] = score if score else ""
-                row[f"{year}年_順位"] = rank if rank else ""
+                row[f"{year}年_得点"] = score if score is not None else ""
+                row[f"{year}年_順位"] = rank if rank is not None else ""
             pivot_data.append(row)
         if pivot_data:
             pd.DataFrame(pivot_data).to_excel(writer, sheet_name="経年比較", index=False)
@@ -232,12 +232,13 @@ def parse_uploaded_excel(uploaded_file, specified_year=None):
             # まずヘッダーなしで読み込んでヘッダー行を検出
             df_raw = pd.read_excel(xl, sheet_name=sheet_name, header=None)
 
-            # ヘッダー行を検出（"順位"と"ID"を含む行）
+            # ヘッダー行を検出（"順位"を含み、"企業"または"ランキング"を含む行）
+            # ID列は必須条件から除外（汎用性向上）
             header_row = None
             category_name = None  # 部門別シートのカテゴリ名
             for idx, row in df_raw.iterrows():
                 row_str = ' '.join([str(v) for v in row.values if pd.notna(v)])
-                if '順位' in row_str and 'ID' in row_str and ('企業' in row_str or 'ランキング' in row_str):
+                if '順位' in row_str and ('企業' in row_str or 'ランキング' in row_str or '会社' in row_str):
                     header_row = idx
                     # ヘッダー行の上にカテゴリ名がある場合（部門別シート）
                     # 構造: Row0=FX, Row1=シート名, Row2=カテゴリ名, Row3=n＝, Row4=ヘッダー
@@ -898,6 +899,9 @@ if st.sidebar.button("🚀 TOPICS出し実行", type="primary", use_container_wi
     if not ranking_slug:
         st.error("ランキングのURL名を入力してください")
     else:
+        # 実行開始時にセッション状態をリセット（前回結果が残らないように）
+        st.session_state.results_data = None
+
         # プログレスバー
         progress_bar = st.progress(0)
         status_text = st.empty()
@@ -1314,7 +1318,8 @@ if st.session_state.results_data:
                 for item_name, year_data in item_data.items():
                     if isinstance(year_data, dict):
                         for year, data in year_data.items():
-                            scores = [d.get("score") for d in data if d.get("score")]
+                            # 0点も有効な値として扱う（Noneのみを除外）
+                            scores = [d.get("score") for d in data if d.get("score") is not None]
                             if scores:
                                 item_avg_data.append({
                                     "評価項目": item_name[:15],  # 長すぎる項目名を短縮
@@ -1346,7 +1351,7 @@ if st.session_state.results_data:
                 for dept_name, year_data in dept_data.items():
                     if isinstance(year_data, dict):
                         for year, data in year_data.items():
-                            scores = [d.get("score") for d in data if d.get("score")]
+                            scores = [d.get("score") for d in data if d.get("score") is not None]
                             if scores:
                                 dept_avg_data.append({
                                     "部門": dept_name[:15],
@@ -1450,12 +1455,6 @@ if st.session_state.results_data:
         if item_data:
             for item_name, year_data in item_data.items():
                 with st.expander(f"📌 {item_name}", expanded=False):
-                    # 該当評価項目のURL表示
-                    if used_urls:
-                        for url_item in used_urls.get("items", []):
-                            if url_item.get("name") == item_name:
-                                st.caption(f"🔗 {url_item.get('url', '')}")
-                                break
                     if isinstance(year_data, dict):
                         for year in sorted(year_data.keys(), reverse=True):
                             st.markdown(f"**{year}年**")
@@ -1464,6 +1463,13 @@ if st.session_state.results_data:
                             valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
                             df = df[valid_cols]
                             st.dataframe(df, use_container_width=True)
+                            # 該当年度のURL表示
+                            if used_urls:
+                                for url_item in used_urls.get("items", []):
+                                    search_name = f"{item_name}({year}年)"
+                                    if url_item.get("name") == search_name and url_item.get("status") == "success":
+                                        st.caption(f"🔗 {url_item.get('url', '')}")
+                                        break
 
                         if len(year_data) > 1:
                             st.markdown("**📈 1位の推移**")
@@ -1510,12 +1516,6 @@ if st.session_state.results_data:
         if dept_data:
             for dept_name, year_data in dept_data.items():
                 with st.expander(f"📌 {dept_name}", expanded=False):
-                    # 該当部門のURL表示
-                    if used_urls:
-                        for url_item in used_urls.get("departments", []):
-                            if url_item.get("name") == dept_name:
-                                st.caption(f"🔗 {url_item.get('url', '')}")
-                                break
                     if isinstance(year_data, dict):
                         for year in sorted(year_data.keys(), reverse=True):
                             st.markdown(f"**{year}年**")
@@ -1524,6 +1524,13 @@ if st.session_state.results_data:
                             valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
                             df = df[valid_cols]
                             st.dataframe(df, use_container_width=True)
+                            # 該当年度のURL表示
+                            if used_urls:
+                                for url_item in used_urls.get("departments", []):
+                                    search_name = f"{dept_name}({year}年)"
+                                    if url_item.get("name") == search_name and url_item.get("status") == "success":
+                                        st.caption(f"🔗 {url_item.get('url', '')}")
+                                        break
 
                         if len(year_data) > 1:
                             st.markdown("**📈 1位の推移**")
