@@ -613,7 +613,8 @@ start_year = 2006
 
 year_option = st.sidebar.radio(
     "過去データ取得範囲",
-    ["直近3年", "直近5年", "全年度（2006年〜）", "カスタム範囲"]
+    ["直近3年", "直近5年", "全年度（2006年〜）", "カスタム範囲"],
+    index=2  # デフォルト: 全年度
 )
 
 if year_option == "直近3年":
@@ -633,6 +634,7 @@ else:
 # ファイルアップロード（オプション）
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📁 最新データのアップロード（オプション）")
+st.sidebar.caption("最新のランキングExcelをアップロードすることで、未公開の最新結果や記録を反映します。")
 uploaded_file = st.sidebar.file_uploader(
     "最新のランキングExcelをアップロード",
     type=["xlsx", "xls"],
