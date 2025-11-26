@@ -20,18 +20,55 @@ class OriconScraper:
 
     # サブドメインのマッピング（slug → サブドメイン）
     SUBDOMAIN_MAP = {
+        # ========================================
         # 教育系 → juken.oricon.co.jp
+        # ========================================
+        # 英語
         "online-english": "juken",
         "kids-english": "juken",
-        "tutor": "tutor",  # juken
+        "_english": "juken",
+        # 塾・受験
+        "_college": "juken",
+        "college-individual": "juken",
+        "college-video": "juken",
+        "highschool": "juken",
+        "highschool-individual": "juken",
+        "_junior": "juken",
+        "public-junior": "juken",
+        "supplementary-school": "juken",
+        "kids-school": "juken",
+        # 通信教育・資格
         "online-study": "juken",
+        "tutor": "juken",
+        "cc": "juken",
+        "license": "juken",
+        # スポーツ
         "kids-swimming": "juken",
-        "english-school": "juken",
+        # ========================================
         # キャリア系 → career.oricon.co.jp
+        # ========================================
+        # 就活
+        "new-graduates-hiring-website": "career",
+        "reversed-job-offer": "career",
+        # アルバイト
+        "arbeit": "career",
+        # 転職
+        "job-change": "career",
+        "job-change_woman": "career",
+        "job-change_scout": "career",
+        # 転職エージェント
         "_agent": "career",
+        "_agent_nurse": "career",
+        "_agent_nursing": "career",
+        "_agent_hi-and-middle-class": "career",
+        # 派遣
         "_staffing": "career",
         "_staffing_manufacture": "career",
+        "temp-staff": "career",
+        "employment": "career",
+        # ========================================
         # その他は life.oricon.co.jp（デフォルト）
+        # ========================================
     }
 
     # 評価項目の日英対応表
@@ -96,10 +133,10 @@ class OriconScraper:
                 subdomain = domain
                 break
 
-        # tutorの特殊処理（マッピングに "tutor": "tutor" と誤記があったので修正）
-        if base_slug in ["online-english", "kids-english", "tutor", "online-study", "kids-swimming", "english-school"]:
+        # サブドメインの特殊処理（SUBDOMAIN_MAPで漏れた場合のフォールバック）
+        if base_slug in ["online-english", "kids-english", "tutor", "online-study", "kids-swimming", "_english"]:
             subdomain = "juken"
-        elif base_slug in ["_agent", "_staffing", "_staffing_manufacture"]:
+        elif base_slug in ["_agent", "_staffing", "_staffing_manufacture", "job-change"]:
             subdomain = "career"
 
         self.BASE_URL = f"https://{subdomain}.oricon.co.jp"
