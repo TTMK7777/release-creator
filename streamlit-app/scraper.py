@@ -148,10 +148,16 @@ class OriconScraper:
             if data:
                 results[year] = data
                 self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "success"})
-                pass  # データ取得成功
             else:
-                self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "not_found"})
-                pass  # データなし
+                # 特殊年度パターンを試す（例: 2014-2015）
+                # ランキング定義更新により年をまたぐケースに対応
+                special_url = f"{self.BASE_URL}/{self.url_prefix}/{year}-{year+1}{subpath_part}/"
+                data = self._fetch_ranking_page(special_url, self.survey_type)
+                if data:
+                    results[year] = data
+                    self.used_urls["overall"].append({"year": f"{year}-{year+1}", "url": special_url, "survey_type": self.survey_type, "status": "success"})
+                else:
+                    self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "not_found"})
 
             time.sleep(0.3)  # サーバー負荷軽減
 
