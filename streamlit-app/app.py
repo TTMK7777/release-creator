@@ -531,10 +531,7 @@ st.sidebar.header("⚙️ 設定")
 
 # ランキング選択
 ranking_options = {
-    "携帯キャリア": "mobile-carrier",
-    "格安SIM": "mvno",
-    "格安SIM（SIMのみ）": "mvno/sim",
-    "格安スマホ": "mvno/sp",
+    # === 金融・投資 ===
     "FX（顧客満足度）": "_fx",
     "FX（FP評価）": "_fx@type02",
     "銀行カードローン": "card-loan",
@@ -542,13 +539,50 @@ ranking_options = {
     "ネット証券（顧客満足度）": "_certificate",
     "ネット証券（FP評価）": "_certificate@type02",
     "iDeCo証券会社": "ideco",
+    "NISA（証券会社）": "_nisa",
+    "クレジットカード": "creditcard",
+    # === 保険 ===
     "自動車保険（ダイレクト型）": "_insurance",
     "自動車保険（代理店型）": "_insurance@type02",
     "自動車保険（FP推奨）": "_insurance@type03",
     "生命保険": "life-insurance",
-    "クレジットカード": "creditcard",
-    "転職サイト": "recruit",
+    "保険ショップ（FP）": "_hokenshop",
+    # === 通信 ===
+    "携帯キャリア": "mobile-carrier",
+    "格安SIM": "mvno",
+    "格安SIM（SIMのみ）": "mvno/sim",
+    "格安スマホ": "mvno/sp",
+    # === 教育（英会話） ===
     "英会話スクール": "english-school",
+    "オンライン英会話": "online-english",
+    "子ども英語教室（幼児）": "kids-english/preschooler",
+    "子ども英語教室（小学生）": "kids-english/grade-schooler",
+    # === 教育（学習） ===
+    "家庭教師": "tutor",
+    "通信教育（高校生）": "online-study/highschool",
+    "通信教育（中学生）": "online-study/junior-hs",
+    "通信教育（小学生）": "online-study/elementary",
+    # === 教育（スポーツ） ===
+    "キッズスイミングスクール（幼児）": "kids-swimming/preschooler",
+    "キッズスイミングスクール（小学生）": "kids-swimming/grade-schooler",
+    # === 転職・人材 ===
+    "転職サイト": "recruit",
+    "転職エージェント": "_agent",
+    "派遣会社（製造業）": "_staffing_manufacture",
+    # === 住宅・不動産 ===
+    "ハウスメーカー（注文住宅）": "house-maker",
+    "建売住宅ビルダー": "new-ready-built-house",
+    "建売住宅（パワービルダー）": "new-ready-built-house/powerbuilder",
+    "新築分譲マンション": "new-condominiums",
+    # === 生活サービス ===
+    "引越し会社": "_move",
+    "食材宅配": "food-delivery",
+    "ミールキット": "food-delivery/meal-kit",
+    "子ども見守りGPS": "child-gps",
+    # === フィットネス ===
+    "フィットネスクラブ": "_fitness",
+    "24時間ジム": "_fitness/24hours",
+    # === その他 ===
     "カスタム入力": "custom"
 }
 

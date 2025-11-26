@@ -10,9 +10,29 @@ from typing import Dict, List, Optional
 import time
 
 class OriconScraper:
-    """life.oricon.co.jpからランキングデータを取得"""
+    """オリコン顧客満足度サイトからランキングデータを取得
 
-    BASE_URL = "https://life.oricon.co.jp"
+    対応サブドメイン:
+    - life.oricon.co.jp: 生活系（金融、保険、通信、住宅、生活サービスなど）
+    - juken.oricon.co.jp: 教育系（英会話、家庭教師、通信教育、スイミングなど）
+    - career.oricon.co.jp: キャリア系（転職エージェント、派遣会社など）
+    """
+
+    # サブドメインのマッピング（slug → サブドメイン）
+    SUBDOMAIN_MAP = {
+        # 教育系 → juken.oricon.co.jp
+        "online-english": "juken",
+        "kids-english": "juken",
+        "tutor": "tutor",  # juken
+        "online-study": "juken",
+        "kids-swimming": "juken",
+        "english-school": "juken",
+        # キャリア系 → career.oricon.co.jp
+        "_agent": "career",
+        "_staffing": "career",
+        "_staffing_manufacture": "career",
+        # その他は life.oricon.co.jp（デフォルト）
+    }
 
     # 評価項目の日英対応表
     EVALUATION_ITEMS = {
@@ -32,6 +52,15 @@ class OriconScraper:
         "service": "サービス",
         "app": "アプリ",
         "website": "サイト",
+        # 教育系
+        "curriculum": "カリキュラム",
+        "teacher": "講師",
+        "price": "料金",
+        "facility": "施設",
+        # 住宅系
+        "design": "デザイン",
+        "quality": "品質",
+        "after-service": "アフターサービス",
     }
 
     def __init__(self, ranking_slug: str, ranking_name: str):
@@ -59,6 +88,21 @@ class OriconScraper:
         else:
             base_slug = ranking_slug
             self.subpath = ""
+
+        # サブドメインを決定（教育系、キャリア系など）
+        subdomain = "life"  # デフォルト
+        for slug_pattern, domain in self.SUBDOMAIN_MAP.items():
+            if base_slug == slug_pattern or base_slug.startswith(slug_pattern):
+                subdomain = domain
+                break
+
+        # tutorの特殊処理（マッピングに "tutor": "tutor" と誤記があったので修正）
+        if base_slug in ["online-english", "kids-english", "tutor", "online-study", "kids-swimming", "english-school"]:
+            subdomain = "juken"
+        elif base_slug in ["_agent", "_staffing", "_staffing_manufacture"]:
+            subdomain = "career"
+
+        self.BASE_URL = f"https://{subdomain}.oricon.co.jp"
 
         # アンダースコア形式の処理（_fxの場合はrank_fxになる）
         if base_slug.startswith("_"):
