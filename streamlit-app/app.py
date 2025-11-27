@@ -1652,4 +1652,4 @@ if st.session_state.results_data:
 st.sidebar.divider()
 st.sidebar.markdown("---")
 st.sidebar.markdown("📌 **データソース**: life.oricon.co.jp")
-st.sidebar.markdown("🔧 **バージョン**: 4.1")
+st.sidebar.markdown("🔧 **バージョン**: 4.4")
