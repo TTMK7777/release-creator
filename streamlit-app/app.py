@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度®調査 TOPICSサポートシステム
-Streamlit版 v4.9 - 総合ランキングタブに1位獲得回数追加
+Streamlit版 - バージョンはHANDOVER.mdで管理
 - 総合ランキングタブに1位獲得回数ランキングを追加（評価項目別・部門別と同様）
 - 評価項目別・部門別タブに1位獲得回数ランキングを追加
 - 年度検出ロジック修正: 更新日を年度基準として使用（調査期間は不使用）
@@ -14,8 +14,25 @@ Streamlit版 v4.9 - 総合ランキングタブに1位獲得回数追加
 - 動的年度検出: トップページから実際の発表年度を自動判定
 """
 
-# バージョン情報（ここを更新すればサイドバーにも反映される）
-__version__ = "4.8"
+# バージョン情報はHANDOVER.mdから動的に取得（二重管理を解消）
+def get_version_from_handover():
+    """HANDOVER.mdから最新バージョンを取得"""
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    handover_path = os.path.join(current_dir, "HANDOVER.md")
+    try:
+        with open(handover_path, "r", encoding="utf-8") as f:
+            for line in f:
+                # | v4.9 | 2025-11-28 | ... | の形式から最初のバージョンを取得
+                if line.startswith("| v") and "|" in line:
+                    parts = [p.strip() for p in line.split("|") if p.strip()]
+                    if parts and parts[0].startswith("v"):
+                        return parts[0]
+    except Exception:
+        pass
+    return "unknown"
+
+__version__ = get_version_from_handover()
 
 import logging
 
