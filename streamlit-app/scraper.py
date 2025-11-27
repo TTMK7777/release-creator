@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度サイトのスクレイパー
+v4.2 - コードレビュー対応版（リトライ処理追加）
 """
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 import re
 from typing import Dict, List, Optional
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 class OriconScraper:
     """オリコン顧客満足度サイトからランキングデータを取得
@@ -146,7 +152,20 @@ class OriconScraper:
             self.url_prefix = f"rank{base_slug}"  # rank_fx
         else:
             self.url_prefix = f"rank-{base_slug}"  # rank-mobile-carrier形式
+        # セッション設定（リトライ処理追加）
         self.session = requests.Session()
+
+        # リトライ戦略: 500, 502, 503, 504エラー時に最大3回リトライ
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,  # 1, 2, 4秒と増加
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=["GET"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         })
@@ -178,16 +197,26 @@ class OriconScraper:
                 # 最新年度（URLに年度なし）
                 url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/"
             else:
-                # 過去年度
-                url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/"
+                # 過去年度 - サブパスがある場合は /subpath/year/ 形式を優先
+                # 例: rank_fitness/24hours/2024/ （正しい形式）
+                url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/{year}/"
 
             data = self._fetch_ranking_page(url, self.survey_type)
             if data:
                 results[year] = data
                 self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "success"})
             else:
-                # 特殊年度パターンを試す（例: 2014-2015）
-                # ランキング定義更新により年をまたぐケースに対応
+                # 代替パターン1: /year/subpath/ 形式を試す
+                # 例: rank_fitness/2024/24hours/
+                if self.subpath:
+                    alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/"
+                    data = self._fetch_ranking_page(alt_url, self.survey_type)
+                    if data:
+                        results[year] = data
+                        self.used_urls["overall"].append({"year": year, "url": alt_url, "survey_type": self.survey_type, "status": "success"})
+                        continue
+
+                # 代替パターン2: 特殊年度パターン（例: 2014-2015）
                 special_url = f"{self.BASE_URL}/{self.url_prefix}/{year}-{year+1}{subpath_part}/"
                 data = self._fetch_ranking_page(special_url, self.survey_type)
                 if data:
@@ -235,8 +264,8 @@ class OriconScraper:
                     # 最新年度
                     url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/evaluation-item/{item_slug}.html"
                 else:
-                    # 過去年度
-                    url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/evaluation-item/{item_slug}.html"
+                    # 過去年度 - /subpath/year/ 形式を優先
+                    url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/{year}/evaluation-item/{item_slug}.html"
 
                 data = self._fetch_ranking_page(url, self.survey_type)
                 if data:
@@ -248,6 +277,20 @@ class OriconScraper:
                         "status": "success"
                     })
                 else:
+                    # 代替パターン: /year/subpath/ 形式を試す
+                    if self.subpath:
+                        alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/evaluation-item/{item_slug}.html"
+                        data = self._fetch_ranking_page(alt_url, self.survey_type)
+                        if data:
+                            results[item_name][year] = data
+                            self.used_urls["items"].append({
+                                "name": f"{item_name}({year}年)",
+                                "url": alt_url,
+                                "survey_type": self.survey_type,
+                                "status": "success"
+                            })
+                            continue
+
                     self.used_urls["items"].append({
                         "name": f"{item_name}({year}年)",
                         "url": url,
@@ -294,10 +337,8 @@ class OriconScraper:
                     # 最新年度
                     url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/{dept_path}"
                 else:
-                    # 過去年度
-                    # パスの形式によって挿入位置を調整
-                    # 例: age/50s.html → 2023/age/50s.html
-                    url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/{dept_path}"
+                    # 過去年度 - /subpath/year/ 形式を優先
+                    url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/{year}/{dept_path}"
 
                 data = self._fetch_ranking_page(url, self.survey_type)
                 if data:
@@ -309,6 +350,20 @@ class OriconScraper:
                         "status": "success"
                     })
                 else:
+                    # 代替パターン: /year/subpath/ 形式を試す
+                    if self.subpath:
+                        alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/{dept_path}"
+                        data = self._fetch_ranking_page(alt_url, self.survey_type)
+                        if data:
+                            results[dept_name][year] = data
+                            self.used_urls["departments"].append({
+                                "name": f"{dept_name}({year}年)",
+                                "url": alt_url,
+                                "survey_type": self.survey_type,
+                                "status": "success"
+                            })
+                            continue
+
                     self.used_urls["departments"].append({
                         "name": f"{dept_name}({year}年)",
                         "url": url,

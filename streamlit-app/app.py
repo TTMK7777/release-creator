@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度®調査 TOPICSサポートシステム
-Streamlit版 v3.7 - 順位抽出ロジック修正版
+Streamlit版 v4.2 - コードレビュー対応版
 - 順位抽出: icon-rankクラス優先、評価項目別テーブル除外
 - 年度列の誤検出を防止（回答者数（最新年）等を除外）
-- 年度値の妥当性チェック（2000-2030範囲外は指定年度を使用）
+- 年度値の妥当性チェック（動的年度範囲対応）
 - オリコン内部Excelフォーマット対応（ヘッダー行自動検出）
+- セキュリティ改善: トレースバック情報の非公開化
 """
+
+import logging
+
+# ロギング設定（本番環境ではログレベルをINFOに変更推奨）
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 import streamlit as st
 import pandas as pd
@@ -347,7 +354,10 @@ def parse_uploaded_excel(uploaded_file, specified_year=None):
                     if year_col and pd.notna(row.get(year_col)):
                         try:
                             year = int(row[year_col])
-                            if year < 2000 or year > 2030:
+                            # 動的年度範囲: 2000年から現在年+5年まで
+                            current_year = datetime.now().year
+                            max_year = current_year + 5
+                            if year < 2000 or year > max_year:
                                 year = inferred_year
                         except (ValueError, TypeError):
                             year = inferred_year
@@ -422,7 +432,10 @@ def parse_uploaded_excel(uploaded_file, specified_year=None):
         return overall_data, item_data, dept_data, None
     except Exception as e:
         import traceback
-        return None, None, None, f"{str(e)}\n{traceback.format_exc()}"
+        # セキュリティ対策: トレースバック詳細はログのみに出力（ユーザーには非表示）
+        logger.error(f"Excel解析エラー: {str(e)}\n{traceback.format_exc()}")
+        # ユーザーには一般的なエラーメッセージのみ表示
+        return None, None, None, f"Excelファイルの解析中にエラーが発生しました: {str(e)}"
 
 
 def merge_data(uploaded_data, scraped_data):
@@ -1309,72 +1322,79 @@ if st.session_state.results_data:
                     dept_records.sort(key=lambda x: -int(x["連続年数"].replace("年", "")))
                     st.dataframe(pd.DataFrame(dept_records[:15]), use_container_width=True, hide_index=True)
 
-            # 評価項目別 平均得点推移（縦棒グラフ）
-            st.divider()
-            st.subheader("📊 評価項目別 平均得点推移")
-            if item_data:
-                # 各評価項目の年度別平均得点を計算
-                item_avg_data = []
-                for item_name, year_data in item_data.items():
-                    if isinstance(year_data, dict):
-                        for year, data in year_data.items():
-                            # 0点も有効な値として扱う（Noneのみを除外）
-                            scores = [d.get("score") for d in data if d.get("score") is not None]
-                            if scores:
-                                item_avg_data.append({
-                                    "評価項目": item_name[:15],  # 長すぎる項目名を短縮
-                                    "年度": str(year),
-                                    "平均得点": round(sum(scores) / len(scores), 2)
-                                })
+        # 評価項目別 平均得点推移（縦棒グラフ）- trendsの有無に関わらず表示
+        st.divider()
+        st.subheader("📊 評価項目別 平均得点推移")
+        if item_data:
+            # 各評価項目の年度別平均得点を計算
+            item_avg_data = []
+            for item_name, year_data in item_data.items():
+                if isinstance(year_data, dict):
+                    for year, data in year_data.items():
+                        # 0点も有効な値として扱う（Noneのみを除外）
+                        scores = [d.get("score") for d in data if d.get("score") is not None]
+                        if scores:
+                            item_avg_data.append({
+                                "評価項目": item_name[:15],  # 長すぎる項目名を短縮
+                                "年度": str(year),
+                                "平均得点": round(sum(scores) / len(scores), 2)
+                            })
 
-                if item_avg_data:
-                    item_avg_df = pd.DataFrame(item_avg_data)
-                    # 最新3年度に絞る
-                    latest_years = sorted(item_avg_df["年度"].unique(), reverse=True)[:3]
-                    item_avg_df = item_avg_df[item_avg_df["年度"].isin(latest_years)]
+            if item_avg_data:
+                item_avg_df = pd.DataFrame(item_avg_data)
+                # 最新3年度に絞る
+                latest_years = sorted(item_avg_df["年度"].unique(), reverse=True)[:3]
+                item_avg_df = item_avg_df[item_avg_df["年度"].isin(latest_years)]
 
-                    chart = alt.Chart(item_avg_df).mark_bar().encode(
-                        x=alt.X('評価項目:N', title='評価項目', sort='-y'),
-                        y=alt.Y('平均得点:Q', title='平均得点', scale=alt.Scale(domain=[60, 80])),
-                        color=alt.Color('年度:N', title='年度'),
-                        xOffset='年度:N',
-                        tooltip=['評価項目', '年度', '平均得点']
-                    ).properties(height=400)
-                    st.altair_chart(chart, use_container_width=True)
+                # グループ化縦棒グラフ（年度ごとに横並び）
+                import altair as alt
+                chart = alt.Chart(item_avg_df).mark_bar().encode(
+                    x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y('平均得点:Q', title='平均得点', scale=alt.Scale(zero=False)),
+                    color=alt.Color('年度:N', title='年度'),
+                    column=alt.Column('評価項目:N', title=None, header=alt.Header(labelOrient='bottom')),
+                    tooltip=['評価項目', '年度', '平均得点']
+                ).properties(width=80, height=300)
+                st.altair_chart(chart)
             else:
-                st.info("評価項目別データがありません")
+                st.info("評価項目別データにスコアが含まれていません")
+        else:
+            st.info("評価項目別データがありません")
 
-            # 部門別 平均得点推移（縦棒グラフ）
-            st.subheader("📊 部門別 平均得点推移")
-            if dept_data:
-                dept_avg_data = []
-                for dept_name, year_data in dept_data.items():
-                    if isinstance(year_data, dict):
-                        for year, data in year_data.items():
-                            scores = [d.get("score") for d in data if d.get("score") is not None]
-                            if scores:
-                                dept_avg_data.append({
-                                    "部門": dept_name[:15],
-                                    "年度": str(year),
-                                    "平均得点": round(sum(scores) / len(scores), 2)
-                                })
+        # 部門別 平均得点推移（縦棒グラフ）- trendsの有無に関わらず表示
+        st.subheader("📊 部門別 平均得点推移")
+        if dept_data:
+            dept_avg_data = []
+            for dept_name, year_data in dept_data.items():
+                if isinstance(year_data, dict):
+                    for year, data in year_data.items():
+                        scores = [d.get("score") for d in data if d.get("score") is not None]
+                        if scores:
+                            dept_avg_data.append({
+                                "部門": dept_name[:15],
+                                "年度": str(year),
+                                "平均得点": round(sum(scores) / len(scores), 2)
+                            })
 
-                if dept_avg_data:
-                    dept_avg_df = pd.DataFrame(dept_avg_data)
-                    latest_years = sorted(dept_avg_df["年度"].unique(), reverse=True)[:3]
-                    dept_avg_df = dept_avg_df[dept_avg_df["年度"].isin(latest_years)]
+            if dept_avg_data:
+                dept_avg_df = pd.DataFrame(dept_avg_data)
+                latest_years = sorted(dept_avg_df["年度"].unique(), reverse=True)[:3]
+                dept_avg_df = dept_avg_df[dept_avg_df["年度"].isin(latest_years)]
 
-                    chart = alt.Chart(dept_avg_df).mark_bar().encode(
-                        x=alt.X('部門:N', title='部門', sort='-y'),
-                        y=alt.Y('平均得点:Q', title='平均得点', scale=alt.Scale(domain=[60, 80])),
-                        color=alt.Color('年度:N', title='年度'),
-                        xOffset='年度:N',
-                        tooltip=['部門', '年度', '平均得点']
-                    ).properties(height=400)
-                    st.altair_chart(chart, use_container_width=True)
+                # グループ化縦棒グラフ（年度ごとに横並び）
+                import altair as alt
+                chart = alt.Chart(dept_avg_df).mark_bar().encode(
+                    x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y('平均得点:Q', title='平均得点', scale=alt.Scale(zero=False)),
+                    color=alt.Color('年度:N', title='年度'),
+                    column=alt.Column('部門:N', title=None, header=alt.Header(labelOrient='bottom')),
+                    tooltip=['部門', '年度', '平均得点']
+                ).properties(width=80, height=300)
+                st.altair_chart(chart)
             else:
-                st.info("部門別データがありません")
-
+                st.info("部門別データにスコアが含まれていません")
+        else:
+            st.info("部門別データがありません")
 
     with tab3:
         st.header("📊 総合ランキング（経年詳細）")
@@ -1630,4 +1650,4 @@ if st.session_state.results_data:
 st.sidebar.divider()
 st.sidebar.markdown("---")
 st.sidebar.markdown("📌 **データソース**: life.oricon.co.jp")
-st.sidebar.markdown("🔧 **バージョン**: 3.7")
+st.sidebar.markdown("🔧 **バージョン**: 4.1")
