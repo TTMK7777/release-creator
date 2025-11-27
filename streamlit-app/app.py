@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度®調査 TOPICSサポートシステム
-Streamlit版 v4.6 - 1位獲得回数表示拡充版
+Streamlit版 v4.9 - 総合ランキングタブに1位獲得回数追加
+- 総合ランキングタブに1位獲得回数ランキングを追加（評価項目別・部門別と同様）
 - 評価項目別・部門別タブに1位獲得回数ランキングを追加
 - 年度検出ロジック修正: 更新日を年度基準として使用（調査期間は不使用）
 - 同率順位対応: 同点の場合「同率1位」として分析（2社/3社以上対応）
@@ -1449,6 +1450,39 @@ if st.session_state.results_data:
         if records:
             display_historical_summary(records)
             display_consecutive_wins_compact(records)
+            st.divider()
+
+        # 総合ランキング1位獲得回数ランキング
+        most_wins = records.get("most_wins", []) if records else []
+        if most_wins:
+            st.subheader("🏆 総合ランキング 1位獲得回数ランキング")
+            # 最新年度を取得
+            all_years = set()
+            for r in most_wins:
+                all_years.update(r.get("years", []))
+            latest_year = max(all_years) if all_years else None
+
+            overall_wins_data = []
+            for r in most_wins:
+                if r.get("wins", 0) > 0:
+                    # 継続中フラグ: 最新年度も1位なら✅
+                    is_current = latest_year in r.get("years", []) if latest_year else False
+                    total_years = r.get("total_years", 0)
+                    wins = r.get("wins", 0)
+                    overall_wins_data.append({
+                        "企業名": r.get("company", ""),
+                        "1位回数": wins,  # ソート用に数値で保持
+                        "獲得率": f"{wins/total_years*100:.1f}%" if total_years > 0 else "0.0%",
+                        "継続中": "✅" if is_current else "",
+                        "獲得年": ", ".join(map(str, r.get("years", [])))
+                    })
+            if overall_wins_data:
+                # 1位回数の多い順にソート
+                overall_wins_data.sort(key=lambda x: -x["1位回数"])
+                # 表示用に回数を文字列に変換
+                for d in overall_wins_data:
+                    d["1位回数"] = f"{d['1位回数']}回"
+                st.dataframe(pd.DataFrame(overall_wins_data), use_container_width=True, hide_index=True)
             st.divider()
 
         if overall_data:
