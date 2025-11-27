@@ -14,7 +14,7 @@ Streamlit版 v4.6 - 1位獲得回数表示拡充版
 """
 
 # バージョン情報（ここを更新すればサイドバーにも反映される）
-__version__ = "4.5"
+__version__ = "4.6"
 
 import logging
 
