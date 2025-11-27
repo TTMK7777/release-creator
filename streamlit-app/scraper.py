@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度サイトのスクレイパー
-v4.2 - コードレビュー対応版（リトライ処理追加）
+v4.3 - 動的年度検出機能追加
+- トップページから実際の発表年度を自動検出
+- 未発表年度のスキップ機能
+- リトライ処理（v4.2より継続）
 """
 
 import requests
@@ -175,6 +178,66 @@ class OriconScraper:
             "items": [],
             "departments": []
         }
+        # トップページの実際の年度をキャッシュ
+        self._actual_top_year = None
+
+    def _detect_actual_year(self, url: str) -> Optional[int]:
+        """
+        トップページから実際の発表年度を検出
+
+        調査実施時期や更新日から年度を推定する。
+        例: 「2024/05/24～2024/07/23」→ 2024年
+
+        Returns:
+            検出された年度（例: 2024）、検出できない場合はNone
+        """
+        try:
+            response = self.session.get(url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            # パターン1: 調査実施時期から検出
+            # 例: 「調査対象期間：2024/05/24～2024/07/23」
+            text = soup.get_text()
+
+            # 調査期間のパターン（YYYY/MM/DD～YYYY/MM/DD）
+            survey_match = re.search(r'(\d{4})/\d{1,2}/\d{1,2}[～〜\-]\d{4}/\d{1,2}/\d{1,2}', text)
+            if survey_match:
+                year = int(survey_match.group(1))
+                logger.info(f"調査期間から年度検出: {year}年")
+                return year
+
+            # パターン2: タイトルから検出
+            # 例: 「2024年 オリコン顧客満足度」
+            title_match = re.search(r'(\d{4})年\s*オリコン', text)
+            if title_match:
+                year = int(title_match.group(1))
+                logger.info(f"タイトルから年度検出: {year}年")
+                return year
+
+            # パターン3: 過去ランキングリンクから推定
+            # 最新の過去年度リンク + 1 = 現在の年度
+            past_links = soup.find_all('a', href=re.compile(r'/\d{4}/?$'))
+            if past_links:
+                years = []
+                for link in past_links:
+                    href = link.get('href', '')
+                    year_match = re.search(r'/(\d{4})/?$', href)
+                    if year_match:
+                        years.append(int(year_match.group(1)))
+                if years:
+                    max_past_year = max(years)
+                    # 過去年度の最大値 + 1 が現在の年度
+                    inferred_year = max_past_year + 1
+                    logger.info(f"過去リンクから年度推定: {inferred_year}年（過去最大: {max_past_year}年）")
+                    return inferred_year
+
+            logger.warning(f"年度を検出できませんでした: {url}")
+            return None
+
+        except Exception as e:
+            logger.error(f"年度検出エラー: {e}")
+            return None
 
     def get_overall_rankings(self, year_range: tuple = (2020, 2024)) -> Dict[int, List[Dict]]:
         """
@@ -189,13 +252,40 @@ class OriconScraper:
         results = {}
         start_year, end_year = year_range
 
-        for year in range(end_year, start_year - 1, -1):  # 新しい年から古い年へ
-            # サブパスがある場合の処理
-            subpath_part = f"/{self.subpath}" if self.subpath else ""
+        # サブパスがある場合の処理
+        subpath_part = f"/{self.subpath}" if self.subpath else ""
 
-            if year == end_year:
-                # 最新年度（URLに年度なし）
-                url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/"
+        # トップページのURLを構築
+        top_url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/"
+
+        # トップページから実際の発表年度を検出（キャッシュ利用）
+        if self._actual_top_year is None:
+            self._actual_top_year = self._detect_actual_year(top_url)
+            if self._actual_top_year:
+                logger.info(f"トップページの実際の年度: {self._actual_top_year}年")
+            else:
+                # 検出できない場合はend_yearを使用
+                self._actual_top_year = end_year
+                logger.warning(f"年度検出できず、end_year({end_year})を使用")
+
+        actual_top_year = self._actual_top_year
+
+        for year in range(end_year, start_year - 1, -1):  # 新しい年から古い年へ
+
+            if year == actual_top_year:
+                # トップページの年度と一致 → 年度なしURL
+                url = top_url
+                logger.info(f"{year}年: トップページURL使用 {url}")
+            elif year > actual_top_year:
+                # まだ発表されていない年度 → スキップ
+                logger.info(f"{year}年: 未発表のためスキップ（現在の最新: {actual_top_year}年）")
+                self.used_urls["overall"].append({
+                    "year": year,
+                    "url": "-",
+                    "survey_type": self.survey_type,
+                    "status": "not_published"
+                })
+                continue
             else:
                 # 過去年度 - サブパスがある場合は /subpath/year/ 形式を優先
                 # 例: rank_fitness/24hours/2024/ （正しい形式）
@@ -254,14 +344,27 @@ class OriconScraper:
             start_year, end_year = year_range
             years = list(range(end_year, start_year - 1, -1))
         else:
-            years = [2024]  # 最新年度のみ
+            years = [self._actual_top_year or 2024]  # 検出済みの年度を使用
+
+        # トップページの実際の年度を使用（get_overall_rankingsで検出済みなら利用）
+        actual_top_year = self._actual_top_year or max(years)
 
         for item_slug, item_name in items.items():
             results[item_name] = {}
 
             for year in years:
-                if year == max(years):
-                    # 最新年度
+                # 未発表年度はスキップ
+                if year > actual_top_year:
+                    self.used_urls["items"].append({
+                        "name": f"{item_name}({year}年)",
+                        "url": "-",
+                        "survey_type": self.survey_type,
+                        "status": "not_published"
+                    })
+                    continue
+
+                if year == actual_top_year:
+                    # トップページの年度と一致 → 年度なしURL
                     url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/evaluation-item/{item_slug}.html"
                 else:
                     # 過去年度 - /subpath/year/ 形式を優先
@@ -327,14 +430,27 @@ class OriconScraper:
             start_year, end_year = year_range
             years = list(range(end_year, start_year - 1, -1))
         else:
-            years = [2024]
+            years = [self._actual_top_year or 2024]  # 検出済みの年度を使用
+
+        # トップページの実際の年度を使用（get_overall_rankingsで検出済みなら利用）
+        actual_top_year = self._actual_top_year or max(years)
 
         for dept_path, dept_name in departments.items():
             results[dept_name] = {}
 
             for year in years:
-                if year == max(years):
-                    # 最新年度
+                # 未発表年度はスキップ
+                if year > actual_top_year:
+                    self.used_urls["departments"].append({
+                        "name": f"{dept_name}({year}年)",
+                        "url": "-",
+                        "survey_type": self.survey_type,
+                        "status": "not_published"
+                    })
+                    continue
+
+                if year == actual_top_year:
+                    # トップページの年度と一致 → 年度なしURL
                     url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/{dept_path}"
                 else:
                     # 過去年度 - /subpath/year/ 形式を優先
