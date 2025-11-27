@@ -230,6 +230,43 @@ merged = merge_data(uploaded_overall, scraped_overall)
 - **得点推移分析**: 年度別平均、企業別推移
 - **TOPICS生成**: 重要トピックスの自動抽出、見出し案生成
 
+**問題11: 同点の場合の分析が不適切 (v4.4で解決)**
+- 症状: SBI証券(68.9点) vs 楽天証券(68.9点)の場合、「得点差わずか0.0点の僅差」と表示
+- 問題: オリコンでは同点は「同率1位」として扱う（2位は存在しない）
+- **修正内容** (v4.4):
+  - `_analyze_score_difference()` メソッドを改善
+  - 同点の企業をすべて検出し、「同率1位」として分析
+  - impact値を5に設定（通常の得点差分析より重要度が高い）
+
+  **対応パターン**:
+  | ケース | 入力例 | 出力 |
+  |--------|--------|------|
+  | 2社同率1位 | SBI証券=楽天証券(68.9点) | 「SBI証券と楽天証券が同率1位」 |
+  | 3社以上同率1位 | A社=B社=C社(70.0点) | 「3社が同率1位で並ぶ」 |
+  | 僅差（0.5点以下） | 68.9点 vs 68.5点 | 「1位と2位の得点差わずか0.4点の僅差」 |
+  | 大差（2点以上） | 70.0点 vs 67.5点 | 「1位と2位の得点差2.5点、SBI証券が大きく引き離す」 |
+
+  **実装詳細** (`analyzer.py:508-533`):
+  ```python
+  # 同率1位のチェック: 同じ得点の企業をすべて収集
+  tied_companies = [first["company"]]
+  for entry in data[1:]:
+      if entry.get("score") == score1:
+          tied_companies.append(entry["company"])
+      else:
+          break  # 得点が異なる企業が出たらループ終了
+
+  # 同率1位が2社以上の場合
+  if len(tied_companies) >= 2:
+      if len(tied_companies) == 2:
+          return {
+              "importance": "重要",
+              "title": f"{tied_companies[0]}と{tied_companies[1]}が同率1位",
+              "evidence": f"両社とも{score1}点で並ぶ",
+              "impact": 5
+          }
+  ```
+
 ## UI機能
 
 ### 参考資料URL
