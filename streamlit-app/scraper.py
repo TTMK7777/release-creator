@@ -186,7 +186,11 @@ class OriconScraper:
         トップページから実際の発表年度を検出
 
         調査実施時期や更新日から年度を推定する。
-        例: 「2024/05/24～2024/07/23」→ 2024年
+        優先順位:
+        1. 最終更新日（最も信頼性が高い）
+        2. タイトルの年度表記
+        3. 調査実施時期
+        4. 過去リンクからの推定（フォールバック）
 
         Returns:
             検出された年度（例: 2024）、検出できない場合はNone
@@ -195,28 +199,47 @@ class OriconScraper:
             response = self.session.get(url, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
-
-            # パターン1: 調査実施時期から検出
-            # 例: 「調査対象期間：2024/05/24～2024/07/23」
             text = soup.get_text()
 
-            # 調査期間のパターン（YYYY/MM/DD～YYYY/MM/DD）
-            survey_match = re.search(r'(\d{4})/\d{1,2}/\d{1,2}[～〜\-]\d{4}/\d{1,2}/\d{1,2}', text)
-            if survey_match:
-                year = int(survey_match.group(1))
-                logger.info(f"調査期間から年度検出: {year}年")
+            # パターン1: 最終更新日から検出（最も信頼性が高い）
+            # 例: 「最終更新日：2025-11-01」「更新日: 2025/11/01」
+            update_match = re.search(r'(?:最終)?更新日[：:\s]*(\d{4})[-/]\d{1,2}[-/]\d{1,2}', text)
+            if update_match:
+                year = int(update_match.group(1))
+                logger.info(f"最終更新日から年度検出: {year}年")
                 return year
 
-            # パターン2: タイトルから検出
-            # 例: 「2024年 オリコン顧客満足度」
+            # パターン2: タイトルから検出（ページ上部に表示されることが多い）
+            # 例: 「2025年 オリコン顧客満足度」「2025年オリコン」
             title_match = re.search(r'(\d{4})年\s*オリコン', text)
             if title_match:
                 year = int(title_match.group(1))
                 logger.info(f"タイトルから年度検出: {year}年")
                 return year
 
-            # パターン3: 過去ランキングリンクから推定
+            # パターン3: ページ冒頭の年度表記
+            # 例: 「2025年 ネット証券」のような表記
+            # 最初の数行内で「20XX年」を探す
+            lines = text.split('\n')[:30]  # 最初の30行を対象
+            for line in lines:
+                year_match = re.search(r'^.*?(\d{4})年', line.strip())
+                if year_match:
+                    year = int(year_match.group(1))
+                    if 2000 <= year <= 2030:  # 妥当な年度範囲
+                        logger.info(f"ページ冒頭から年度検出: {year}年")
+                        return year
+
+            # パターン4: 調査実施時期から検出
+            # 例: 「調査対象期間：2024/05/24～2024/07/23」
+            survey_match = re.search(r'(\d{4})/\d{1,2}/\d{1,2}[～〜\-]\d{4}/\d{1,2}/\d{1,2}', text)
+            if survey_match:
+                year = int(survey_match.group(1))
+                logger.info(f"調査期間から年度検出: {year}年")
+                return year
+
+            # パターン5: 過去ランキングリンクから推定（フォールバック、信頼性低）
             # 最新の過去年度リンク + 1 = 現在の年度
+            # ※ 年度が飛んでいる場合は不正確になるため、最終手段として使用
             past_links = soup.find_all('a', href=re.compile(r'/\d{4}/?$'))
             if past_links:
                 years = []
@@ -229,7 +252,7 @@ class OriconScraper:
                     max_past_year = max(years)
                     # 過去年度の最大値 + 1 が現在の年度
                     inferred_year = max_past_year + 1
-                    logger.info(f"過去リンクから年度推定: {inferred_year}年（過去最大: {max_past_year}年）")
+                    logger.info(f"過去リンクから年度推定（フォールバック）: {inferred_year}年（過去最大: {max_past_year}年）")
                     return inferred_year
 
             logger.warning(f"年度を検出できませんでした: {url}")
