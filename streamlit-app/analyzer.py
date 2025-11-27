@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 TOPICS分析ロジック（ルールベース）
+v4.4 - 同率順位対応（同点の場合は「同率1位」として分析）
 """
 
 from typing import Dict, List, Any, Optional
@@ -488,7 +489,7 @@ class TopicsAnalyzer:
         return None
 
     def _analyze_score_difference(self) -> Dict:
-        """得点差を分析"""
+        """得点差を分析（同率順位対応）"""
         if not self.overall:
             return None
 
@@ -499,13 +500,44 @@ class TopicsAnalyzer:
             return None
 
         first = data[0]
-        second = data[1]
-
         score1 = first.get("score")
-        score2 = second.get("score")
 
         # 0点も有効な値として扱う（Noneのみを除外）
-        if score1 is None or score2 is None:
+        if score1 is None:
+            return None
+
+        # 同率1位のチェック: 同じ得点の企業をすべて収集
+        tied_companies = [first["company"]]
+        for entry in data[1:]:
+            if entry.get("score") == score1:
+                tied_companies.append(entry["company"])
+            else:
+                break  # 得点が異なる企業が出たらループ終了
+
+        # 同率1位が2社以上の場合
+        if len(tied_companies) >= 2:
+            if len(tied_companies) == 2:
+                return {
+                    "importance": "重要",
+                    "title": f"{tied_companies[0]}と{tied_companies[1]}が同率1位",
+                    "evidence": f"両社とも{score1}点で並ぶ",
+                    "impact": 5
+                }
+            else:
+                # 3社以上の同率1位
+                companies_str = "、".join(tied_companies)
+                return {
+                    "importance": "重要",
+                    "title": f"{len(tied_companies)}社が同率1位で並ぶ",
+                    "evidence": f"{companies_str}（いずれも{score1}点）",
+                    "impact": 5
+                }
+
+        # 同率1位でない場合、2位との差を分析
+        second = data[1]
+        score2 = second.get("score")
+
+        if score2 is None:
             return None
 
         diff = round(score1 - score2, 1)
