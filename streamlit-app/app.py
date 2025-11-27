@@ -14,7 +14,7 @@ Streamlit版 v4.6 - 1位獲得回数表示拡充版
 """
 
 # バージョン情報（ここを更新すればサイドバーにも反映される）
-__version__ = "4.6"
+__version__ = "4.8"
 
 import logging
 
@@ -520,8 +520,10 @@ def display_historical_summary(records, prefix=""):
 def display_consecutive_wins_compact(records):
     """連続1位記録をコンパクトに表示"""
     consecutive = records.get("consecutive_wins", [])
-    if consecutive:
-        st.markdown("**🥇 連続1位記録（上位5件）**")
+    # 複数回1位を獲得したもののみ対象（1年だけの受賞は除外）
+    consecutive_filtered = [r for r in consecutive if r.get("years", 0) >= 2]
+    if consecutive_filtered:
+        st.markdown("**🥇 連続1位記録（上位10件）**")
         cons_df = pd.DataFrame([
             {
                 "企業名": r["company"],
@@ -529,7 +531,7 @@ def display_consecutive_wins_compact(records):
                 "期間": f"{r['start_year']}〜{r['end_year']}",
                 "継続中": "✅" if r.get("is_current") else ""
             }
-            for r in consecutive[:5]
+            for r in consecutive_filtered[:10]
         ])
         st.dataframe(cons_df, use_container_width=True, hide_index=True)
 
@@ -543,8 +545,8 @@ st.set_page_config(
 
 # タイトル
 st.title("📰 オリコン顧客満足度®調査 TOPICSサポートシステム")
-st.warning("⚠️ **注意事項**: Webスクレイピング技術を使用しています。情報の正確性は担当者が必ず確認してください。未公開情報はアップロードしないでください。")
-st.markdown("過去のオリコン顧客満足度調査の結果を調査し、記録や得点を取得。記録の参照やトピックス出しに活用できます。")
+st.markdown("オリコン顧客満足度調査の経年結果を調査。連続記録や1位獲得回数の参照に活用いただけます。")
+st.warning("⚠️ **注意事項**: 情報の正確性は担当者が必ず確認してください。未公開情報を含んだエクセル等はアップロードしないでください。")
 
 # サイドバー
 st.sidebar.header("⚙️ 設定")
@@ -911,35 +913,39 @@ else:
         value=(current_year - 4, current_year)
     )
 
-# ファイルアップロード（オプション）
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📁 最新データのアップロード（オプション）")
-st.sidebar.caption("最新のランキングExcelをアップロードすることで、最新結果や記録を反映できますが、念のため未公開情報はアップロードしないでください。")
-uploaded_file = st.sidebar.file_uploader(
-    "最新のランキングExcelをアップロード",
-    type=["xlsx", "xls"],
-    help="最新のランキング資料をアップロードすると、過去データと統合して分析します"
-)
-
-# アップロードデータの年度指定
-upload_year = None
-if uploaded_file:
-    st.sidebar.success(f"✅ {uploaded_file.name}")
-    upload_year = st.sidebar.number_input(
-        "📅 アップロードデータの年度",
-        min_value=2006,
-        max_value=2030,
-        value=2026,
-        help="アップロードしたファイルのデータ年度を指定してください（例: 2026年発表データなら2026）"
-    )
-    st.sidebar.info(f"📌 **{upload_year}年**のデータとしてアップロードファイルを使用し、それ以外の年度はWebから取得して統合します")
-
 # セッション状態の初期化
 if 'results_data' not in st.session_state:
     st.session_state.results_data = None
 
-# 実行ボタン
-if st.sidebar.button("🚀 TOPICS出し実行", type="primary", use_container_width=True):
+# 実行ボタン（過去データ取得範囲の直下に配置）
+run_button = st.sidebar.button("🚀 TOPICS出し実行", type="primary", use_container_width=True)
+
+# ファイルアップロード（オプション）- 折りたたみ式
+st.sidebar.markdown("---")
+with st.sidebar.expander("📁 最新データのアップロード（オプション・非推奨）", expanded=False):
+    st.caption("⚠️ 通常はWebから自動取得されるため、アップロードは不要です。未公開の最新データを含める場合のみ使用してください。")
+    uploaded_file = st.file_uploader(
+        "最新のランキングExcelをアップロード",
+        type=["xlsx", "xls"],
+        help="最新のランキング資料をアップロードすると、過去データと統合して分析します",
+        key="excel_uploader"
+    )
+
+    # アップロードデータの年度指定
+    upload_year = None
+    if uploaded_file:
+        st.success(f"✅ {uploaded_file.name}")
+        upload_year = st.number_input(
+            "📅 アップロードデータの年度",
+            min_value=2006,
+            max_value=2030,
+            value=2026,
+            help="アップロードしたファイルのデータ年度を指定してください（例: 2026年発表データなら2026）"
+        )
+        st.info(f"📌 **{upload_year}年**のデータとしてアップロードファイルを使用し、それ以外の年度はWebから取得して統合します")
+
+# 実行ボタン処理
+if run_button:
 
     if not ranking_slug:
         st.error("ランキングのURL名を入力してください")
@@ -1175,7 +1181,6 @@ if st.session_state.results_data:
         st.header("⭐ 推奨TOPICS")
         for i, topic in enumerate(topics["recommended"], 1):
             st.markdown(f"### {i}. {topic['title']}")
-            st.markdown(f"- **根拠**: {topic['evidence']}")
             st.divider()
 
         if topics.get("other"):
@@ -1495,28 +1500,44 @@ if st.session_state.results_data:
         # 評価項目別1位獲得回数ランキング
         if item_most_wins:
             st.subheader("🏆 評価項目別 1位獲得回数ランキング")
+            # 最新年度を取得
+            all_years = set()
+            for wins_list in item_most_wins.values():
+                for r in wins_list:
+                    all_years.update(r.get("years", []))
+            latest_year = max(all_years) if all_years else None
+
             item_wins_data = []
             for item_name, wins_list in item_most_wins.items():
                 for r in wins_list[:3]:  # 各項目上位3社
                     if r["wins"] > 0:
+                        # 継続中フラグ: 最新年度も1位なら✅
+                        is_current = latest_year in r.get("years", []) if latest_year else False
                         item_wins_data.append({
                             "評価項目": item_name,
                             "企業名": r["company"],
-                            "1位回数": f"{r['wins']}回",
+                            "1位回数": r['wins'],  # ソート用に数値で保持
                             "獲得率": f"{r['wins']/r['total_years']*100:.1f}%" if r['total_years'] > 0 else "0.0%",
+                            "継続中": "✅" if is_current else "",
                             "獲得年": ", ".join(map(str, r["years"]))
                         })
             if item_wins_data:
+                # 1位回数の多い順にソート
+                item_wins_data.sort(key=lambda x: -x["1位回数"])
+                # 表示用に回数を文字列に変換
+                for d in item_wins_data:
+                    d["1位回数"] = f"{d['1位回数']}回"
                 st.dataframe(pd.DataFrame(item_wins_data), use_container_width=True, hide_index=True)
             st.divider()
 
         # トップに評価項目別の連続1位記録
         item_trends = historical_data.get("item_trends", {})
         if item_trends:
-            st.subheader("📋 評価項目別 連続1位記録（上位5件）")
+            st.subheader("📋 評価項目別 連続1位記録（上位10件）")
             item_records = []
             for item_name, data in item_trends.items():
                 for streak in data.get("consecutive_wins", []):
+                    # 複数回1位を獲得したもののみ対象（1年だけの受賞は除外）
                     if streak.get("years", 0) >= 2:
                         item_records.append({
                             "評価項目": item_name,
@@ -1527,7 +1548,7 @@ if st.session_state.results_data:
                         })
             if item_records:
                 item_records.sort(key=lambda x: -int(x["連続年数"].replace("年", "")))
-                st.dataframe(pd.DataFrame(item_records[:5]), use_container_width=True, hide_index=True)
+                st.dataframe(pd.DataFrame(item_records[:10]), use_container_width=True, hide_index=True)
             st.divider()
 
         if item_data:
@@ -1535,19 +1556,24 @@ if st.session_state.results_data:
                 with st.expander(f"📌 {item_name}", expanded=False):
                     if isinstance(year_data, dict):
                         for year in sorted(year_data.keys(), reverse=True):
-                            st.markdown(f"**{year}年**")
+                            # 該当年度のURLを取得
+                            year_url = None
+                            if used_urls:
+                                for url_item in used_urls.get("items", []):
+                                    search_name = f"{item_name}({year}年)"
+                                    if url_item.get("name") == search_name and url_item.get("status") == "success":
+                                        year_url = url_item.get("url", "")
+                                        break
+                            # 年度の横にURL表示
+                            if year_url:
+                                st.markdown(f"**{year}年** 🔗 {year_url}")
+                            else:
+                                st.markdown(f"**{year}年**")
                             df = pd.DataFrame(year_data[year])
                             # 空白列名や数字のみの列名を除外
                             valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
                             df = df[valid_cols]
                             st.dataframe(df, use_container_width=True)
-                            # 該当年度のURL表示
-                            if used_urls:
-                                for url_item in used_urls.get("items", []):
-                                    search_name = f"{item_name}({year}年)"
-                                    if url_item.get("name") == search_name and url_item.get("status") == "success":
-                                        st.caption(f"🔗 {url_item.get('url', '')}")
-                                        break
 
                         if len(year_data) > 1:
                             st.markdown("**📈 1位の推移**")
@@ -1574,28 +1600,44 @@ if st.session_state.results_data:
         # 部門別1位獲得回数ランキング
         if dept_most_wins:
             st.subheader("🏆 部門別 1位獲得回数ランキング")
+            # 最新年度を取得
+            all_years = set()
+            for wins_list in dept_most_wins.values():
+                for r in wins_list:
+                    all_years.update(r.get("years", []))
+            latest_year = max(all_years) if all_years else None
+
             dept_wins_data = []
             for dept_name, wins_list in dept_most_wins.items():
                 for r in wins_list[:3]:  # 各部門上位3社
                     if r["wins"] > 0:
+                        # 継続中フラグ: 最新年度も1位なら✅
+                        is_current = latest_year in r.get("years", []) if latest_year else False
                         dept_wins_data.append({
                             "部門": dept_name,
                             "企業名": r["company"],
-                            "1位回数": f"{r['wins']}回",
+                            "1位回数": r['wins'],  # ソート用に数値で保持
                             "獲得率": f"{r['wins']/r['total_years']*100:.1f}%" if r['total_years'] > 0 else "0.0%",
+                            "継続中": "✅" if is_current else "",
                             "獲得年": ", ".join(map(str, r["years"]))
                         })
             if dept_wins_data:
+                # 1位回数の多い順にソート
+                dept_wins_data.sort(key=lambda x: -x["1位回数"])
+                # 表示用に回数を文字列に変換
+                for d in dept_wins_data:
+                    d["1位回数"] = f"{d['1位回数']}回"
                 st.dataframe(pd.DataFrame(dept_wins_data), use_container_width=True, hide_index=True)
             st.divider()
 
         # トップに部門別の連続1位記録
         dept_trends = historical_data.get("dept_trends", {})
         if dept_trends:
-            st.subheader("🏷️ 部門別 連続1位記録（上位5件）")
+            st.subheader("🏷️ 部門別 連続1位記録（上位10件）")
             dept_records = []
             for dept_name, data in dept_trends.items():
                 for streak in data.get("consecutive_wins", []):
+                    # 複数回1位を獲得したもののみ対象（1年だけの受賞は除外）
                     if streak.get("years", 0) >= 2:
                         dept_records.append({
                             "部門": dept_name,
@@ -1606,7 +1648,7 @@ if st.session_state.results_data:
                         })
             if dept_records:
                 dept_records.sort(key=lambda x: -int(x["連続年数"].replace("年", "")))
-                st.dataframe(pd.DataFrame(dept_records[:5]), use_container_width=True, hide_index=True)
+                st.dataframe(pd.DataFrame(dept_records[:10]), use_container_width=True, hide_index=True)
             st.divider()
 
         if dept_data:
@@ -1614,19 +1656,24 @@ if st.session_state.results_data:
                 with st.expander(f"📌 {dept_name}", expanded=False):
                     if isinstance(year_data, dict):
                         for year in sorted(year_data.keys(), reverse=True):
-                            st.markdown(f"**{year}年**")
+                            # 該当年度のURLを取得
+                            year_url = None
+                            if used_urls:
+                                for url_item in used_urls.get("departments", []):
+                                    search_name = f"{dept_name}({year}年)"
+                                    if url_item.get("name") == search_name and url_item.get("status") == "success":
+                                        year_url = url_item.get("url", "")
+                                        break
+                            # 年度の横にURL表示
+                            if year_url:
+                                st.markdown(f"**{year}年** 🔗 {year_url}")
+                            else:
+                                st.markdown(f"**{year}年**")
                             df = pd.DataFrame(year_data[year])
                             # 空白列名や数字のみの列名を除外
                             valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
                             df = df[valid_cols]
                             st.dataframe(df, use_container_width=True)
-                            # 該当年度のURL表示
-                            if used_urls:
-                                for url_item in used_urls.get("departments", []):
-                                    search_name = f"{dept_name}({year}年)"
-                                    if url_item.get("name") == search_name and url_item.get("status") == "success":
-                                        st.caption(f"🔗 {url_item.get('url', '')}")
-                                        break
 
                         if len(year_data) > 1:
                             st.markdown("**📈 1位の推移**")
@@ -1660,9 +1707,12 @@ if st.session_state.results_data:
                     }
                     for item in overall_urls
                 ])
-                # URL全文表示
+                # URLをクリック可能なリンクとして表示
                 st.dataframe(
                     url_df,
+                    column_config={
+                        "URL": st.column_config.LinkColumn("URL", display_text="🔗 リンクを開く")
+                    },
                     use_container_width=True,
                     hide_index=True
                 )
@@ -1685,6 +1735,9 @@ if st.session_state.results_data:
                 ])
                 st.dataframe(
                     url_df,
+                    column_config={
+                        "URL": st.column_config.LinkColumn("URL", display_text="🔗 リンクを開く")
+                    },
                     use_container_width=True,
                     hide_index=True
                 )
@@ -1707,6 +1760,9 @@ if st.session_state.results_data:
                 ])
                 st.dataframe(
                     url_df,
+                    column_config={
+                        "URL": st.column_config.LinkColumn("URL", display_text="🔗 リンクを開く")
+                    },
                     use_container_width=True,
                     hide_index=True
                 )
@@ -1727,3 +1783,60 @@ st.sidebar.divider()
 st.sidebar.markdown("---")
 st.sidebar.markdown("📌 **データソース**: life.oricon.co.jp")
 st.sidebar.markdown(f"🔧 **バージョン**: {__version__}")
+
+# 更新履歴をHANDOVER.mdから動的に読み込んで表示
+def load_version_history():
+    """HANDOVER.mdからバージョン履歴を読み込む"""
+    import os
+    import re
+
+    # HANDOVER.mdのパスを取得（app.pyと同じディレクトリ）
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    handover_path = os.path.join(current_dir, "HANDOVER.md")
+
+    try:
+        with open(handover_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # バージョン履歴テーブルを抽出
+        # パターン: | バージョン | 日付 | 主な変更点 | から始まるテーブル
+        lines = content.split("\n")
+        version_lines = []
+        in_table = False
+
+        for line in lines:
+            # テーブルヘッダーを検出
+            if "| バージョン |" in line:
+                in_table = True
+                continue
+            # 区切り行をスキップ
+            if in_table and line.startswith("|--"):
+                continue
+            # テーブル終了を検出
+            if in_table and not line.startswith("|"):
+                break
+            # データ行を収集
+            if in_table and line.startswith("|"):
+                # | v4.7 | 2025-11-28 | 説明 | の形式をパース
+                parts = [p.strip() for p in line.split("|") if p.strip()]
+                if len(parts) >= 3:
+                    version = parts[0]
+                    date = parts[1]
+                    desc = parts[2][:50] + "..." if len(parts[2]) > 50 else parts[2]
+                    version_lines.append(f"**{version}** ({date})\n{desc}")
+
+        return version_lines
+    except Exception as e:
+        logger.warning(f"バージョン履歴の読み込みに失敗: {e}")
+        return []
+
+# 更新履歴を折りたたみ表示
+with st.sidebar.expander("📜 更新履歴", expanded=False):
+    version_history = load_version_history()
+    if version_history:
+        for entry in version_history[:10]:  # 最新10件まで表示
+            st.markdown(entry)
+            st.markdown("---")
+        st.caption("詳細はHANDOVER.mdを参照")
+    else:
+        st.info("更新履歴を読み込めませんでした")

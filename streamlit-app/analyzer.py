@@ -77,7 +77,13 @@ class HistoricalAnalyzer:
         return records
 
     def _calc_consecutive_wins(self) -> List[Dict]:
-        """連続1位記録を計算（年度欠落を考慮）"""
+        """連続1位記録を計算（発表回数ベース：未発表年度をスキップして連続とカウント）
+
+        修正: v4.7
+        - 年度の連続性ではなく「発表回数」を基準にカウント
+        - 未発表年度（データがない年度）があっても連続記録は途切れない
+        - 例: 2016〜2021年が未発表でも、2015年→2022年で同じ企業が1位なら連続とカウント
+        """
         if not self.overall:
             return []
 
@@ -86,8 +92,8 @@ class HistoricalAnalyzer:
 
         current_company = None
         streak_start = None
-        prev_year = None
-        actual_consecutive_years = 0  # 実際の連続年数
+        streak_years = []  # 実際に1位を獲得した年度リスト
+        consecutive_count = 0  # 連続発表回数
 
         for year in years:
             if not self.overall[year]:
@@ -95,48 +101,49 @@ class HistoricalAnalyzer:
 
             top_company = self.overall[year][0].get("company", "")
 
-            # 年度が連続しているかチェック（欠落年度がある場合は連続を切る）
-            is_consecutive_year = prev_year is None or year == prev_year + 1
-
-            if top_company == current_company and is_consecutive_year:
-                # 連続中
-                actual_consecutive_years += 1
+            if top_company == current_company:
+                # 同じ企業が1位 → 連続継続（年度の連続性は問わない）
+                consecutive_count += 1
+                streak_years.append(year)
             else:
-                # 連続が途切れた or 新しい連続開始
-                if current_company and streak_start and actual_consecutive_years >= 1:
+                # 企業が変わった → 連続が途切れた
+                if current_company and streak_start and consecutive_count >= 1:
                     company_streaks[current_company].append({
                         "start": streak_start,
-                        "end": prev_year,
-                        "years": actual_consecutive_years
+                        "end": streak_years[-1] if streak_years else streak_start,
+                        "count": consecutive_count,  # 発表回数
+                        "years_list": streak_years.copy()
                     })
                 current_company = top_company
                 streak_start = year
-                actual_consecutive_years = 1
-
-            prev_year = year
+                streak_years = [year]
+                consecutive_count = 1
 
         # 最後の連続記録
-        if current_company and streak_start and actual_consecutive_years >= 1:
+        if current_company and streak_start and consecutive_count >= 1:
             company_streaks[current_company].append({
                 "start": streak_start,
-                "end": prev_year,
-                "years": actual_consecutive_years
+                "end": streak_years[-1] if streak_years else streak_start,
+                "count": consecutive_count,
+                "years_list": streak_years.copy()
             })
 
         # 結果を整形
         results = []
+        max_year = max(self.overall.keys())
         for company, streaks in company_streaks.items():
             for streak in streaks:
-                if streak["years"] >= 1:
+                if streak["count"] >= 1:
                     results.append({
                         "company": company,
                         "start_year": streak["start"],
                         "end_year": streak["end"],
-                        "years": streak["years"],
-                        "is_current": streak["end"] == max(self.overall.keys())
+                        "years": streak["count"],  # 発表回数を「連続年数」として表示
+                        "years_list": streak["years_list"],  # 実際の年度リスト
+                        "is_current": streak["end"] == max_year
                     })
 
-        # 連続年数でソート
+        # 連続年数（発表回数）でソート
         results.sort(key=lambda x: (-x["years"], -x["end_year"]))
         return results
 
