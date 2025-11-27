@@ -181,16 +181,36 @@ class OriconScraper:
         # トップページの実際の年度をキャッシュ
         self._actual_top_year = None
 
+    def _ensure_actual_top_year(self) -> int:
+        """
+        _actual_top_yearが未設定の場合、トップページから年度を検出して設定する。
+        検出できない場合は現在年を返す。
+        """
+        if self._actual_top_year is None:
+            subpath_part = f"/{self.subpath}" if self.subpath else ""
+            top_url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/"
+            detected_year = self._detect_actual_year(top_url)
+            if detected_year:
+                self._actual_top_year = detected_year
+            else:
+                # フォールバック: 現在年を使用
+                from datetime import datetime
+                self._actual_top_year = datetime.now().year
+                logger.warning(f"年度検出失敗、現在年を使用: {self._actual_top_year}")
+        return self._actual_top_year
+
     def _detect_actual_year(self, url: str) -> Optional[int]:
         """
         トップページから実際の発表年度を検出
 
-        調査実施時期や更新日から年度を推定する。
+        更新日から年度を推定する。
         優先順位:
         1. 最終更新日（最も信頼性が高い）
         2. タイトルの年度表記
-        3. 調査実施時期
+        3. ページ冒頭の年度表記
         4. 過去リンクからの推定（フォールバック）
+
+        ※調査期間は使用しない（更新日が正式な年度基準のため）
 
         Returns:
             検出された年度（例: 2024）、検出できない場合はNone
@@ -229,15 +249,7 @@ class OriconScraper:
                         logger.info(f"ページ冒頭から年度検出: {year}年")
                         return year
 
-            # パターン4: 調査実施時期から検出
-            # 例: 「調査対象期間：2024/05/24～2024/07/23」
-            survey_match = re.search(r'(\d{4})/\d{1,2}/\d{1,2}[～〜\-]\d{4}/\d{1,2}/\d{1,2}', text)
-            if survey_match:
-                year = int(survey_match.group(1))
-                logger.info(f"調査期間から年度検出: {year}年")
-                return year
-
-            # パターン5: 過去ランキングリンクから推定（フォールバック、信頼性低）
+            # パターン4: 過去ランキングリンクから推定（フォールバック、信頼性低）
             # 最新の過去年度リンク + 1 = 現在の年度
             # ※ 年度が飛んでいる場合は不正確になるため、最終手段として使用
             past_links = soup.find_all('a', href=re.compile(r'/\d{4}/?$'))
@@ -363,14 +375,14 @@ class OriconScraper:
             return results
 
         # 年度範囲を決定
+        # _ensure_actual_top_year() で年度を確実に初期化
+        actual_top_year = self._ensure_actual_top_year()
+
         if year_range:
             start_year, end_year = year_range
             years = list(range(end_year, start_year - 1, -1))
         else:
-            years = [self._actual_top_year or 2024]  # 検出済みの年度を使用
-
-        # トップページの実際の年度を使用（get_overall_rankingsで検出済みなら利用）
-        actual_top_year = self._actual_top_year or max(years)
+            years = [actual_top_year]  # 検出済みの年度を使用
 
         for item_slug, item_name in items.items():
             results[item_name] = {}
@@ -449,14 +461,14 @@ class OriconScraper:
             return results
 
         # 年度範囲を決定
+        # _ensure_actual_top_year() で年度を確実に初期化
+        actual_top_year = self._ensure_actual_top_year()
+
         if year_range:
             start_year, end_year = year_range
             years = list(range(end_year, start_year - 1, -1))
         else:
-            years = [self._actual_top_year or 2024]  # 検出済みの年度を使用
-
-        # トップページの実際の年度を使用（get_overall_rankingsで検出済みなら利用）
-        actual_top_year = self._actual_top_year or max(years)
+            years = [actual_top_year]  # 検出済みの年度を使用
 
         for dept_path, dept_name in departments.items():
             results[dept_name] = {}
