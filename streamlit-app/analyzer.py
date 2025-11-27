@@ -162,7 +162,7 @@ class HistoricalAnalyzer:
         return all_scores
 
     def _calc_most_wins(self) -> List[Dict]:
-        """最多1位獲得を計算"""
+        """最多1位獲得を計算（総合ランキング）"""
         win_counts = defaultdict(lambda: {"count": 0, "years": []})
 
         for year, data in self.overall.items():
@@ -184,6 +184,70 @@ class HistoricalAnalyzer:
 
         results.sort(key=lambda x: (-x["wins"], x["company"]))
         return results
+
+    def calc_item_most_wins(self) -> Dict[str, List[Dict]]:
+        """評価項目別の1位獲得回数を計算
+
+        Returns:
+            {項目名: [{"company": 企業名, "wins": 回数, "years": [年度], "total_years": 総年数}, ...]}
+        """
+        item_wins = {}
+
+        for item_name, year_data in self.items.items():
+            win_counts = defaultdict(lambda: {"count": 0, "years": []})
+
+            for year, data in year_data.items():
+                if data:
+                    top_company = data[0].get("company", "")
+                    if top_company:
+                        win_counts[top_company]["count"] += 1
+                        win_counts[top_company]["years"].append(year)
+
+            results = [
+                {
+                    "company": company,
+                    "wins": info["count"],
+                    "years": sorted(info["years"]),
+                    "total_years": len(year_data)
+                }
+                for company, info in win_counts.items()
+            ]
+            results.sort(key=lambda x: (-x["wins"], x["company"]))
+            item_wins[item_name] = results
+
+        return item_wins
+
+    def calc_dept_most_wins(self) -> Dict[str, List[Dict]]:
+        """部門別の1位獲得回数を計算
+
+        Returns:
+            {部門名: [{"company": 企業名, "wins": 回数, "years": [年度], "total_years": 総年数}, ...]}
+        """
+        dept_wins = {}
+
+        for dept_name, year_data in self.depts.items():
+            win_counts = defaultdict(lambda: {"count": 0, "years": []})
+
+            for year, data in year_data.items():
+                if data:
+                    top_company = data[0].get("company", "")
+                    if top_company:
+                        win_counts[top_company]["count"] += 1
+                        win_counts[top_company]["years"].append(year)
+
+            results = [
+                {
+                    "company": company,
+                    "wins": info["count"],
+                    "years": sorted(info["years"]),
+                    "total_years": len(year_data)
+                }
+                for company, info in win_counts.items()
+            ]
+            results.sort(key=lambda x: (-x["wins"], x["company"]))
+            dept_wins[dept_name] = results
+
+        return dept_wins
 
     def _calc_first_appearances(self) -> List[Dict]:
         """初登場年を計算"""

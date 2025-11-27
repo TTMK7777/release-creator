@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度®調査 TOPICSサポートシステム
-Streamlit版 v4.4 - 同率順位対応版
+Streamlit版 v4.6 - 1位獲得回数表示拡充版
+- 評価項目別・部門別タブに1位獲得回数ランキングを追加
+- 年度検出ロジック修正: 更新日を年度基準として使用（調査期間は不使用）
 - 同率順位対応: 同点の場合「同率1位」として分析（2社/3社以上対応）
 - 順位抽出: icon-rankクラス優先、評価項目別テーブル除外
 - 年度列の誤検出を防止（回答者数（最新年）等を除外）
@@ -1078,6 +1080,9 @@ if st.sidebar.button("🚀 TOPICS出し実行", type="primary", use_container_wi
             status_text.text("📈 歴代記録・得点推移を分析中...")
             historical_analyzer = HistoricalAnalyzer(overall_data, item_data, dept_data, ranking_name)
             historical_data = historical_analyzer.analyze_all()
+            # 評価項目別・部門別の1位獲得回数を計算
+            item_most_wins = historical_analyzer.calc_item_most_wins()
+            dept_most_wins = historical_analyzer.calc_dept_most_wins()
             progress_bar.progress(95)
 
             # 完了
@@ -1094,7 +1099,9 @@ if st.sidebar.button("🚀 TOPICS出し実行", type="primary", use_container_wi
                 'topics': topics,
                 'used_urls': used_urls,
                 'uploaded_years': list(uploaded_years),
-                'scraped_years': list(scraped_overall.keys()) if scraped_overall else []
+                'scraped_years': list(scraped_overall.keys()) if scraped_overall else [],
+                'item_most_wins': item_most_wins,
+                'dept_most_wins': dept_most_wins
             }
 
         except Exception as e:
@@ -1114,6 +1121,8 @@ if st.session_state.results_data:
     used_urls = data.get('used_urls')
     uploaded_years = data.get('uploaded_years', [])
     scraped_years = data.get('scraped_years', [])
+    item_most_wins = data.get('item_most_wins', {})
+    dept_most_wins = data.get('dept_most_wins', {})
 
     # 結果表示
     st.success(f"✅ {ranking_name}のTOPICS出しが完了しました")
@@ -1483,6 +1492,24 @@ if st.session_state.results_data:
     with tab4:
         st.header("📋 評価項目別ランキング（経年）")
 
+        # 評価項目別1位獲得回数ランキング
+        if item_most_wins:
+            st.subheader("🏆 評価項目別 1位獲得回数ランキング")
+            item_wins_data = []
+            for item_name, wins_list in item_most_wins.items():
+                for r in wins_list[:3]:  # 各項目上位3社
+                    if r["wins"] > 0:
+                        item_wins_data.append({
+                            "評価項目": item_name,
+                            "企業名": r["company"],
+                            "1位回数": f"{r['wins']}回",
+                            "獲得率": f"{r['wins']/r['total_years']*100:.1f}%" if r['total_years'] > 0 else "0.0%",
+                            "獲得年": ", ".join(map(str, r["years"]))
+                        })
+            if item_wins_data:
+                st.dataframe(pd.DataFrame(item_wins_data), use_container_width=True, hide_index=True)
+            st.divider()
+
         # トップに評価項目別の連続1位記録
         item_trends = historical_data.get("item_trends", {})
         if item_trends:
@@ -1543,6 +1570,24 @@ if st.session_state.results_data:
 
     with tab5:
         st.header("🏷️ 部門別ランキング（経年）")
+
+        # 部門別1位獲得回数ランキング
+        if dept_most_wins:
+            st.subheader("🏆 部門別 1位獲得回数ランキング")
+            dept_wins_data = []
+            for dept_name, wins_list in dept_most_wins.items():
+                for r in wins_list[:3]:  # 各部門上位3社
+                    if r["wins"] > 0:
+                        dept_wins_data.append({
+                            "部門": dept_name,
+                            "企業名": r["company"],
+                            "1位回数": f"{r['wins']}回",
+                            "獲得率": f"{r['wins']/r['total_years']*100:.1f}%" if r['total_years'] > 0 else "0.0%",
+                            "獲得年": ", ".join(map(str, r["years"]))
+                        })
+            if dept_wins_data:
+                st.dataframe(pd.DataFrame(dept_wins_data), use_container_width=True, hide_index=True)
+            st.divider()
 
         # トップに部門別の連続1位記録
         dept_trends = historical_data.get("dept_trends", {})
