@@ -40,12 +40,18 @@ import logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+import os
 import streamlit as st
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
 from scraper import OriconScraper
 from analyzer import TopicsAnalyzer, HistoricalAnalyzer
+
+# アップロード機能の有効化フラグ（環境変数で制御）
+# Streamlit Cloud: Secrets で ENABLE_UPLOAD_FEATURE = "true" を設定
+# ローカル: 環境変数 ENABLE_UPLOAD_FEATURE=true を設定
+ENABLE_UPLOAD = os.environ.get("ENABLE_UPLOAD_FEATURE", "false").lower() == "true"
 
 
 def create_excel_export(ranking_name, overall_data, item_data, dept_data, historical_data, used_urls=None):
@@ -1027,29 +1033,32 @@ if 'results_data' not in st.session_state:
 # 実行ボタン（過去データ取得範囲の直下に配置）
 run_button = st.sidebar.button("🚀 TOPICS出し実行", type="primary", use_container_width=True)
 
-# ファイルアップロード（オプション）- 折りたたみ式
-st.sidebar.markdown("---")
-with st.sidebar.expander("📁 最新データのアップロード（オプション・非推奨）", expanded=False):
-    st.caption("⚠️ 通常はWebから自動取得されるため、アップロードは不要です。未公開の最新データを含める場合のみ使用してください。")
-    uploaded_file = st.file_uploader(
-        "最新のランキングExcelをアップロード",
-        type=["xlsx", "xls"],
-        help="最新のランキング資料をアップロードすると、過去データと統合して分析します",
-        key="excel_uploader"
-    )
+# ファイルアップロード（オプション）- 環境変数で有効化時のみ表示
+uploaded_file = None
+upload_year = None
 
-    # アップロードデータの年度指定
-    upload_year = None
-    if uploaded_file:
-        st.success(f"✅ {uploaded_file.name}")
-        upload_year = st.number_input(
-            "📅 アップロードデータの年度",
-            min_value=2006,
-            max_value=2030,
-            value=2026,
-            help="アップロードしたファイルのデータ年度を指定してください（例: 2026年発表データなら2026）"
+if ENABLE_UPLOAD:
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("📁 最新データのアップロード（オプション・非推奨）", expanded=False):
+        st.caption("⚠️ 通常はWebから自動取得されるため、アップロードは不要です。未公開の最新データを含める場合のみ使用してください。")
+        uploaded_file = st.file_uploader(
+            "最新のランキングExcelをアップロード",
+            type=["xlsx", "xls"],
+            help="最新のランキング資料をアップロードすると、過去データと統合して分析します",
+            key="excel_uploader"
         )
-        st.info(f"📌 **{upload_year}年**のデータとしてアップロードファイルを使用し、それ以外の年度はWebから取得して統合します")
+
+        # アップロードデータの年度指定
+        if uploaded_file:
+            st.success(f"✅ {uploaded_file.name}")
+            upload_year = st.number_input(
+                "📅 アップロードデータの年度",
+                min_value=2006,
+                max_value=2030,
+                value=2026,
+                help="アップロードしたファイルのデータ年度を指定してください（例: 2026年発表データなら2026）"
+            )
+            st.info(f"📌 **{upload_year}年**のデータとしてアップロードファイルを使用し、それ以外の年度はWebから取得して統合します")
 
 # 実行ボタン処理
 if run_button:
