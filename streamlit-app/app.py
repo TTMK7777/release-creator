@@ -1282,9 +1282,12 @@ if st.session_state.results_data:
         )
     st.markdown("---")
 
+    # 最新年度を取得
+    latest_year = max(overall_data.keys()) if overall_data else None
+
     # タブで結果表示（新しい構成）
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "⭐ 推奨TOPICS",
+        f"⭐ 推奨TOPICS（{latest_year}年時点）" if latest_year else "⭐ 推奨TOPICS",
         "🏆 歴代記録・得点推移",
         "📊 総合ランキング",
         "📋 評価項目別",
@@ -1293,7 +1296,7 @@ if st.session_state.results_data:
     ])
 
     with tab1:
-        st.header("⭐ 推奨TOPICS")
+        st.header(f"⭐ 推奨TOPICS（{latest_year}年時点）" if latest_year else "⭐ 推奨TOPICS")
         for i, topic in enumerate(topics["recommended"], 1):
             st.markdown(f"### {i}. {topic['title']}")
             st.divider()
@@ -1312,7 +1315,7 @@ if st.session_state.results_data:
         # コピー用テキスト
         st.subheader("📋 コピー用テキスト")
         copy_text = "\n".join([
-            "【推奨TOPICS】",
+            f"【推奨TOPICS（{latest_year}年時点）】" if latest_year else "【推奨TOPICS】",
             *[f"{i}. {t['title']}" for i, t in enumerate(topics["recommended"], 1)],
             "",
             "【見出し案】",
