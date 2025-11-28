@@ -150,9 +150,14 @@ class OriconScraper:
 
         self.BASE_URL = f"https://{subdomain}.oricon.co.jp"
 
-        # アンダースコア形式の処理（_fxの場合はrank_fxになる）
+        # URL prefix の決定
+        # パターン1: _fx → rank_fx
+        # パターン2: rank_certificate → rank_certificate（そのまま）
+        # パターン3: mobile-carrier → rank-mobile-carrier
         if base_slug.startswith("_"):
             self.url_prefix = f"rank{base_slug}"  # rank_fx
+        elif base_slug.startswith("rank_"):
+            self.url_prefix = base_slug  # rank_certificate（そのまま）
         else:
             self.url_prefix = f"rank-{base_slug}"  # rank-mobile-carrier形式
         # セッション設定（リトライ処理追加）
@@ -553,20 +558,30 @@ class OriconScraper:
         ページから部門別リンクを動的に発見
 
         Returns:
-            {"age/50s.html": "50代", "genre/sports.html": "スポーツ", ...}
+            {"beginner/": "初心者", "age/50s.html": "50代", ...}
         """
         try:
             response = self.session.get(url, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
 
-            departments = {}
+            dept_paths = set()  # 一意のパスを収集
 
             # 部門別リンクのパターン（評価項目以外）
-            # 例: /rank-xxx/age/50s.html, /rank-xxx/genre/sports.html
+            # 例: /rank-xxx/age/50s.html, /rank-xxx/beginner/
             dept_patterns = [
-                r"/(age|genre|contract|new-contract|device|business|beginner|type|purpose)/",
-                r"/[a-z\-]+\.html$"  # evaluation-item以外の.htmlリンク
+                r"/(age|genre|contract|new-contract|device|business|beginner|type|purpose|nisa|ideco)(?:/|\.html)",
+            ]
+
+            # 除外パターン（部門ページではないもの）
+            exclude_patterns = [
+                r"/evaluation-item",  # 評価項目
+                r"/column",           # コラム・解説ページ
+                r"/special/",         # 特集・解説ページ
+                r"-basic",            # 基本解説ページ
+                r"/howto",            # ハウツー
+                r"/recommend",        # おすすめ
+                r"/compare",          # 比較
             ]
 
             all_links = soup.find_all("a", href=True)
@@ -574,8 +589,8 @@ class OriconScraper:
             for link in all_links:
                 href = link.get("href", "")
 
-                # 評価項目は除外
-                if "evaluation-item" in href:
+                # 除外パターンにマッチする場合はスキップ
+                if any(re.search(pat, href) for pat in exclude_patterns):
                     continue
 
                 # 自身のランキングのリンクか確認
@@ -585,17 +600,28 @@ class OriconScraper:
                 # 部門別パターンにマッチするか
                 for pattern in dept_patterns:
                     if re.search(pattern, href):
-                        # パスを抽出
-                        match = re.search(rf"/{self.url_prefix}/(?:\d{{4}}/)?(.+)$", href)
+                        # パスを抽出（クエリパラメータとハッシュを除外）
+                        match = re.search(rf"/{self.url_prefix}/(?:\d{{4}}/)?(.+?)(?:\?.*)?(?:#.*)?$", href)
                         if match:
                             dept_path = match.group(1)
-                            # 評価項目でない、数字のみのパス（年度）でないことを確認
-                            if dept_path and not dept_path.isdigit() and "evaluation-item" not in dept_path:
-                                # リンクテキストを取得
-                                name = link.get_text(strip=True)
-                                if name and len(name) < 30:  # 長すぎるテキストは除外
-                                    departments[dept_path] = name
+                            # 数字のみのパス（年度）でない、クエリパラメータを含まないことを確認
+                            if dept_path and not dept_path.rstrip('/').isdigit() and '?' not in dept_path:
+                                dept_paths.add(dept_path)
                         break
+
+            # 各パスに対してページタイトルから部門名を取得
+            departments = {}
+            for dept_path in dept_paths:
+                # URLを構築
+                dept_url = f"{self.BASE_URL}/{self.url_prefix}/{dept_path}"
+                if not dept_url.endswith('/') and not dept_url.endswith('.html'):
+                    dept_url += '/'
+
+                # ページタイトルから部門名を抽出
+                dept_name = self._extract_page_title_for_dept(dept_url)
+                if dept_name:
+                    departments[dept_path] = dept_name
+                time.sleep(0.2)  # サーバー負荷軽減
 
             return departments
 
@@ -714,7 +740,7 @@ class OriconScraper:
 
     def _extract_item_name_from_title(self, text: str) -> Optional[str]:
         """
-        タイトル文字列から評価項目名・部門名を抽出
+        タイトル文字列から評価項目名を抽出
 
         対応パターン:
         - 【2025年】ネット証券の取扱商品 オリコン顧客満足度ランキング → 取扱商品
@@ -761,6 +787,137 @@ class OriconScraper:
                 return item_name
 
         return None
+
+    def _extract_dept_name_from_title(self, text: str) -> Optional[str]:
+        """
+        タイトル文字列から部門名を抽出
+
+        対応パターン:
+        - 【2025年】初心者向けのネット証券 オリコン... → 初心者
+        - 【2025年】初心者におすすめのネット証券 オリコン... → 初心者
+        - 【2025年】50代向けの生命保険 オリコン... → 50代
+        - 【2025年】ネット証券 NISAのランキング → NISA
+        - 【2025年】スポーツ向けのクレジットカード → スポーツ
+        - 【2025年】PCユーザーにおすすめのネット証券 → PCユーザー
+        - NISA（シンプルなタイトル） → NISA
+
+        非対応（Noneを返す）:
+        - 【最新】ネット証券のランキング・比較 → None
+        """
+        if not text:
+            return None
+
+        # パターン0: シンプルなタイトル（部門名のみ、年度やランキング文言なし）
+        # 例: "NISA", "iDeCo"
+        simple_text = text.strip()
+        if len(simple_text) <= 10 and not re.search(r"[【】\s年ランキング比較オリコン]", simple_text):
+            return simple_text
+
+        # パターン1: 【年度】XXX向けのYYY → XXX を抽出
+        # 例: 【2025年】初心者向けのネット証券 → 初心者
+        match = re.search(r"】([^\s【】]+?)向けの", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン2: 【年度】XXXにおすすめのYYY → XXX を抽出
+        # 例: 【2025年】初心者におすすめのネット証券 → 初心者
+        match = re.search(r"】([^\s【】]+?)におすすめの", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン3: 【年度】XXXに人気のYYY → XXX
+        match = re.search(r"】([^\s【】]+?)に人気の", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン4: 【年度】XXXユーザーにおすすめの → XXXユーザー
+        # 例: 【2025年】PCユーザーにおすすめのネット証券 → PCユーザー
+        match = re.search(r"】([^\s【】]+?ユーザー)におすすめの", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン5: YYYY年 XXX向けの → XXX
+        match = re.search(r"\d{4}年[】\s]*([^\s【】]+?)向けの", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン6: YYYY年 XXXにおすすめの → XXX
+        match = re.search(r"\d{4}年[】\s]*([^\s【】]+?)におすすめの", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン7: XXX YYYのランキング → YYY（スペース区切り）
+        # 例: 【2025年】ネット証券 NISAのランキング → NISA
+        match = re.search(r"\s([^\s]+?)のランキング", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and not re.match(r"^\d{4}年?$", dept_name) and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン8: YYYY年 XXX｜ → XXX
+        match = re.search(r"\d{4}年\s+(.+?)(?:｜|\||ランキング)", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and not re.match(r"^\d{4}年?$", dept_name) and len(dept_name) <= 15:
+                return dept_name
+
+        return None
+
+    def _extract_page_title_for_dept(self, url: str) -> Optional[str]:
+        """
+        部門ページから部門名を抽出
+
+        Args:
+            url: ページURL
+
+        Returns:
+            部門名（例: "初心者", "50代"）
+        """
+        try:
+            response = self.session.get(url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            # パターン1: h1タグから取得
+            h1 = soup.find("h1")
+            if h1:
+                text = h1.get_text(strip=True)
+                extracted = self._extract_dept_name_from_title(text)
+                if extracted:
+                    return extracted
+
+            # パターン2: og:title メタタグから取得
+            og_title = soup.find("meta", property="og:title")
+            if og_title:
+                text = og_title.get("content", "")
+                extracted = self._extract_dept_name_from_title(text)
+                if extracted:
+                    return extracted
+
+            # パターン3: titleタグから取得
+            title = soup.find("title")
+            if title:
+                text = title.get_text(strip=True)
+                extracted = self._extract_dept_name_from_title(text)
+                if extracted:
+                    return extracted
+
+            return None
+
+        except Exception as e:
+            return None
 
     def _fetch_ranking_page(self, url: str, survey_type: str = "type01") -> List[Dict]:
         """
