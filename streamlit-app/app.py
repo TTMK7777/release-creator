@@ -1410,13 +1410,9 @@ if st.session_state.results_data:
                     for year, score in sorted(avg_scores.items())
                 ])
                 import altair as alt
-                # 縦軸の範囲を動的に設定
-                score_values = list(avg_scores.values())
-                y_min = max(0, min(score_values) - 2)
-                y_max = max(score_values) + 2
                 chart = alt.Chart(avg_df).mark_line(point=True).encode(
                     x=alt.X('年度:O', title='年度'),
-                    y=alt.Y('平均得点:Q', title='平均得点', scale=alt.Scale(domainMin=y_min, domainMax=y_max))
+                    y=alt.Y('平均得点:Q', title='平均得点')
                 ).properties(height=300)
                 st.altair_chart(chart, use_container_width=True)
 
@@ -1440,13 +1436,9 @@ if st.session_state.results_data:
 
                 if chart_data:
                     chart_df = pd.DataFrame(chart_data)
-                    # 縦軸の範囲を動的に設定
-                    all_scores = [d["得点"] for d in chart_data]
-                    y_min = max(0, min(all_scores) - 2)
-                    y_max = max(all_scores) + 2
                     chart = alt.Chart(chart_df).mark_line(point=True).encode(
                         x=alt.X('年度:O', title='年度'),
-                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domainMin=y_min, domainMax=y_max)),
+                        y=alt.Y('得点:Q', title='得点'),
                         color=alt.Color('企業名:N', title='企業名'),
                         tooltip=['年度', '企業名', '得点']
                     ).properties(height=400)
@@ -1518,7 +1510,7 @@ if st.session_state.results_data:
                 import altair as alt
                 chart = alt.Chart(item_avg_df).mark_bar().encode(
                     x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('平均得点:Q', title='平均得点', scale=alt.Scale(zero=False)),
+                    y=alt.Y('平均得点:Q', title='平均得点', ),
                     color=alt.Color('年度:N', title='年度'),
                     column=alt.Column('評価項目:N', title=None, header=alt.Header(labelOrient='bottom')),
                     tooltip=['評価項目', '年度', '平均得点']
@@ -1553,7 +1545,7 @@ if st.session_state.results_data:
                 import altair as alt
                 chart = alt.Chart(dept_avg_df).mark_bar().encode(
                     x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('平均得点:Q', title='平均得点', scale=alt.Scale(zero=False)),
+                    y=alt.Y('平均得点:Q', title='平均得点', ),
                     color=alt.Color('年度:N', title='年度'),
                     column=alt.Column('部門:N', title=None, header=alt.Header(labelOrient='bottom')),
                     tooltip=['部門', '年度', '平均得点']
@@ -1642,14 +1634,9 @@ if st.session_state.results_data:
                                 })
                         if bar_data:
                             bar_df = pd.DataFrame(bar_data)
-                            # 縦軸の範囲を動的に設定（最小値-2 〜 最大値+2）
-                            # 棒グラフではzero=Falseを使用（domainのみだと基点が0のままで棒が表示されない）
-                            scores = [d["得点"] for d in bar_data]
-                            y_min = max(0, min(scores) - 2)
-                            y_max = max(scores) + 2
                             chart = alt.Chart(bar_df).mark_bar().encode(
                                 x=alt.X('企業名:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-45)),
-                                y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domainMin=y_min, domainMax=y_max, zero=False)),
+                                y=alt.Y('得点:Q', title='得点'),
                                 tooltip=['企業名', '得点']
                             ).properties(height=250, title=f"{year}年 得点上位10社")
                             st.altair_chart(chart, use_container_width=True)
@@ -1702,13 +1689,9 @@ if st.session_state.results_data:
                 if line_data and len(line_data) > 1:
                     import altair as alt
                     line_df = pd.DataFrame(line_data)
-                    # 縦軸の範囲を動的に設定
-                    all_scores = [d["得点"] for d in line_data]
-                    y_min = max(0, min(all_scores) - 2)
-                    y_max = max(all_scores) + 2
                     chart = alt.Chart(line_df).mark_line(point=True).encode(
                         x=alt.X('年度:O', title='年度'),
-                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domainMin=y_min, domainMax=y_max)),
+                        y=alt.Y('得点:Q', title='得点'),
                         color=alt.Color('企業名:N', title='企業名'),
                         tooltip=['年度', '企業名', '得点']
                     ).properties(height=400, title="総合ランキング 得点の経年推移（TOP10企業）")
@@ -1814,13 +1797,9 @@ if st.session_state.results_data:
                                         })
                                 if bar_data:
                                     bar_df = pd.DataFrame(bar_data)
-                                    # 縦軸の範囲を動的に設定（棒グラフではzero=Falseが必須）
-                                    scores = [d["得点"] for d in bar_data]
-                                    y_min = max(0, min(scores) - 2)
-                                    y_max = max(scores) + 2
                                     chart = alt.Chart(bar_df).mark_bar().encode(
                                         x=alt.X('企業名:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-45)),
-                                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domainMin=y_min, domainMax=y_max, zero=False)),
+                                        y=alt.Y('得点:Q', title='得点'),
                                         tooltip=['企業名', '得点']
                                     ).properties(height=200, title=f"{year}年 得点上位10社")
                                     st.altair_chart(chart, use_container_width=True)
@@ -1860,13 +1839,9 @@ if st.session_state.results_data:
                             if line_data and len(line_data) > 1:
                                 import altair as alt
                                 line_df = pd.DataFrame(line_data)
-                                # 縦軸の範囲を動的に設定
-                                all_scores = [d["得点"] for d in line_data]
-                                y_min = max(0, min(all_scores) - 2)
-                                y_max = max(all_scores) + 2
                                 chart = alt.Chart(line_df).mark_line(point=True).encode(
                                     x=alt.X('年度:O', title='年度'),
-                                    y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domainMin=y_min, domainMax=y_max)),
+                                    y=alt.Y('得点:Q', title='得点'),
                                     color=alt.Color('企業名:N', title='企業名'),
                                     tooltip=['年度', '企業名', '得点']
                                 ).properties(height=300, title=f"{item_name} 得点の経年推移（TOP10企業）")
@@ -1977,13 +1952,9 @@ if st.session_state.results_data:
                                         })
                                 if bar_data:
                                     bar_df = pd.DataFrame(bar_data)
-                                    # 縦軸の範囲を動的に設定（棒グラフではzero=Falseが必須）
-                                    scores = [d["得点"] for d in bar_data]
-                                    y_min = max(0, min(scores) - 2)
-                                    y_max = max(scores) + 2
                                     chart = alt.Chart(bar_df).mark_bar().encode(
                                         x=alt.X('企業名:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-45)),
-                                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domainMin=y_min, domainMax=y_max, zero=False)),
+                                        y=alt.Y('得点:Q', title='得点'),
                                         tooltip=['企業名', '得点']
                                     ).properties(height=200, title=f"{year}年 得点上位10社")
                                     st.altair_chart(chart, use_container_width=True)
@@ -2023,13 +1994,9 @@ if st.session_state.results_data:
                             if line_data and len(line_data) > 1:
                                 import altair as alt
                                 line_df = pd.DataFrame(line_data)
-                                # 縦軸の範囲を動的に設定
-                                all_scores = [d["得点"] for d in line_data]
-                                y_min = max(0, min(all_scores) - 2)
-                                y_max = max(all_scores) + 2
                                 chart = alt.Chart(line_df).mark_line(point=True).encode(
                                     x=alt.X('年度:O', title='年度'),
-                                    y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domainMin=y_min, domainMax=y_max)),
+                                    y=alt.Y('得点:Q', title='得点'),
                                     color=alt.Color('企業名:N', title='企業名'),
                                     tooltip=['年度', '企業名', '得点']
                                 ).properties(height=300, title=f"{dept_name} 得点の経年推移（TOP10企業）")
