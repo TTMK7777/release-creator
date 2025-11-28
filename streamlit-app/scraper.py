@@ -407,12 +407,17 @@ class OriconScraper:
 
                 data = self._fetch_ranking_page(url, self.survey_type)
                 if data:
+                    # ページタイトルから実際の名称を取得
+                    page_title = self._extract_page_title(url)
                     results[item_name][year] = data
                     self.used_urls["items"].append({
                         "name": f"{item_name}({year}年)",
                         "url": url,
                         "survey_type": self.survey_type,
-                        "status": "success"
+                        "status": "success",
+                        "page_title": page_title,  # ページから取得した実際の名称
+                        "item_slug": item_slug,
+                        "year": year
                     })
                 else:
                     # 代替パターン: /year/subpath/ 形式を試す
@@ -420,12 +425,16 @@ class OriconScraper:
                         alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/evaluation-item/{item_slug}.html"
                         data = self._fetch_ranking_page(alt_url, self.survey_type)
                         if data:
+                            page_title = self._extract_page_title(alt_url)
                             results[item_name][year] = data
                             self.used_urls["items"].append({
                                 "name": f"{item_name}({year}年)",
                                 "url": alt_url,
                                 "survey_type": self.survey_type,
-                                "status": "success"
+                                "status": "success",
+                                "page_title": page_title,
+                                "item_slug": item_slug,
+                                "year": year
                             })
                             continue
 
@@ -433,7 +442,9 @@ class OriconScraper:
                         "name": f"{item_name}({year}年)",
                         "url": url,
                         "survey_type": self.survey_type,
-                        "status": "not_found"
+                        "status": "not_found",
+                        "item_slug": item_slug,
+                        "year": year
                     })
 
                 time.sleep(0.3)
@@ -493,12 +504,17 @@ class OriconScraper:
 
                 data = self._fetch_ranking_page(url, self.survey_type)
                 if data:
+                    # ページタイトルから実際の名称を取得
+                    page_title = self._extract_page_title(url)
                     results[dept_name][year] = data
                     self.used_urls["departments"].append({
                         "name": f"{dept_name}({year}年)",
                         "url": url,
                         "survey_type": self.survey_type,
-                        "status": "success"
+                        "status": "success",
+                        "page_title": page_title,  # ページから取得した実際の名称
+                        "dept_path": dept_path,
+                        "year": year
                     })
                 else:
                     # 代替パターン: /year/subpath/ 形式を試す
@@ -506,12 +522,16 @@ class OriconScraper:
                         alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/{dept_path}"
                         data = self._fetch_ranking_page(alt_url, self.survey_type)
                         if data:
+                            page_title = self._extract_page_title(alt_url)
                             results[dept_name][year] = data
                             self.used_urls["departments"].append({
                                 "name": f"{dept_name}({year}年)",
                                 "url": alt_url,
                                 "survey_type": self.survey_type,
-                                "status": "success"
+                                "status": "success",
+                                "page_title": page_title,
+                                "dept_path": dept_path,
+                                "year": year
                             })
                             continue
 
@@ -519,7 +539,9 @@ class OriconScraper:
                         "name": f"{dept_name}({year}年)",
                         "url": url,
                         "survey_type": self.survey_type,
-                        "status": "not_found"
+                        "status": "not_found",
+                        "dept_path": dept_path,
+                        "year": year
                     })
 
                 time.sleep(0.3)
@@ -623,6 +645,56 @@ class OriconScraper:
         except Exception as e:
             pass  # 評価項目リスト取得エラー
             return {}
+
+    def _extract_page_title(self, url: str) -> Optional[str]:
+        """
+        ページから評価項目名・部門名を抽出
+
+        ページ内のh1, h2, title等から項目名を取得する。
+        例: "取扱商品のランキング・比較" → "取扱商品"
+
+        Returns:
+            抽出された項目名、または None
+        """
+        try:
+            response = self.session.get(url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            # パターン1: h1タグから取得
+            h1 = soup.find("h1")
+            if h1:
+                text = h1.get_text(strip=True)
+                # "XXXのランキング・比較" から "XXX" を抽出
+                match = re.match(r"(.+?)(?:の(?:ランキング|比較|満足度))", text)
+                if match:
+                    return match.group(1).strip()
+                # "【XXX】" パターン
+                match = re.search(r"【(.+?)】", text)
+                if match:
+                    return match.group(1).strip()
+
+            # パターン2: og:title メタタグから取得
+            og_title = soup.find("meta", property="og:title")
+            if og_title:
+                text = og_title.get("content", "")
+                match = re.match(r"(.+?)(?:の(?:ランキング|比較|満足度))", text)
+                if match:
+                    return match.group(1).strip()
+
+            # パターン3: titleタグから取得
+            title = soup.find("title")
+            if title:
+                text = title.get_text(strip=True)
+                # "XXX ランキング" パターン
+                match = re.match(r"(.+?)(?:\s*(?:ランキング|比較|満足度))", text)
+                if match:
+                    return match.group(1).strip()
+
+            return None
+
+        except Exception as e:
+            return None
 
     def _fetch_ranking_page(self, url: str, survey_type: str = "type01") -> List[Dict]:
         """

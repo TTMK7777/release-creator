@@ -509,14 +509,19 @@ def merge_nested_data(uploaded_data, scraped_data):
 
 def detect_name_changes(used_urls, category="items"):
     """
-    同じURLベースで名称が異なるものを検出し、名称変更履歴を返す
+    同じslug（item_slug/dept_path）でページタイトルが異なるものを検出し、名称変更履歴を返す
 
     Args:
-        used_urls: スクレイパーから取得したURL情報
+        used_urls: スクレイパーから取得したURL情報（page_title, item_slug/dept_path, year を含む）
         category: "items"（評価項目）または "departments"（部門）
 
     Returns:
-        dict: {現在の名称: [(変更前の名称, 変更年度), ...]}
+        dict: {
+            現在の名称（リンクテキスト）: {
+                "changes": [{from_name, to_name, change_year}, ...],
+                "latest_name": ページタイトルから取得した最新名称
+            }
+        }
     """
     if not used_urls:
         return {}
@@ -525,73 +530,80 @@ def detect_name_changes(used_urls, category="items"):
     if not url_items:
         return {}
 
-    # URLをベースURL（年度部分を除く）でグループ化
-    # 例: "加入手続き(2024年)" → URL: "https://.../procedure/"
-    import re
+    # slug（item_slug または dept_path）でグループ化
+    slug_key = "item_slug" if category == "items" else "dept_path"
 
-    # URLからベース部分を抽出する関数
-    def extract_base_url(url):
-        if not url:
-            return None
-        # 年度部分を除去: /2024/, /2023/ など
-        base = re.sub(r'/\d{4}/', '/', url)
-        # 末尾のスラッシュを統一
-        base = base.rstrip('/') + '/'
-        return base
-
-    # ベースURL → [(名称, 年度, URL), ...]のマッピング
-    base_url_map = {}
+    # slug → [(page_title, year, link_name), ...] のマッピング
+    slug_map = {}
     for item in url_items:
-        name_with_year = item.get("name", "")
-        url = item.get("url", "")
         status = item.get("status", "")
-
-        if status != "success" or not url:
+        if status != "success":
             continue
 
-        # 名称から年度を抽出: "加入手続き(2024年)" → "加入手続き", 2024
-        match = re.match(r"(.+?)\((\d{4})年\)$", name_with_year)
-        if match:
-            name = match.group(1)
-            year = int(match.group(2))
-        else:
-            name = name_with_year
-            year = None
+        slug = item.get(slug_key)
+        page_title = item.get("page_title")
+        year = item.get("year")
+        link_name = item.get("name", "").replace(f"({year}年)", "").strip() if year else item.get("name", "")
 
-        base_url = extract_base_url(url)
-        if base_url:
-            if base_url not in base_url_map:
-                base_url_map[base_url] = []
-            base_url_map[base_url].append((name, year, url))
+        if not slug or not year:
+            continue
+
+        if slug not in slug_map:
+            slug_map[slug] = []
+        slug_map[slug].append({
+            "page_title": page_title,
+            "year": year,
+            "link_name": link_name
+        })
 
     # 名称変更を検出
     name_changes = {}
-    for base_url, items in base_url_map.items():
+    for slug, items in slug_map.items():
         # 年度でソート（古い順）
-        items_sorted = sorted([i for i in items if i[1] is not None], key=lambda x: x[1])
+        items_sorted = sorted(items, key=lambda x: x["year"])
 
         if len(items_sorted) < 2:
             continue
 
-        # 名称の変化を追跡
-        unique_names = []
-        for name, year, _ in items_sorted:
-            if not unique_names or unique_names[-1][0] != name:
-                unique_names.append((name, year))
+        # page_titleの変化を追跡（Noneは除外）
+        unique_titles = []
+        for item in items_sorted:
+            title = item["page_title"]
+            year = item["year"]
+            if title is None:
+                continue
+            if not unique_titles or unique_titles[-1][0] != title:
+                unique_titles.append((title, year))
 
-        if len(unique_names) > 1:
-            # 最新の名称をキーとして、変更履歴を記録
-            current_name = unique_names[-1][0]
+        # 最新のリンク名称をキーとして使用
+        latest_link_name = items_sorted[-1]["link_name"]
+        latest_page_title = None
+        for item in reversed(items_sorted):
+            if item["page_title"]:
+                latest_page_title = item["page_title"]
+                break
+
+        if len(unique_titles) > 1:
+            # 名称変更があった場合
             changes = []
-            for i, (name, year) in enumerate(unique_names[:-1]):
-                next_name = unique_names[i + 1][0]
-                next_year = unique_names[i + 1][1]
+            for i, (title, year) in enumerate(unique_titles[:-1]):
+                next_title = unique_titles[i + 1][0]
+                next_year = unique_titles[i + 1][1]
                 changes.append({
-                    "from_name": name,
-                    "to_name": next_name,
+                    "from_name": title,
+                    "to_name": next_title,
                     "change_year": next_year
                 })
-            name_changes[current_name] = changes
+            name_changes[latest_link_name] = {
+                "changes": changes,
+                "latest_name": latest_page_title
+            }
+        elif latest_page_title and latest_page_title != latest_link_name:
+            # 名称変更はないが、最新名称がリンク名と異なる場合も記録
+            name_changes[latest_link_name] = {
+                "changes": [],
+                "latest_name": latest_page_title
+            }
 
     return name_changes
 
@@ -1768,11 +1780,16 @@ if st.session_state.results_data:
 
         if item_data:
             for item_name, year_data in item_data.items():
-                with st.expander(f"📌 {item_name}", expanded=False):
+                # 最新名称を取得（名称変更情報があれば使用）
+                display_name = item_name
+                name_change_info = item_name_changes.get(item_name)
+                if name_change_info and name_change_info.get("latest_name"):
+                    display_name = name_change_info["latest_name"]
+
+                with st.expander(f"📌 {display_name}", expanded=False):
                     # 名称変更があれば注記を表示
-                    if item_name in item_name_changes:
-                        changes = item_name_changes[item_name]
-                        for change in changes:
+                    if name_change_info and name_change_info.get("changes"):
+                        for change in name_change_info["changes"]:
                             st.info(f"📝 **名称変更**: {change['change_year']}年より「{change['from_name']}」→「{change['to_name']}」に変更")
 
                     if isinstance(year_data, dict):
@@ -1923,11 +1940,16 @@ if st.session_state.results_data:
 
         if dept_data:
             for dept_name, year_data in dept_data.items():
-                with st.expander(f"📌 {dept_name}", expanded=False):
+                # 最新名称を取得（名称変更情報があれば使用）
+                display_name = dept_name
+                name_change_info = dept_name_changes.get(dept_name)
+                if name_change_info and name_change_info.get("latest_name"):
+                    display_name = name_change_info["latest_name"]
+
+                with st.expander(f"📌 {display_name}", expanded=False):
                     # 名称変更があれば注記を表示
-                    if dept_name in dept_name_changes:
-                        changes = dept_name_changes[dept_name]
-                        for change in changes:
+                    if name_change_info and name_change_info.get("changes"):
+                        for change in name_change_info["changes"]:
                             st.info(f"📝 **名称変更**: {change['change_year']}年より「{change['from_name']}」→「{change['to_name']}」に変更")
 
                     if isinstance(year_data, dict):
