@@ -1634,9 +1634,13 @@ if st.session_state.results_data:
                                 })
                         if bar_data:
                             bar_df = pd.DataFrame(bar_data)
+                            # 縦軸の範囲を動的に設定（最小値-2 〜 最大値+2）
+                            scores = [d["得点"] for d in bar_data]
+                            y_min = max(0, min(scores) - 2)
+                            y_max = max(scores) + 2
                             chart = alt.Chart(bar_df).mark_bar().encode(
                                 x=alt.X('企業名:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-45)),
-                                y=alt.Y('得点:Q', title='得点', scale=alt.Scale(zero=False)),
+                                y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
                                 tooltip=['企業名', '得点']
                             ).properties(height=250, title=f"{year}年 得点上位10社")
                             st.altair_chart(chart, use_container_width=True)
@@ -1667,28 +1671,38 @@ if st.session_state.results_data:
             if comparison_data:
                 st.dataframe(pd.DataFrame(comparison_data), use_container_width=True)
 
-            # 総合ランキング 1位の経年推移（折れ線グラフ）
+            # 総合ランキング TOP10得点の経年推移（折れ線グラフ）
             if len(overall_data) > 1:
-                st.subheader("📊 1位得点の経年推移")
+                st.subheader("📊 得点の経年推移（TOP10企業）")
+                # 最新年度のTOP10企業を取得
+                latest_year = max(overall_data.keys())
+                latest_top10 = sorted(overall_data[latest_year], key=lambda x: x.get("score") or 0, reverse=True)[:10]
+                top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
+
                 line_data = []
                 for year in sorted(overall_data.keys()):
-                    if overall_data[year]:
-                        # 1位（得点が最も高い）を取得
-                        top = max(overall_data[year], key=lambda x: x.get("score") or 0)
-                        if top.get("score") is not None:
+                    for item in overall_data[year]:
+                        company = item.get("company")
+                        score = item.get("score")
+                        if company in top10_companies and score is not None:
                             line_data.append({
                                 "年度": str(year),
-                                "得点": top["score"],
-                                "企業名": top.get("company", "-")
+                                "得点": score,
+                                "企業名": company[:15]  # 長い企業名を短縮
                             })
                 if line_data and len(line_data) > 1:
                     import altair as alt
                     line_df = pd.DataFrame(line_data)
+                    # 縦軸の範囲を動的に設定
+                    all_scores = [d["得点"] for d in line_data]
+                    y_min = max(0, min(all_scores) - 2)
+                    y_max = max(all_scores) + 2
                     chart = alt.Chart(line_df).mark_line(point=True).encode(
                         x=alt.X('年度:O', title='年度'),
-                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(zero=False)),
+                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
+                        color=alt.Color('企業名:N', title='企業名'),
                         tooltip=['年度', '企業名', '得点']
-                    ).properties(height=300, title="総合ランキング 1位得点の経年推移")
+                    ).properties(height=400, title="総合ランキング 得点の経年推移（TOP10企業）")
                     st.altair_chart(chart, use_container_width=True)
 
     with tab4:
@@ -1791,9 +1805,13 @@ if st.session_state.results_data:
                                         })
                                 if bar_data:
                                     bar_df = pd.DataFrame(bar_data)
+                                    # 縦軸の範囲を動的に設定
+                                    scores = [d["得点"] for d in bar_data]
+                                    y_min = max(0, min(scores) - 2)
+                                    y_max = max(scores) + 2
                                     chart = alt.Chart(bar_df).mark_bar().encode(
                                         x=alt.X('企業名:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-45)),
-                                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(zero=False)),
+                                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
                                         tooltip=['企業名', '得点']
                                     ).properties(height=200, title=f"{year}年 得点上位10社")
                                     st.altair_chart(chart, use_container_width=True)
@@ -1812,26 +1830,37 @@ if st.session_state.results_data:
                             if history:
                                 st.dataframe(pd.DataFrame(history), use_container_width=True)
 
-                            # 経年変化の折れ線グラフ（1位の得点推移）
-                            st.markdown("**📊 経年変化グラフ（1位得点推移）**")
+                            # 経年変化の折れ線グラフ（TOP10企業の得点推移）
+                            st.markdown("**📊 得点の経年推移（TOP10企業）**")
+                            # 最新年度のTOP10企業を取得
+                            latest_yr = max(year_data.keys())
+                            latest_top10 = sorted(year_data[latest_yr], key=lambda x: x.get("score") or 0, reverse=True)[:10]
+                            top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
+
                             line_data = []
-                            for year in sorted(year_data.keys()):
-                                if year_data[year]:
-                                    top = year_data[year][0]
-                                    if top.get("score") is not None:
+                            for yr in sorted(year_data.keys()):
+                                for item in year_data[yr]:
+                                    company = item.get("company")
+                                    score = item.get("score")
+                                    if company in top10_companies and score is not None:
                                         line_data.append({
-                                            "年度": str(year),
-                                            "得点": top["score"],
-                                            "企業名": top.get("company", "-")
+                                            "年度": str(yr),
+                                            "得点": score,
+                                            "企業名": company[:15]
                                         })
                             if line_data and len(line_data) > 1:
                                 import altair as alt
                                 line_df = pd.DataFrame(line_data)
+                                # 縦軸の範囲を動的に設定
+                                all_scores = [d["得点"] for d in line_data]
+                                y_min = max(0, min(all_scores) - 2)
+                                y_max = max(all_scores) + 2
                                 chart = alt.Chart(line_df).mark_line(point=True).encode(
                                     x=alt.X('年度:O', title='年度'),
-                                    y=alt.Y('得点:Q', title='得点', scale=alt.Scale(zero=False)),
+                                    y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
+                                    color=alt.Color('企業名:N', title='企業名'),
                                     tooltip=['年度', '企業名', '得点']
-                                ).properties(height=250, title=f"{item_name} 1位得点の経年推移")
+                                ).properties(height=300, title=f"{item_name} 得点の経年推移（TOP10企業）")
                                 st.altair_chart(chart, use_container_width=True)
                     else:
                         df = pd.DataFrame(year_data)
@@ -1939,9 +1968,13 @@ if st.session_state.results_data:
                                         })
                                 if bar_data:
                                     bar_df = pd.DataFrame(bar_data)
+                                    # 縦軸の範囲を動的に設定
+                                    scores = [d["得点"] for d in bar_data]
+                                    y_min = max(0, min(scores) - 2)
+                                    y_max = max(scores) + 2
                                     chart = alt.Chart(bar_df).mark_bar().encode(
                                         x=alt.X('企業名:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-45)),
-                                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(zero=False)),
+                                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
                                         tooltip=['企業名', '得点']
                                     ).properties(height=200, title=f"{year}年 得点上位10社")
                                     st.altair_chart(chart, use_container_width=True)
@@ -1960,26 +1993,37 @@ if st.session_state.results_data:
                             if history:
                                 st.dataframe(pd.DataFrame(history), use_container_width=True)
 
-                            # 経年変化の折れ線グラフ（1位の得点推移）
-                            st.markdown("**📊 経年変化グラフ（1位得点推移）**")
+                            # 経年変化の折れ線グラフ（TOP10企業の得点推移）
+                            st.markdown("**📊 得点の経年推移（TOP10企業）**")
+                            # 最新年度のTOP10企業を取得
+                            latest_yr = max(year_data.keys())
+                            latest_top10 = sorted(year_data[latest_yr], key=lambda x: x.get("score") or 0, reverse=True)[:10]
+                            top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
+
                             line_data = []
-                            for year in sorted(year_data.keys()):
-                                if year_data[year]:
-                                    top = year_data[year][0]
-                                    if top.get("score") is not None:
+                            for yr in sorted(year_data.keys()):
+                                for item in year_data[yr]:
+                                    company = item.get("company")
+                                    score = item.get("score")
+                                    if company in top10_companies and score is not None:
                                         line_data.append({
-                                            "年度": str(year),
-                                            "得点": top["score"],
-                                            "企業名": top.get("company", "-")
+                                            "年度": str(yr),
+                                            "得点": score,
+                                            "企業名": company[:15]
                                         })
                             if line_data and len(line_data) > 1:
                                 import altair as alt
                                 line_df = pd.DataFrame(line_data)
+                                # 縦軸の範囲を動的に設定
+                                all_scores = [d["得点"] for d in line_data]
+                                y_min = max(0, min(all_scores) - 2)
+                                y_max = max(all_scores) + 2
                                 chart = alt.Chart(line_df).mark_line(point=True).encode(
                                     x=alt.X('年度:O', title='年度'),
-                                    y=alt.Y('得点:Q', title='得点', scale=alt.Scale(zero=False)),
+                                    y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
+                                    color=alt.Color('企業名:N', title='企業名'),
                                     tooltip=['年度', '企業名', '得点']
-                                ).properties(height=250, title=f"{dept_name} 1位得点の経年推移")
+                                ).properties(height=300, title=f"{dept_name} 得点の経年推移（TOP10企業）")
                                 st.altair_chart(chart, use_container_width=True)
         else:
             st.info("部門別データは存在しないか取得できませんでした")
