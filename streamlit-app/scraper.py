@@ -607,6 +607,10 @@ class OriconScraper:
         """
         ページから評価項目リストを動的に発見
 
+        survey_typeに応じてフィルタリング:
+        - type01（顧客満足度）: #1 または ハッシュなしのURL
+        - type02（FP評価等）: #2 のURL
+
         Returns:
             {"procedure": "加入手続き", ...}
         """
@@ -617,14 +621,31 @@ class OriconScraper:
 
             items = {}
 
+            # 対象のハッシュを決定
+            # type01 → #1 または ハッシュなし
+            # type02 → #2
+            target_hash = "#1" if self.survey_type == "type01" else f"#{self.survey_type[-1]}"
+
             # サイドバーやナビゲーションから評価項目リンクを探す
             eval_links = soup.find_all("a", href=re.compile(r"/evaluation-item/"))
 
             for link in eval_links:
                 href = link.get("href", "")
-                match = re.search(r"/evaluation-item/([^/]+)\.html", href)
+                match = re.search(r"/evaluation-item/([^/]+)\.html(#\d)?", href)
                 if match:
                     slug = match.group(1)
+                    url_hash = match.group(2) if match.group(2) else ""
+
+                    # survey_typeに応じたフィルタリング
+                    if self.survey_type == "type01":
+                        # type01: ハッシュなし、#1 のみ許可（#2は除外）
+                        if url_hash == "#2":
+                            continue
+                    else:
+                        # type02以降: 対応するハッシュのみ許可
+                        if url_hash != target_hash:
+                            continue
+
                     # 日本語名を取得
                     name = link.get_text(strip=True)
                     if not name:

@@ -671,7 +671,7 @@ st.set_page_config(
 # タイトル
 st.title("📰 オリコン顧客満足度®調査 TOPICSサポートシステム")
 st.markdown("オリコン顧客満足度調査の経年結果を調査。連続記録や1位獲得回数の参照に活用いただけます。")
-st.warning("⚠️ **注意事項**: 情報の正確性は担当者が必ず確認してください。未公開情報を含んだエクセル等はアップロードしないでください。")
+st.warning("⚠️ **注意事項**: 情報の正確性は担当者が必ず確認してください。")
 
 # サイドバー
 st.sidebar.header("⚙️ 設定")
@@ -1530,15 +1530,20 @@ if st.session_state.results_data:
                 latest_years = sorted(item_avg_df["年度"].unique(), reverse=True)[:3]
                 item_avg_df = item_avg_df[item_avg_df["年度"].isin(latest_years)]
 
-                # グループ化縦棒グラフ（年度ごとに横並び）
+                # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
                 import altair as alt
-                chart = alt.Chart(item_avg_df).mark_bar().encode(
+                all_scores = item_avg_df["平均得点"].tolist()
+                y_min = max(0, min(all_scores) - 5)
+                y_max = max(all_scores) + 2
+                item_avg_df["基点"] = y_min
+                chart = alt.Chart(item_avg_df).mark_rect().encode(
                     x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('平均得点:Q', title='平均得点', ),
+                    y=alt.Y('基点:Q', title='平均得点', scale=alt.Scale(domain=[y_min, y_max])),
+                    y2=alt.Y2('平均得点:Q'),
                     color=alt.Color('年度:N', title='年度'),
                     column=alt.Column('評価項目:N', title=None, header=alt.Header(labelOrient='bottom')),
                     tooltip=['評価項目', '年度', '平均得点']
-                ).properties(width=80, height=300)
+                ).properties(width=100, height=400)
                 st.altair_chart(chart)
             else:
                 st.info("評価項目別データにスコアが含まれていません")
@@ -1565,15 +1570,20 @@ if st.session_state.results_data:
                 latest_years = sorted(dept_avg_df["年度"].unique(), reverse=True)[:3]
                 dept_avg_df = dept_avg_df[dept_avg_df["年度"].isin(latest_years)]
 
-                # グループ化縦棒グラフ（年度ごとに横並び）
+                # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
                 import altair as alt
-                chart = alt.Chart(dept_avg_df).mark_bar().encode(
+                all_scores = dept_avg_df["平均得点"].tolist()
+                y_min = max(0, min(all_scores) - 5)
+                y_max = max(all_scores) + 2
+                dept_avg_df["基点"] = y_min
+                chart = alt.Chart(dept_avg_df).mark_rect().encode(
                     x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('平均得点:Q', title='平均得点', ),
+                    y=alt.Y('基点:Q', title='平均得点', scale=alt.Scale(domain=[y_min, y_max])),
+                    y2=alt.Y2('平均得点:Q'),
                     color=alt.Color('年度:N', title='年度'),
                     column=alt.Column('部門:N', title=None, header=alt.Header(labelOrient='bottom')),
                     tooltip=['部門', '年度', '平均得点']
-                ).properties(width=80, height=300)
+                ).properties(width=100, height=400)
                 st.altair_chart(chart)
             else:
                 st.info("部門別データにスコアが含まれていません")
@@ -1658,11 +1668,18 @@ if st.session_state.results_data:
                                 })
                         if bar_data:
                             bar_df = pd.DataFrame(bar_data)
-                            chart = alt.Chart(bar_df).mark_bar().encode(
-                                x=alt.X('企業名:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-45)),
-                                y=alt.Y('得点:Q', title='得点'),
+                            # mark_rectで非0基点の棒グラフを実装（差分を見やすく）
+                            scores = [d["得点"] for d in bar_data]
+                            y_min = max(0, min(scores) - 5)  # 最小値-5を基点に
+                            y_max = max(scores) + 2
+                            bar_df["基点"] = y_min
+                            chart = alt.Chart(bar_df).mark_rect().encode(
+                                x=alt.X('企業名:N', sort=alt.EncodingSortField(field='得点', order='descending'), title=None, axis=alt.Axis(labelAngle=-45)),
+                                y=alt.Y('基点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
+                                y2=alt.Y2('得点:Q'),
+                                color=alt.Color('得点:Q', scale=alt.Scale(scheme='blues'), legend=None),
                                 tooltip=['企業名', '得点']
-                            ).properties(height=250, title=f"{year}年 得点上位10社")
+                            ).properties(height=350, title=f"{year}年 得点上位10社")
                             st.altair_chart(chart, use_container_width=True)
 
             # 経年比較テーブル
@@ -1826,11 +1843,18 @@ if st.session_state.results_data:
                                         })
                                 if bar_data:
                                     bar_df = pd.DataFrame(bar_data)
-                                    chart = alt.Chart(bar_df).mark_bar().encode(
-                                        x=alt.X('企業名:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-45)),
-                                        y=alt.Y('得点:Q', title='得点'),
+                                    # mark_rectで非0基点の棒グラフを実装（差分を見やすく）
+                                    scores = [d["得点"] for d in bar_data]
+                                    y_min = max(0, min(scores) - 5)
+                                    y_max = max(scores) + 2
+                                    bar_df["基点"] = y_min
+                                    chart = alt.Chart(bar_df).mark_rect().encode(
+                                        x=alt.X('企業名:N', sort=alt.EncodingSortField(field='得点', order='descending'), title=None, axis=alt.Axis(labelAngle=-45)),
+                                        y=alt.Y('基点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
+                                        y2=alt.Y2('得点:Q'),
+                                        color=alt.Color('得点:Q', scale=alt.Scale(scheme='blues'), legend=None),
                                         tooltip=['企業名', '得点']
-                                    ).properties(height=200, title=f"{year}年 得点上位10社")
+                                    ).properties(height=350, title=f"{year}年 得点上位10社")
                                     st.altair_chart(chart, use_container_width=True)
 
                         if len(year_data) > 1:
@@ -1986,11 +2010,18 @@ if st.session_state.results_data:
                                         })
                                 if bar_data:
                                     bar_df = pd.DataFrame(bar_data)
-                                    chart = alt.Chart(bar_df).mark_bar().encode(
-                                        x=alt.X('企業名:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-45)),
-                                        y=alt.Y('得点:Q', title='得点'),
+                                    # mark_rectで非0基点の棒グラフを実装（差分を見やすく）
+                                    scores = [d["得点"] for d in bar_data]
+                                    y_min = max(0, min(scores) - 5)
+                                    y_max = max(scores) + 2
+                                    bar_df["基点"] = y_min
+                                    chart = alt.Chart(bar_df).mark_rect().encode(
+                                        x=alt.X('企業名:N', sort=alt.EncodingSortField(field='得点', order='descending'), title=None, axis=alt.Axis(labelAngle=-45)),
+                                        y=alt.Y('基点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
+                                        y2=alt.Y2('得点:Q'),
+                                        color=alt.Color('得点:Q', scale=alt.Scale(scheme='blues'), legend=None),
                                         tooltip=['企業名', '得点']
-                                    ).properties(height=200, title=f"{year}年 得点上位10社")
+                                    ).properties(height=350, title=f"{year}年 得点上位10社")
                                     st.altair_chart(chart, use_container_width=True)
 
                         if len(year_data) > 1:
