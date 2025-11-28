@@ -651,7 +651,8 @@ class OriconScraper:
         ページから評価項目名・部門名を抽出
 
         ページ内のh1, h2, title等から項目名を取得する。
-        例: "取扱商品のランキング・比較" → "取扱商品"
+        例: "【2025年】ネット証券の取扱商品 オリコン顧客満足度ランキング" → "取扱商品"
+        例: "【2012年】ネット証券の取扱商品量ランキング・比較" → "取扱商品量"
 
         Returns:
             抽出された項目名、または None
@@ -665,36 +666,80 @@ class OriconScraper:
             h1 = soup.find("h1")
             if h1:
                 text = h1.get_text(strip=True)
-                # "XXXのランキング・比較" から "XXX" を抽出
-                match = re.match(r"(.+?)(?:の(?:ランキング|比較|満足度))", text)
-                if match:
-                    return match.group(1).strip()
-                # "【XXX】" パターン
-                match = re.search(r"【(.+?)】", text)
-                if match:
-                    return match.group(1).strip()
+                extracted = self._extract_item_name_from_title(text)
+                if extracted:
+                    return extracted
 
             # パターン2: og:title メタタグから取得
             og_title = soup.find("meta", property="og:title")
             if og_title:
                 text = og_title.get("content", "")
-                match = re.match(r"(.+?)(?:の(?:ランキング|比較|満足度))", text)
-                if match:
-                    return match.group(1).strip()
+                extracted = self._extract_item_name_from_title(text)
+                if extracted:
+                    return extracted
 
             # パターン3: titleタグから取得
             title = soup.find("title")
             if title:
                 text = title.get_text(strip=True)
-                # "XXX ランキング" パターン
-                match = re.match(r"(.+?)(?:\s*(?:ランキング|比較|満足度))", text)
-                if match:
-                    return match.group(1).strip()
+                extracted = self._extract_item_name_from_title(text)
+                if extracted:
+                    return extracted
 
             return None
 
         except Exception as e:
             return None
+
+    def _extract_item_name_from_title(self, text: str) -> Optional[str]:
+        """
+        タイトル文字列から評価項目名・部門名を抽出
+
+        対応パターン:
+        - 【2025年】ネット証券の取扱商品 オリコン顧客満足度ランキング → 取扱商品
+        - 【2012年】ネット証券の取扱商品量ランキング・比較 → 取扱商品量
+        - 2012年 取扱商品量｜ネット証券ランキング → 取扱商品量
+        - 【2025年】ネット証券 初心者のランキング → 初心者
+
+        非対応（Noneを返す）:
+        - 【最新】ネット証券のランキング・比較 → None（評価項目ページではない）
+        """
+        if not text:
+            return None
+
+        # パターン1: 【年度】XXXのYYY ランキング → YYY を抽出
+        # 例: 【2025年】ネット証券の取扱商品 オリコン → 取扱商品
+        # 「の」の後に具体的な項目名があり、その後にオリコンorランキングが続く
+        match = re.search(r"の(.+?)(?:\s+オリコン|\s+ランキング|ランキング)", text)
+        if match:
+            item_name = match.group(1).strip()
+            # 「満足度」で終わる場合は除去
+            item_name = re.sub(r"\s*満足度$", "", item_name)
+            # 年度だけの場合はスキップ
+            if not re.match(r"^\d{4}年?$", item_name) and item_name:
+                # 「ランキング・比較」などの一般的な語句は除外
+                if item_name not in ["ランキング", "比較", "ランキング・比較"]:
+                    return item_name
+
+        # パターン2: YYYY年 XXX｜ → XXX を抽出
+        # 例: 2012年 取扱商品量｜ネット証券ランキング → 取扱商品量
+        match = re.search(r"\d{4}年\s+(.+?)(?:｜|\||ランキング)", text)
+        if match:
+            item_name = match.group(1).strip()
+            if item_name and not re.match(r"^\d{4}年?$", item_name):
+                # 「ランキング・比較」などの一般的な語句は除外
+                if item_name not in ["ランキング", "比較", "ランキング・比較"]:
+                    return item_name
+
+        # パターン3: XXX YYYのランキング → YYY（スペース区切り）
+        # 例: 【2025年】ネット証券 初心者のランキング → 初心者
+        match = re.search(r"\s([^\s]+?)のランキング", text)
+        if match:
+            item_name = match.group(1).strip()
+            if item_name and not re.match(r"^\d{4}年?$", item_name):
+                return item_name
+
+        return None
 
     def _fetch_ranking_page(self, url: str, survey_type: str = "type01") -> List[Dict]:
         """
