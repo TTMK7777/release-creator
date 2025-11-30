@@ -64,3 +64,14 @@ scripts/
 # その他
 files/
 HANDOFF*.md
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Credentials
+*.pem
+*.key
+credentials.json
+secrets.json
