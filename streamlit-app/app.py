@@ -1204,9 +1204,9 @@ if run_button:
             log(f"    └ アップロード: {len(uploaded_overall)}年分")
             log(f"    └ スクレイピング: {len(scraped_overall)}年分")
 
-            # Step 4: 分析実行
+            # Step 4: 分析実行（v5.8: 部門別データも渡す）
             status_text.text("🔍 TOPICS分析中...")
-            analyzer = TopicsAnalyzer(overall_data, item_data, ranking_name)
+            analyzer = TopicsAnalyzer(overall_data, item_data, ranking_name, dept_data)
             topics = analyzer.analyze()
             progress_bar.progress(85)
 

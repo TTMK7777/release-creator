@@ -457,15 +457,17 @@ class HistoricalAnalyzer:
 class TopicsAnalyzer:
     """ランキングデータからTOPICSを抽出"""
 
-    def __init__(self, overall_data: Dict, item_data: Dict, ranking_name: str):
+    def __init__(self, overall_data: Dict, item_data: Dict, ranking_name: str, dept_data: Dict = None):
         """
         Args:
             overall_data: 総合ランキングデータ {年度: [企業データ]}
-            item_data: 評価項目別データ {項目名: [企業データ]}
+            item_data: 評価項目別データ {項目名: {年度: [企業データ]}}
             ranking_name: ランキング名
+            dept_data: 部門別データ {部門名: {年度: [企業データ]}} (v5.8追加)
         """
         self.overall = overall_data
         self.items = item_data
+        self.depts = dept_data or {}
         self.ranking_name = ranking_name
 
     def analyze(self) -> Dict[str, Any]:
@@ -482,12 +484,12 @@ class TopicsAnalyzer:
         recommended = []
         other = []
 
-        # 1. 連続1位を分析
+        # 1. 連続1位を分析（総合ランキング）
         consecutive = self._analyze_consecutive_wins()
         if consecutive:
             recommended.append(consecutive)
 
-        # 2. 得点差を分析
+        # 2. 得点差を分析（総合ランキング）
         score_diff = self._analyze_score_difference()
         if score_diff:
             recommended.append(score_diff)
@@ -497,13 +499,35 @@ class TopicsAnalyzer:
         if item_dominance:
             recommended.append(item_dominance)
 
-        # 4. 項目別の特徴を分析
+        # 4. 評価項目別の連続1位記録を分析 (v5.8追加)
+        item_consecutive = self._analyze_item_consecutive_wins()
+        for topic in item_consecutive:
+            recommended.append(topic)
+
+        # 5. 部門別の連続1位記録を分析 (v5.8追加)
+        dept_consecutive = self._analyze_dept_consecutive_wins()
+        for topic in dept_consecutive:
+            recommended.append(topic)
+
+        # 6. 部門別の独占状況を分析 (v5.8追加)
+        dept_dominance = self._analyze_dept_dominance()
+        if dept_dominance:
+            recommended.append(dept_dominance)
+
+        # 7. 項目別の特徴を分析
         item_features = self._analyze_item_features()
         other.extend(item_features)
 
-        # 5. 順位変動を分析
+        # 8. 部門別の特徴を分析 (v5.8追加)
+        dept_features = self._analyze_dept_features()
+        other.extend(dept_features)
+
+        # 9. 順位変動を分析
         rank_changes = self._analyze_rank_changes()
         other.extend(rank_changes)
+
+        # impactでソートして重複を除去
+        recommended = sorted(recommended, key=lambda x: x.get("impact", 0), reverse=True)
 
         # 見出し案を生成
         headlines = self._generate_headlines(recommended)
@@ -776,3 +800,186 @@ class TopicsAnalyzer:
             headlines.append(f"『{self.ranking_name}』満足度調査　{main_topic['title']}")
 
         return headlines
+
+    # ========================================
+    # v5.8追加: 評価項目別・部門別の連続記録分析
+    # ========================================
+
+    def _analyze_item_consecutive_wins(self) -> List[Dict]:
+        """評価項目別の連続1位記録を分析"""
+        topics = []
+
+        if not self.items:
+            return topics
+
+        for item_name, year_data in self.items.items():
+            if not isinstance(year_data, dict) or not year_data:
+                continue
+
+            years = sorted(year_data.keys())
+            if len(years) < 2:
+                continue
+
+            # 連続1位を計算
+            current_company = None
+            streak_start = None
+            latest_year = years[-1]
+
+            for year in years:
+                if not year_data.get(year):
+                    continue
+                top_company = year_data[year][0].get("company")
+
+                if top_company == current_company:
+                    pass  # 連続中
+                else:
+                    # 新しい企業が1位
+                    current_company = top_company
+                    streak_start = year
+
+            # 最新年まで連続している場合のみ対象
+            if current_company and streak_start and streak_start < latest_year:
+                consecutive_years = latest_year - streak_start + 1
+                if consecutive_years >= 3:  # 3年以上連続
+                    topics.append({
+                        "importance": "注目",
+                        "title": f"『{item_name}』で{current_company}が{consecutive_years}年連続1位",
+                        "evidence": f"{streak_start}年〜{latest_year}年の評価項目別ランキング",
+                        "impact": min(4, 2 + consecutive_years // 2),  # 3年で3, 5年で4
+                        "category": "評価項目別"
+                    })
+
+        # impactが高い順にソートして上位3件まで
+        topics = sorted(topics, key=lambda x: x["impact"], reverse=True)[:3]
+        return topics
+
+    def _analyze_dept_consecutive_wins(self) -> List[Dict]:
+        """部門別の連続1位記録を分析"""
+        topics = []
+
+        if not self.depts:
+            return topics
+
+        for dept_name, year_data in self.depts.items():
+            if not isinstance(year_data, dict) or not year_data:
+                continue
+
+            years = sorted(year_data.keys())
+            if len(years) < 2:
+                continue
+
+            # 連続1位を計算
+            current_company = None
+            streak_start = None
+            latest_year = years[-1]
+
+            for year in years:
+                if not year_data.get(year):
+                    continue
+                top_company = year_data[year][0].get("company")
+
+                if top_company == current_company:
+                    pass  # 連続中
+                else:
+                    current_company = top_company
+                    streak_start = year
+
+            # 最新年まで連続している場合のみ対象
+            if current_company and streak_start and streak_start < latest_year:
+                consecutive_years = latest_year - streak_start + 1
+                if consecutive_years >= 3:  # 3年以上連続
+                    topics.append({
+                        "importance": "注目",
+                        "title": f"『{dept_name}』部門で{current_company}が{consecutive_years}年連続1位",
+                        "evidence": f"{streak_start}年〜{latest_year}年の部門別ランキング",
+                        "impact": min(4, 2 + consecutive_years // 2),
+                        "category": "部門別"
+                    })
+
+        topics = sorted(topics, key=lambda x: x["impact"], reverse=True)[:3]
+        return topics
+
+    def _analyze_dept_dominance(self) -> Dict:
+        """部門別の独占状況を分析"""
+        if not self.depts:
+            return None
+
+        # 各社の1位獲得数をカウント
+        wins = {}
+        actual_depts = 0
+
+        for dept_name, year_data in self.depts.items():
+            if not isinstance(year_data, dict):
+                continue
+
+            if year_data:
+                latest_year = max(year_data.keys())
+                data = year_data[latest_year]
+            else:
+                continue
+
+            if data:
+                actual_depts += 1
+                top_company = data[0].get("company", "")
+                if top_company:
+                    wins[top_company] = wins.get(top_company, 0) + 1
+
+        if not wins or actual_depts == 0:
+            return None
+
+        top_winner = max(wins.items(), key=lambda x: x[1])
+        company, count = top_winner
+
+        if count >= actual_depts * 0.6:  # 60%以上で「独占」
+            return {
+                "importance": "重要",
+                "title": f"{company}が{actual_depts}部門中{count}部門で1位を独占",
+                "evidence": f"部門別ランキングで圧倒的な強さ",
+                "impact": 4,
+                "category": "部門別"
+            }
+        elif count >= 3:
+            return {
+                "importance": "注目",
+                "title": f"{company}が{count}部門で1位を獲得",
+                "evidence": f"複数の部門で高評価",
+                "impact": 3,
+                "category": "部門別"
+            }
+
+        return None
+
+    def _analyze_dept_features(self) -> List[str]:
+        """部門別の特徴を分析（得点差が大きい部門など）"""
+        features = []
+
+        if not self.depts:
+            return features
+
+        for dept_name, year_data in self.depts.items():
+            if not isinstance(year_data, dict):
+                continue
+
+            if year_data:
+                latest_year = max(year_data.keys())
+                data = year_data[latest_year]
+            else:
+                continue
+
+            if len(data) >= 2:
+                first = data[0]
+                second = data[1]
+
+                score1 = first.get("score")
+                score2 = second.get("score")
+
+                if score1 is not None and score2 is not None:
+                    diff = round(score1 - score2, 1)
+
+                    if diff >= 3.0:
+                        features.append(
+                            f"『{dept_name}』部門で{first['company']}が{score1}点、"
+                            f"2位と{diff}点差の圧倒的高評価"
+                        )
+
+        return features[:3]  # 上位3つまで
