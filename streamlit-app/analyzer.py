@@ -564,6 +564,7 @@ class TopicsAnalyzer:
 
         if consecutive >= 2:
             return {
+                "category": "総合ランキング",  # v5.9: カテゴリ追加
                 "importance": "最重要",
                 "title": f"{top_company}が{consecutive}年連続で総合1位を達成",
                 "evidence": f"{years[-consecutive+1] if consecutive > 1 else latest_year}年〜{latest_year}年の総合ランキング1位",
@@ -575,6 +576,7 @@ class TopicsAnalyzer:
                 prev_top = self.overall[years[1]][0].get("company", "") if self.overall[years[1]] else ""
                 if prev_top != top_company:
                     return {
+                        "category": "総合ランキング",  # v5.9: カテゴリ追加
                         "importance": "重要",
                         "title": f"{top_company}が{prev_top}を抜いて総合1位を獲得",
                         "evidence": f"{years[1]}年1位の{prev_top}から{latest_year}年は{top_company}が1位に",
@@ -613,6 +615,7 @@ class TopicsAnalyzer:
         if len(tied_companies) >= 2:
             if len(tied_companies) == 2:
                 return {
+                    "category": "総合ランキング",  # v5.9: カテゴリ追加
                     "importance": "重要",
                     "title": f"{tied_companies[0]}と{tied_companies[1]}が同率1位",
                     "evidence": f"両社とも{score1}点で並ぶ",
@@ -622,6 +625,7 @@ class TopicsAnalyzer:
                 # 3社以上の同率1位
                 companies_str = "、".join(tied_companies)
                 return {
+                    "category": "総合ランキング",  # v5.9: カテゴリ追加
                     "importance": "重要",
                     "title": f"{len(tied_companies)}社が同率1位で並ぶ",
                     "evidence": f"{companies_str}（いずれも{score1}点）",
@@ -639,6 +643,7 @@ class TopicsAnalyzer:
 
         if diff >= 2.0:
             return {
+                "category": "総合ランキング",  # v5.9: カテゴリ追加
                 "importance": "重要",
                 "title": f"1位と2位の得点差{diff}点、{first['company']}が大きく引き離す",
                 "evidence": f"{first['company']}({score1}点) vs {second['company']}({score2}点)",
@@ -646,6 +651,7 @@ class TopicsAnalyzer:
             }
         elif diff <= 0.5:
             return {
+                "category": "総合ランキング",  # v5.9: カテゴリ追加
                 "importance": "注目",
                 "title": f"1位と2位の得点差わずか{diff}点の僅差",
                 "evidence": f"{first['company']}({score1}点) vs {second['company']}({score2}点)",
@@ -689,6 +695,7 @@ class TopicsAnalyzer:
 
         if count >= actual_items * 0.6:  # 60%以上で「独占」（実データ数基準）
             return {
+                "category": "評価項目別",  # v5.9: カテゴリ追加
                 "importance": "重要",
                 "title": f"{company}が{actual_items}項目中{count}項目で1位を独占",
                 "evidence": f"評価項目別ランキングで圧倒的な強さ",
@@ -696,6 +703,7 @@ class TopicsAnalyzer:
             }
         elif count >= 3:
             return {
+                "category": "評価項目別",  # v5.9: カテゴリ追加
                 "importance": "注目",
                 "title": f"{company}が{count}項目で1位を獲得",
                 "evidence": f"複数の評価項目で高評価",

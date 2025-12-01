@@ -1318,12 +1318,42 @@ if st.session_state.results_data:
 
     with tab1:
         st.header(f"⭐ 推奨TOPICS（{latest_year}年時点）" if latest_year else "⭐ 推奨TOPICS")
-        for i, topic in enumerate(topics["recommended"], 1):
-            st.markdown(f"### {i}. {topic['title']}")
+
+        # v5.9: カテゴリ別にTOPICSを分類して表示
+        recommended_topics = topics.get("recommended", [])
+
+        # カテゴリ別に分類
+        overall_topics = [t for t in recommended_topics if t.get("category") == "総合ランキング"]
+        item_topics = [t for t in recommended_topics if t.get("category") == "評価項目別"]
+        dept_topics = [t for t in recommended_topics if t.get("category") == "部門別"]
+
+        # カテゴリ未設定のものは総合に分類（後方互換）
+        other_categorized = [t for t in recommended_topics if t.get("category") not in ["総合ランキング", "評価項目別", "部門別"]]
+        overall_topics.extend(other_categorized)
+
+        # 総合ランキング
+        if overall_topics:
+            st.subheader("📊 総合ランキング")
+            for i, topic in enumerate(overall_topics, 1):
+                st.markdown(f"**{i}. {topic['title']}**")
+            st.divider()
+
+        # 評価項目別
+        if item_topics:
+            st.subheader("📋 評価項目別")
+            for i, topic in enumerate(item_topics, 1):
+                st.markdown(f"**{i}. {topic['title']}**")
+            st.divider()
+
+        # 部門別
+        if dept_topics:
+            st.subheader("🏷️ 部門別")
+            for i, topic in enumerate(dept_topics, 1):
+                st.markdown(f"**{i}. {topic['title']}**")
             st.divider()
 
         if topics.get("other"):
-            st.subheader("📊 その他のTOPICS候補")
+            st.subheader("📝 その他のTOPICS候補")
             for topic in topics["other"]:
                 st.markdown(f"- {topic}")
 
@@ -1333,16 +1363,25 @@ if st.session_state.results_data:
         for i, headline in enumerate(topics.get("headlines", []), 1):
             st.markdown(f"**パターン{i}**: {headline}")
 
-        # コピー用テキスト
+        # コピー用テキスト（カテゴリ別に整理）
         st.subheader("📋 コピー用テキスト")
-        copy_text = "\n".join([
-            f"【推奨TOPICS（{latest_year}年時点）】" if latest_year else "【推奨TOPICS】",
-            *[f"{i}. {t['title']}" for i, t in enumerate(topics["recommended"], 1)],
-            "",
-            "【見出し案】",
-            *[f"パターン{i}: {h}" for i, h in enumerate(topics.get("headlines", []), 1)]
-        ])
-        st.text_area("コピー用", copy_text, height=300, label_visibility="collapsed")
+        copy_lines = [f"【推奨TOPICS（{latest_year}年時点）】" if latest_year else "【推奨TOPICS】"]
+
+        if overall_topics:
+            copy_lines.append("\n■ 総合ランキング")
+            copy_lines.extend([f"・{t['title']}" for t in overall_topics])
+        if item_topics:
+            copy_lines.append("\n■ 評価項目別")
+            copy_lines.extend([f"・{t['title']}" for t in item_topics])
+        if dept_topics:
+            copy_lines.append("\n■ 部門別")
+            copy_lines.extend([f"・{t['title']}" for t in dept_topics])
+
+        copy_lines.append("\n【見出し案】")
+        copy_lines.extend([f"パターン{i}: {h}" for i, h in enumerate(topics.get("headlines", []), 1)])
+
+        copy_text = "\n".join(copy_lines)
+        st.text_area("コピー用", copy_text, height=350, label_visibility="collapsed")
 
     with tab2:
         st.header("🏆 歴代記録・得点推移")
@@ -1358,20 +1397,23 @@ if st.session_state.results_data:
             col_left, col_right = st.columns(2)
 
             with col_left:
-                # 連続1位記録
+                # 連続1位記録（2年以上のみ）
                 st.subheader("🥇 連続1位記録")
                 consecutive = records.get("consecutive_wins", [])
                 if consecutive:
-                    cons_df = pd.DataFrame([
-                        {
-                            "企業名": r["company"],
-                            "連続年数": f"{r['years']}年",
-                            "期間": f"{r['start_year']}〜{r['end_year']}",
-                            "継続中": "✅" if r.get("is_current") else ""
-                        }
-                        for r in consecutive[:10]
-                    ])
-                    st.dataframe(cons_df, use_container_width=True, hide_index=True)
+                    # 2年以上の記録のみ表示
+                    consecutive_filtered = [r for r in consecutive if r.get("years", 0) >= 2]
+                    if consecutive_filtered:
+                        cons_df = pd.DataFrame([
+                            {
+                                "企業名": r["company"],
+                                "連続年数": f"{r['years']}年",
+                                "期間": f"{r['start_year']}〜{r['end_year']}",
+                                "継続中": "✅" if r.get("is_current") else ""
+                            }
+                            for r in consecutive_filtered[:10]
+                        ])
+                        st.dataframe(cons_df, use_container_width=True, hide_index=True)
 
                 # 過去最高得点
                 st.subheader("📈 過去最高得点TOP10")
@@ -1398,7 +1440,6 @@ if st.session_state.results_data:
                         {
                             "企業名": r["company"],
                             "1位回数": f"{r['wins']}回",
-                            "獲得率": f"{r['wins']/r['total_years']*100:.1f}%" if r['total_years'] > 0 else "0.0%",
                             "獲得年": ", ".join(map(str, r["years"]))
                         }
                         for r in most_wins[:10]
@@ -1623,12 +1664,10 @@ if st.session_state.results_data:
                 if r.get("wins", 0) > 0:
                     # 継続中フラグ: 最新年度も1位なら✅
                     is_current = latest_year in r.get("years", []) if latest_year else False
-                    total_years = r.get("total_years", 0)
                     wins = r.get("wins", 0)
                     overall_wins_data.append({
                         "企業名": r.get("company", ""),
                         "1位回数": wins,  # ソート用に数値で保持
-                        "獲得率": f"{wins/total_years*100:.1f}%" if total_years > 0 else "0.0%",
                         "継続中": "✅" if is_current else "",
                         "獲得年": ", ".join(map(str, r.get("years", [])))
                     })
@@ -1652,11 +1691,12 @@ if st.session_state.results_data:
                         if url_item.get("year") == year and url_item.get("status") == "success":
                             year_url = url_item.get("url", "")
                             break
-                # expanderのタイトルにURLを含める
+                # expanderのタイトル（URLはクリック可能にするため中に表示）
                 expander_title = f"{source_mark} {year}年"
-                if year_url:
-                    expander_title += f" 🔗 {year_url}"
                 with st.expander(expander_title, expanded=(year == max(overall_data.keys()))):
+                    # URLを表の上にクリック可能なリンクとして表示
+                    if year_url:
+                        st.markdown(f"🔗 **参照URL**: [{year_url}]({year_url})")
                     df = pd.DataFrame(overall_data[year])
                     # 空白列名や数字のみの列名を除外
                     valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
