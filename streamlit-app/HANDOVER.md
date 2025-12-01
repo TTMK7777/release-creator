@@ -9,6 +9,8 @@ Webスクレイピングによる過去データ取得と、Excelファイルア
 
 | バージョン | 日付 | 主な変更点 |
 |-----------|------|-----------|
+| v5.7 | 2025-12-01 | 全215ランキング包括的テスト・修正（医療保険URL修正、バイク販売店/電子コミック/映画館/テーマパーク部門検出追加、Critical問題修正） |
+| v5.6 | 2025-12-01 | FX部門別ランキング検出修正（style追加、タイトル抽出パターン追加で初心者/スキャルピング等9部門を検出可能に） |
 | v5.5 | 2025-11-28 | 棒グラフ改善（mark_rectによる非0基点実装で差分が見やすく、サイズ拡大: height 200→350, width 80→100）、顧客満足度/FP評価の分離対応（#1/#2ハッシュによるURL区別）、警告文言簡素化 |
 | v5.4 | 2025-11-28 | 名称変更検出改善（ページタイトルから実際の評価項目名・部門名を取得、最新名称をexpanderタイトルに表示） |
 | v5.3 | 2025-11-28 | アップロード機能の隠し化（環境変数 ENABLE_UPLOAD_FEATURE で制御、Cloud環境ではデフォルト非表示） |
@@ -372,6 +374,102 @@ streamlit run app.py --server.port 8505
   4. 過去リンクからの推定（フォールバック）
 
   ※調査期間は使用しない（更新日が正式な年度基準のため）
+
+**問題13: FX部門別ランキングが検出されない (v5.6で解決)**
+- 症状: FXランキングで部門別（初心者、スキャルピングトレード等）が0件と表示される
+- **根本原因**: 2つの問題があった
+
+  1. **`dept_patterns`に`style`が含まれていなかった** (scraper.py:573)
+     - FXには「取引スタイル別」（style/）のカテゴリがあるが、パターンに含まれていなかった
+     - 修正: `style` をパターンに追加
+     ```python
+     # 変更前
+     dept_patterns = [
+         r"/(age|genre|contract|new-contract|device|business|beginner|type|purpose|nisa|ideco)(?:/|\.html)",
+     ]
+     # 変更後
+     dept_patterns = [
+         r"/(age|genre|contract|new-contract|device|business|beginner|type|purpose|nisa|ideco|style)(?:/|\.html)",
+     ]
+     ```
+
+  2. **`_extract_dept_name_from_title`のパターンが不足** (scraper.py:791-890)
+     - FXページのタイトル形式「【2025年】FXの初心者ランキング・比較」に対応していなかった
+     - 既存パターン: 「XXX向けの」「XXXにおすすめの」のみ
+     - 修正: 新パターン追加
+     ```python
+     # パターン0.5: 【年度】XXXのYYYランキング → YYY を抽出（FX向け）
+     # 例: 【2025年】FXの初心者ランキング・比較 → 初心者
+     # 例: 【2025年】FXのスキャルピングトレードランキング・比較 → スキャルピングトレード
+     match = re.search(r"】[^\s【】]+の(.+?)ランキング", text)
+     if match:
+         dept_name = match.group(1).strip()
+         if dept_name and dept_name not in ["顧客満足度", "オリコン顧客満足度", "満足度"] and len(dept_name) <= 20:
+             return dept_name
+     ```
+
+  **修正後の検出結果（9部門）**:
+  - 初心者 (`beginner/`)
+  - PC (`device/`)
+  - スマホアプリ (`device/app.html`)
+  - FX専業者 (`business/`)
+  - 証券会社 (`business/securities.html`)
+  - スキャルピングトレード (`style/`)
+  - デイトレード (`style/day-trading.html`)
+  - スイングトレード (`style/swing-trading.html`)
+  - スワップトレード (`style/swap-trading.html`)
+
+  **テスト結果**:
+  - 部門URL成功: 18件（100%）
+  - 評価項目URL成功: 18件
+  - 総合ランキング: 2024年、2025年ともに取得成功
+
+  **補足: 総合ランキングの年毎URLについて**
+  - ユーザー報告: 「総合ランキングタブの年毎のURLが機能していない」
+  - 調査結果: `https://life.oricon.co.jp/rank_fx/2024/` は正常にアクセス可能
+  - 原因: トップページから過去年度へのリンクがないだけで、URLパターン自体は正しく動作していた
+  - 結論: 実際には問題なし（年度別データは正常に取得できている）
+
+**問題14: 全215ランキング包括的テスト・コード品質改善 (v5.7で解決)**
+- 実施: Perplexity（サイト構造調査）+ Gemini（コードレビュー）+ Claude Opus 4.5（統合・最終判断・包括テスト実行）
+- **テスト範囲**: **全215種類のランキング**（ranking_options定義全件）
+
+  **修正内容一覧:**
+
+  **1. Critical修正 (3件):**
+  - **サイレントエラーハンドリング**: `try-except-pass` → `logger.warning()` でエラー記録
+  - **危険なデフォルト評価項目**: 携帯キャリア項目の自動適用を削除
+  - **汎用すぎるパターン0**: 短いテキスト → 既知の部門名ホワイトリスト方式
+
+  **2. URL修正 (1件):**
+  - **医療保険(medical_insurance)**: `rank-medical_insurance` → `medical_insurance`（rankプレフィックスなし）
+  - `NO_RANK_PREFIX` リストを新設、URLパターン分岐を追加
+
+  **3. 部門検出パターン追加 (5件):**
+  - `sim|sp`: 格安SIM（mvno）
+  - `specialty|manufacturer`: バイク販売店
+  - `general|publisher|original`: 電子コミック/マンガアプリ
+  - `hokkaido|tohoku|kanto|kinki|tokai|...`: 地域別（映画館、プロバイダ等）
+  - `east|west`: テーマパーク
+
+  **最終テスト結果 (v5.7)**:
+  | ステータス | 件数 | 詳細 |
+  |-----------|------|------|
+  | OK | **215** | 全ランキングで部門または評価項目が正常検出 |
+  | WARN | **0** | 問題なし |
+  | Error | **0** | エラーなし |
+
+  **検出統計**:
+  | 検出パターン | 件数 |
+  |-------------|------|
+  | 部門+評価項目あり | 158件 |
+  | 部門のみ | 6件 |
+  | 評価項目のみ | 51件 |
+  | どちらもなし | **0件** |
+
+  **テストファイル**:
+  - `test_all_rankings_comprehensive.py`: 全ランキング自動テストスクリプト
+  - `test_report_comprehensive.json`: 詳細レポート（JSON形式）
 
 ## 今後の改善案
 

@@ -27,6 +27,12 @@ class OriconScraper:
     - career.oricon.co.jp: キャリア系（転職エージェント、派遣会社など）
     """
 
+    # rankプレフィックスなしのパターン（URLが /xxx/ の形式）
+    # 例: medical_insurance → /medical_insurance/ (NOT /rank-medical_insurance/)
+    NO_RANK_PREFIX = {
+        "medical_insurance",  # 医療保険
+    }
+
     # サブドメインのマッピング（slug → サブドメイン）
     SUBDOMAIN_MAP = {
         # ========================================
@@ -151,10 +157,13 @@ class OriconScraper:
         self.BASE_URL = f"https://{subdomain}.oricon.co.jp"
 
         # URL prefix の決定
+        # パターン0: NO_RANK_PREFIX → そのまま（rankなし）
         # パターン1: _fx → rank_fx
         # パターン2: rank_certificate → rank_certificate（そのまま）
         # パターン3: mobile-carrier → rank-mobile-carrier
-        if base_slug.startswith("_"):
+        if base_slug in self.NO_RANK_PREFIX:
+            self.url_prefix = base_slug  # medical_insurance（rankなし）
+        elif base_slug.startswith("_"):
             self.url_prefix = f"rank{base_slug}"  # rank_fx
         elif base_slug.startswith("rank_"):
             self.url_prefix = base_slug  # rank_certificate（そのまま）
@@ -568,9 +577,17 @@ class OriconScraper:
             dept_paths = set()  # 一意のパスを収集
 
             # 部門別リンクのパターン（評価項目以外）
-            # 例: /rank-xxx/age/50s.html, /rank-xxx/beginner/
+            # 例: /rank-xxx/age/50s.html, /rank-xxx/beginner/, /rank_fx/style/
+            # v5.7追加: specialty, manufacturer (バイク販売店)
+            #           general, publisher, original (電子コミック/マンガアプリ)
+            #           地域別: hokkaido, tohoku, kanto, kinki, tokai, chugoku-shikoku, kyushu-okinawa, koshinetsu-hokuriku, nationwide
+            #           east, west (テーマパーク)
             dept_patterns = [
-                r"/(age|genre|contract|new-contract|device|business|beginner|type|purpose|nisa|ideco)(?:/|\.html)",
+                r"/(age|genre|contract|new-contract|device|business|beginner|type|purpose|nisa|ideco|style|sim|sp)(?:/|\.html)",
+                r"/(specialty|manufacturer)(?:/|\.html)",  # バイク販売店
+                r"/(general|publisher|original)(?:/|\.html)",  # 電子コミック/マンガアプリ
+                r"/(hokkaido|tohoku|kanto|kinki|tokai|chugoku-shikoku|kyushu-okinawa|koshinetsu-hokuriku|nationwide)(?:/|\.html)",  # 地域別
+                r"/(east|west)(?:/|\.html)",  # テーマパーク
             ]
 
             # 除外パターン（部門ページではないもの）
@@ -626,7 +643,7 @@ class OriconScraper:
             return departments
 
         except Exception as e:
-            pass  # 部門リスト取得エラー
+            logger.warning(f"部門リスト取得エラー ({url}): {e}")
             return {}
 
     def _discover_evaluation_items(self, url: str) -> Dict[str, str]:
@@ -678,19 +695,14 @@ class OriconScraper:
                         name = self.EVALUATION_ITEMS.get(slug, slug)
                     items[slug] = name
 
-            # 見つからなければデフォルトを使用
+            # 見つからない場合は空を返す（ランキングごとに異なるため、デフォルト適用は危険）
             if not items:
-                # 携帯キャリアのデフォルト項目
-                default_items = [
-                    "procedure", "campaign", "initial", "connection",
-                    "plan", "lineup", "cost-performance", "support", "option"
-                ]
-                items = {slug: self.EVALUATION_ITEMS.get(slug, slug) for slug in default_items}
+                logger.info(f"評価項目が検出されませんでした: {url}")
 
             return items
 
         except Exception as e:
-            pass  # 評価項目リスト取得エラー
+            logger.warning(f"評価項目リスト取得エラー ({url}): {e}")
             return {}
 
     def _extract_page_title(self, url: str) -> Optional[str]:
@@ -799,6 +811,9 @@ class OriconScraper:
         - 【2025年】ネット証券 NISAのランキング → NISA
         - 【2025年】スポーツ向けのクレジットカード → スポーツ
         - 【2025年】PCユーザーにおすすめのネット証券 → PCユーザー
+        - 【2025年】FXの初心者ランキング・比較 → 初心者
+        - 【2025年】FXのスキャルピングトレードランキング・比較 → スキャルピングトレード
+        - 【2025年】FXのPCランキング・比較 → PC
         - NISA（シンプルなタイトル） → NISA
 
         非対応（Noneを返す）:
@@ -807,11 +822,23 @@ class OriconScraper:
         if not text:
             return None
 
-        # パターン0: シンプルなタイトル（部門名のみ、年度やランキング文言なし）
-        # 例: "NISA", "iDeCo"
+        # パターン0: 既知のシンプルな部門名（ホワイトリスト方式）
+        # 誤検出を防ぐため、明示的にリスト化
+        KNOWN_SIMPLE_DEPT_NAMES = ["NISA", "iDeCo", "つみたてNISA", "ジュニアNISA", "新NISA"]
         simple_text = text.strip()
-        if len(simple_text) <= 10 and not re.search(r"[【】\s年ランキング比較オリコン]", simple_text):
+        if simple_text in KNOWN_SIMPLE_DEPT_NAMES:
             return simple_text
+
+        # パターン0.5: 【年度】XXXのYYYランキング → YYY を抽出（FX向け）
+        # 例: 【2025年】FXの初心者ランキング・比較 → 初心者
+        # 例: 【2025年】FXのスキャルピングトレードランキング・比較 → スキャルピングトレード
+        # 例: 【2025年】FXのPCランキング・比較 → PC
+        match = re.search(r"】[^\s【】]+の(.+?)ランキング", text)
+        if match:
+            dept_name = match.group(1).strip()
+            # 「顧客満足度」などの一般的な語句は除外
+            if dept_name and dept_name not in ["顧客満足度", "オリコン顧客満足度", "満足度"] and len(dept_name) <= 20:
+                return dept_name
 
         # パターン1: 【年度】XXX向けのYYY → XXX を抽出
         # 例: 【2025年】初心者向けのネット証券 → 初心者
@@ -987,7 +1014,7 @@ class OriconScraper:
             return rankings
 
         except Exception as e:
-            pass  # ページ取得エラー
+            logger.debug(f"ページ取得エラー ({url}): {e}")
             return []
 
     def _extract_ranking_data(self, element) -> Optional[Dict]:
