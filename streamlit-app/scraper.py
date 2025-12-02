@@ -590,6 +590,7 @@ class OriconScraper:
                 r"/(east|west)(?:/|\.html)",  # テーマパーク
                 r"/(investment-products|sp-sec|support)(?:/|\.html)",  # ネット証券: 投資商品別、スマホ証券、サポート
                 r"/(foreign-stocks|investment-trust)(?:\.html)?",  # ネット証券: 外国株式、投資信託
+                r"/(preschooler|grade-schooler)(?:/|\.html)?",  # 子ども英語教室: 幼児、小学生
             ]
 
             # 除外パターン（部門ページではないもの）
@@ -827,7 +828,8 @@ class OriconScraper:
         # パターン0: 既知のシンプルな部門名（ホワイトリスト方式）
         # 誤検出を防ぐため、明示的にリスト化
         KNOWN_SIMPLE_DEPT_NAMES = ["NISA", "iDeCo", "つみたてNISA", "ジュニアNISA", "新NISA",
-                                   "外国株式", "投資信託", "スマホ証券", "初心者", "中長期", "スイングトレード"]
+                                   "外国株式", "投資信託", "スマホ証券", "初心者", "中長期", "スイングトレード",
+                                   "幼児", "小学生"]  # 子ども英語教室
         simple_text = text.strip()
         if simple_text in KNOWN_SIMPLE_DEPT_NAMES:
             return simple_text

@@ -341,7 +341,13 @@ class HistoricalAnalyzer:
         return trends
 
     def analyze_item_trends(self) -> Dict[str, Dict]:
-        """評価項目別の得点推移を分析"""
+        """評価項目別の得点推移を分析
+
+        修正: v6.1
+        - 連続記録は「発表回数」を基準にカウント（年度差ではなく）
+        - 発表がない年はスキップして連続とカウント
+        - 例: 2016〜2025(2018は発表なし)の場合、連続年数は9年
+        """
         if not self.items:
             return {}
 
@@ -361,6 +367,8 @@ class HistoricalAnalyzer:
             # 年度別1位
             current_company = None
             streak_start = None
+            streak_years = []  # 実際に1位を獲得した年度リスト
+            consecutive_count = 0  # 発表回数ベースの連続カウント
 
             for year in years:
                 if year_data.get(year):
@@ -370,36 +378,46 @@ class HistoricalAnalyzer:
                         "score": top.get("score")
                     }
 
-                    # 連続1位計算
+                    # 連続1位計算（発表回数ベース）
                     top_company = top.get("company")
                     if top_company == current_company:
-                        pass
+                        consecutive_count += 1
+                        streak_years.append(year)
                     else:
-                        if current_company and streak_start:
-                            prev_year = years[years.index(year) - 1]
+                        if current_company and streak_start and consecutive_count >= 1:
                             item_trends[item_name]["consecutive_wins"].append({
                                 "company": current_company,
                                 "start": streak_start,
-                                "end": prev_year,
-                                "years": prev_year - streak_start + 1
+                                "end": streak_years[-1] if streak_years else streak_start,
+                                "years": consecutive_count,  # 発表回数を連続年数として表示
+                                "years_list": streak_years.copy()
                             })
                         current_company = top_company
                         streak_start = year
+                        streak_years = [year]
+                        consecutive_count = 1
 
             # 最後の連続
-            if current_company and streak_start:
+            if current_company and streak_start and consecutive_count >= 1:
                 item_trends[item_name]["consecutive_wins"].append({
                     "company": current_company,
                     "start": streak_start,
-                    "end": years[-1],
-                    "years": years[-1] - streak_start + 1,
+                    "end": streak_years[-1] if streak_years else streak_start,
+                    "years": consecutive_count,  # 発表回数を連続年数として表示
+                    "years_list": streak_years.copy(),
                     "is_current": True
                 })
 
         return item_trends
 
     def analyze_dept_trends(self) -> Dict[str, Dict]:
-        """部門別の得点推移を分析"""
+        """部門別の得点推移を分析
+
+        修正: v6.1
+        - 連続記録は「発表回数」を基準にカウント（年度差ではなく）
+        - 発表がない年はスキップして連続とカウント
+        - 例: 2016〜2025(2018は発表なし)の場合、連続年数は9年
+        """
         if not self.depts:
             return {}
 
@@ -418,6 +436,8 @@ class HistoricalAnalyzer:
 
             current_company = None
             streak_start = None
+            streak_years = []  # 実際に1位を獲得した年度リスト
+            consecutive_count = 0  # 発表回数ベースの連続カウント
 
             for year in years:
                 if year_data.get(year):
@@ -429,25 +449,29 @@ class HistoricalAnalyzer:
 
                     top_company = top.get("company")
                     if top_company == current_company:
-                        pass
+                        consecutive_count += 1
+                        streak_years.append(year)
                     else:
-                        if current_company and streak_start:
-                            prev_year = years[years.index(year) - 1]
+                        if current_company and streak_start and consecutive_count >= 1:
                             dept_trends[dept_name]["consecutive_wins"].append({
                                 "company": current_company,
                                 "start": streak_start,
-                                "end": prev_year,
-                                "years": prev_year - streak_start + 1
+                                "end": streak_years[-1] if streak_years else streak_start,
+                                "years": consecutive_count,  # 発表回数を連続年数として表示
+                                "years_list": streak_years.copy()
                             })
                         current_company = top_company
                         streak_start = year
+                        streak_years = [year]
+                        consecutive_count = 1
 
-            if current_company and streak_start:
+            if current_company and streak_start and consecutive_count >= 1:
                 dept_trends[dept_name]["consecutive_wins"].append({
                     "company": current_company,
                     "start": streak_start,
-                    "end": years[-1],
-                    "years": years[-1] - streak_start + 1,
+                    "end": streak_years[-1] if streak_years else streak_start,
+                    "years": consecutive_count,  # 発表回数を連続年数として表示
+                    "years_list": streak_years.copy(),
                     "is_current": True
                 })
 
