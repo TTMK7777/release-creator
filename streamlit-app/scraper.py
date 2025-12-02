@@ -588,6 +588,8 @@ class OriconScraper:
                 r"/(general|publisher|original)(?:/|\.html)",  # 電子コミック/マンガアプリ
                 r"/(hokkaido|tohoku|kanto|kinki|tokai|chugoku-shikoku|kyushu-okinawa|koshinetsu-hokuriku|nationwide)(?:/|\.html)",  # 地域別
                 r"/(east|west)(?:/|\.html)",  # テーマパーク
+                r"/(investment-products|sp-sec|support)(?:/|\.html)",  # ネット証券: 投資商品別、スマホ証券、サポート
+                r"/(foreign-stocks|investment-trust)(?:\.html)?",  # ネット証券: 外国株式、投資信託
             ]
 
             # 除外パターン（部門ページではないもの）
@@ -824,10 +826,15 @@ class OriconScraper:
 
         # パターン0: 既知のシンプルな部門名（ホワイトリスト方式）
         # 誤検出を防ぐため、明示的にリスト化
-        KNOWN_SIMPLE_DEPT_NAMES = ["NISA", "iDeCo", "つみたてNISA", "ジュニアNISA", "新NISA"]
+        KNOWN_SIMPLE_DEPT_NAMES = ["NISA", "iDeCo", "つみたてNISA", "ジュニアNISA", "新NISA",
+                                   "外国株式", "投資信託", "スマホ証券", "初心者", "中長期", "スイングトレード"]
         simple_text = text.strip()
         if simple_text in KNOWN_SIMPLE_DEPT_NAMES:
             return simple_text
+        # 部分一致でもOK（タイトルに含まれていれば抽出）
+        for known_name in KNOWN_SIMPLE_DEPT_NAMES:
+            if known_name in text:
+                return known_name
 
         # パターン0.5: 【年度】XXXのYYYランキング → YYY を抽出（FX向け）
         # 例: 【2025年】FXの初心者ランキング・比較 → 初心者
