@@ -583,7 +583,7 @@ class OriconScraper:
             #           地域別: hokkaido, tohoku, kanto, kinki, tokai, chugoku-shikoku, kyushu-okinawa, koshinetsu-hokuriku, nationwide
             #           east, west (テーマパーク)
             dept_patterns = [
-                r"/(age|genre|contract|new-contract|device|business|beginner|type|purpose|nisa|ideco|style|sim|sp)(?:/|\.html)",
+                r"/(age|contract|new-contract|device|business|beginner|type|purpose|nisa|ideco|style|sim|sp)(?:/|\.html)",
                 r"/(specialty|manufacturer)(?:/|\.html)",  # バイク販売店
                 r"/(general|publisher|original)(?:/|\.html)",  # 電子コミック/マンガアプリ
                 r"/(hokkaido|tohoku|kanto|kinki|tokai|chugoku-shikoku|kyushu-okinawa|koshinetsu-hokuriku|nationwide)(?:/|\.html)",  # 地域別
@@ -591,6 +591,7 @@ class OriconScraper:
                 r"/(investment-products|sp-sec|support)(?:/|\.html)",  # ネット証券: 投資商品別、スマホ証券、サポート
                 r"/(foreign-stocks|investment-trust)(?:\.html)?",  # ネット証券: 外国株式、投資信託
                 r"/(preschooler|grade-schooler)(?:/|\.html)?",  # 子ども英語教室: 幼児、小学生
+                r"/(genre)(?:/|\.html)",  # SVOD: ジャンル別
             ]
 
             # 除外パターン（部門ページではないもの）
@@ -817,6 +818,7 @@ class OriconScraper:
         - 【2025年】FXの初心者ランキング・比較 → 初心者
         - 【2025年】FXのスキャルピングトレードランキング・比較 → スキャルピングトレード
         - 【2025年】FXのPCランキング・比較 → PC
+        - 【アニメ】動画配信サービスのジャンル別ランキング → アニメ (SVOD)
         - NISA（シンプルなタイトル） → NISA
 
         非対応（Noneを返す）:
@@ -824,6 +826,16 @@ class OriconScraper:
         """
         if not text:
             return None
+
+        # パターン-1（最優先）: 【ジャンル名】XXXサービスの... → ジャンル名 (SVOD向け)
+        # 例: 【アニメ】動画配信サービスのジャンル別ランキング → アニメ
+        # 例: 【洋画】動画配信サービスのジャンル別ランキング → 洋画
+        match = re.search(r"【([^年】]+?)】(?:動画配信|定額制)", text)
+        if match:
+            dept_name = match.group(1).strip()
+            # 年度（2025年など）でない場合のみ
+            if dept_name and not re.match(r"^\d{4}年?$", dept_name) and dept_name not in ["最新"]:
+                return dept_name
 
         # パターン0: 既知のシンプルな部門名（ホワイトリスト方式）
         # 誤検出を防ぐため、明示的にリスト化
