@@ -75,3 +75,22 @@ HANDOFF*.md
 *.key
 credentials.json
 secrets.json
+
+# Archive folder
+_archive/
+
+# Log files
+logs-*.txt
+*_export.csv
+nul
+
+# Test files in streamlit-app
+streamlit-app/test/
+streamlit-app/test_*.py
+streamlit-app/test_*.json
+
+# Batch files (keep 起動.bat)
+streamlit-app/セットアップ.bat
+streamlit-app/ポータブル版作成.bat
+streamlit-app/起動_TOPICS出し.bat
+streamlit-app/配布方法_README.md
