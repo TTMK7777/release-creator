@@ -9,6 +9,7 @@ Webスクレイピングによる過去データ取得と、Excelファイルア
 
 | バージョン | 日付 | 主な変更点 |
 |-----------|------|-----------|
+| v7.0 | 2025-12-03 | ハイブリッド自動検出（sort-nav優先 + レガシーフォールバック）、同点1位獲得回数対応、サブパス部門検出修正 |
 | v6.2 | 2025-12-02 | コードレビュー・リファクタリング（SVODジャンル別部門名抽出修正、genre/パターン追加、全ランキング部門抽出テスト確認） |
 | v6.1 | 2025-12-02 | 連続記録計算を発表回数ベースに修正（未発表年スキップ）、評価項目・部門タブのレイアウト変更（名称変更→1位推移→経年推移→年数/URL）、子ども英語教室の幼児/小学生部門検出追加 |
 | v6.0 | 2025-12-02 | ネット証券部門対応（外国株式、投資信託、スマホ証券等）、評価項目・部門タブの上部にトレンドグラフを配置 |
@@ -674,3 +675,304 @@ Is Current: True
 1. **新しいランキング追加時**: `dept_patterns`に必要なURLパターンが含まれているか確認
 2. **タイトル形式変更時**: `_extract_dept_name_from_title`のパターンが対応しているか確認
 3. **連続記録の表示**: `years_list`を使用して実際の年度を確認可能
+
+---
+
+## v7.0 ハイブリッド自動検出 (2025-12-03)
+
+### 背景
+
+v6.2までは部門検出にハードコードされた`dept_patterns`（URLパターン）を使用していた。
+新しいランキングが追加されるたびにパターンを追加する必要があり、保守性に課題があった。
+
+全194ランキングを調査した結果：
+- **約63%** のページに `sort-nav` クラスが存在
+- **約37%** のページには `sort-nav` がない（レガシーパターンが必要）
+
+### 実装方針：ハイブリッドアプローチ
+
+1. **sort-nav 優先**: ページに `sort-nav` クラスがあれば、h3見出しから部門を自動検出
+2. **レガシーフォールバック**: `sort-nav` がない場合は従来の `dept_patterns` を使用
+
+### sort-nav 構造（オリコンサイト共通）
+
+```html
+<nav class="sort-nav">
+  <section>
+    <h3>評価項目別</h3>
+    <ul>
+      <li><a href=".../evaluation-item/...">項目名</a></li>
+    </ul>
+  </section>
+  <section>
+    <h3>年代別</h3>  <!-- ← これが部門カテゴリ -->
+    <ul>
+      <li><a href=".../age/20s.html">20代</a></li>
+      <li><a href=".../age/30s.html">30代</a></li>
+    </ul>
+  </section>
+</nav>
+```
+
+### 除外ルール
+
+以下のh3見出しは部門として扱わない：
+- 「評価項目別」「評価項目」（評価項目用のリンク）
+- 「過去のランキング」「過去ランキング」（年度リンク）
+- 「関連ランキング」（他カテゴリへのリンク）
+
+### 同点1位獲得回数対応（v4.5由来）
+
+`analyzer.py` の以下のメソッドで同点1位を正しくカウント：
+- `_calc_most_wins()`: 総合ランキング
+- `calc_item_most_wins()`: 評価項目別
+- `calc_dept_most_wins()`: 部門別
+
+修正ロジック：
+```python
+# 1位の得点を取得
+top_score = data[0].get("score")
+
+# 同点1位の企業をすべてカウント
+for entry in data:
+    if entry.get("score") == top_score:
+        win_counts[company]["count"] += 1
+    else:
+        break  # 得点が異なったらループ終了
+```
+
+### サブパス部門検出修正（v4.4由来）
+
+`scraper.py` の `_discover_departments()` でサブパスを考慮：
+- 例：`rank-kids-english/grade-schooler/grade/` からの低学年・高学年検出
+- `grade/` パターンを `dept_patterns` に追加
+- `KNOWN_SIMPLE_DEPT_NAMES` に「低学年」「高学年」を追加
+
+### 実装ファイル
+
+- `scraper.py`: `_discover_departments()` にsort-nav検出ロジックを追加
+- `analyzer.py`: 同点1位カウントロジック（既存）
+- `HANDOVER.md`: 本ドキュメント
+
+### 実装詳細（完了）
+
+#### 1. `_discover_departments()` メソッドの修正 (scraper.py:566-681)
+
+**ハイブリッドアプローチの実装:**
+
+```python
+def _discover_departments(self, url: str) -> Dict[str, str]:
+    # Phase 1: sort-nav からの自動検出（優先）
+    sort_nav = soup.find(class_="sort-nav")
+    if sort_nav:
+        departments = self._extract_departments_from_sort_nav(sort_nav, url)
+        if departments:
+            logger.info(f"sort-nav から {len(departments)} 件の部門を検出")
+            return departments
+        # sort-nav はあるが部門が見つからない場合はレガシーにフォールバック
+
+    # Phase 2: レガシー dept_patterns による検出
+    # (既存のロジック)
+```
+
+#### 2. `_extract_departments_from_sort_nav()` メソッドの新規追加 (scraper.py:683-760)
+
+**sort-nav構造からの部門抽出:**
+
+```python
+def _extract_departments_from_sort_nav(self, sort_nav, base_url: str) -> Dict[str, str]:
+    # 除外するh3見出し
+    exclude_headings = [
+        "評価項目別", "評価項目",
+        "過去のランキング", "過去ランキング",
+        "関連ランキング", "関連する"
+    ]
+
+    # 各sectionを処理
+    for section in sort_nav.find_all("section"):
+        h3 = section.find("h3")
+        heading_text = h3.get_text(strip=True)
+
+        # 除外対象はスキップ
+        if any(exclude in heading_text for exclude in exclude_headings):
+            continue
+
+        # リンクテキストを部門名として使用（高精度）
+        for link in section.find_all("a", href=True):
+            link_text = link.get_text(strip=True)
+            departments[dept_path] = link_text
+```
+
+**メリット:**
+- リンクテキストを直接使用するため、ページ取得が不要（高速化）
+- h3見出しで部門カテゴリを正確に識別
+- 評価項目や年度リンクを確実に除外
+
+### テスト確認事項
+
+以下のランキングで部門検出が正しく動作することを確認：
+
+| ランキング | 方式 | 部門数 |
+|-----------|------|--------|
+| 携帯キャリア | sort-nav | 年代別など |
+| FX | レガシー | 初心者、スタイル別など |
+| ネット証券 | sort-nav | NISA、投資商品別など |
+| 子ども英語教室（小学生） | レガシー | 低学年、高学年 |
+| SVOD | sort-nav/レガシー | アニメ、洋画など |
+
+### 今後の保守
+
+1. **新ランキング追加時**: sort-navがあれば自動対応、なければ`DEPT_PATTERNS`に追加
+2. **オリコンサイト構造変更時**: `EXCLUDE_HEADINGS`の更新を検討
+3. **デバッグ**: ログに`sort-nav から X 件の部門を検出`または`レガシーパターンから X 件の部門を検出`が出力される
+
+### v7.0 リファクタリング（レビュー対応）
+
+Gemini AIによるコードレビューで指摘された問題を修正：
+
+#### 1. パフォーマンス改善（Critical）
+
+**問題**: レガシーロジックで部門ごとにHTTPリクエストを発行していた（部門数 × リクエスト）
+
+**修正**: アンカーテキストを直接使用し、HTTPリクエストを削減
+```python
+# 修正前（非効率）
+for dept_path in dept_paths:
+    dept_url = f"{self.BASE_URL}/{self.url_prefix}/{dept_path}"
+    dept_name = self._extract_page_title_for_dept(dept_url)  # HTTPリクエスト発生
+    time.sleep(0.2)
+
+# 修正後（効率的）
+for link in all_links:
+    dept_name = link.get_text(strip=True)  # HTTPリクエスト不要
+    departments[dept_path] = dept_name
+```
+
+**効果**: 15部門の場合、15回のHTTPリクエストが0回に削減
+
+#### 2. 定数のクラス変数化（High）
+
+ハードコードされていたパターンをクラス変数として外出し：
+
+| 変数名 | 用途 |
+|--------|------|
+| `DEPT_PATTERNS` | 部門別リンクの正規表現パターン |
+| `EXCLUDE_URL_PATTERNS` | 除外するURLパターン |
+| `EXCLUDE_HEADINGS` | sort-nav内で除外するh3見出し |
+| `REQUEST_DELAY_SEC` | リクエスト間の遅延（0.2秒） |
+| `REQUEST_TIMEOUT_SEC` | タイムアウト（10秒） |
+| `MAX_DEPT_NAME_LENGTH` | 部門名の最大文字数（30文字） |
+
+#### 3. 例外処理の具体化（Medium）
+
+```python
+# 修正前
+except Exception as e:
+    logger.warning(f"エラー: {e}")
+
+# 修正後
+except RequestException as e:
+    logger.warning(f"HTTPエラー: {e}")
+except Exception as e:
+    logger.error(f"予期せぬエラー: {e}")
+```
+
+### テスト結果（v7.0）
+
+| ランキング | 検出方式 | 部門数 | 状態 |
+|-----------|---------|--------|------|
+| FX | レガシー | 10件 | ✅ |
+| ネット証券 | レガシー | 13件 | ✅ |
+| 子ども英語教室（小学生） | レガシー | 15件 | ✅ |
+| 携帯キャリア | レガシー | 2件 | ✅（プラン別：一般的なプラン、シニア向けプラン）|
+
+**v7.0追加対応**: 携帯キャリアに新設された「プラン別」部門に対応（`plan`パターン追加）
+
+### v7.0 追加改善（セッション後半）
+
+完全自動検出方式の検証で発見された問題を修正：
+
+#### 1. EXCLUDE_URL_PATTERNSの適用範囲拡大
+
+**問題**: `_extract_departments_from_sort_nav()`で`EXCLUDE_URL_PATTERNS`が使用されていなかった
+
+**修正**: sort-navからの抽出でも除外パターンを適用
+```python
+# 修正前
+if "/evaluation-item" in href:
+    continue
+
+# 修正後
+if any(re.search(pattern, href) for pattern in self.EXCLUDE_URL_PATTERNS):
+    continue
+```
+
+#### 2. 除外パターンの追加
+
+| パターン | 用途 | 追加理由 |
+|---------|------|---------|
+| `/company/` | 企業詳細ページ | 部門ではなく個別企業ページ |
+| `/education/` | 教育コラムページ | 子ども英語教室のコラムリンク |
+| `/how_to` | ハウツー（アンダースコア） | 既存`/howto`の表記揺れ対応 |
+
+#### 3. 検証結果
+
+完全自動検出（`DEPT_PATTERNS`を使用しない方式）の検証：
+
+**結論**: `/company/`リンクが誤検出されるため、完全自動検出は採用せず。
+
+**採用方式**: ハイブリッド（sort-nav優先 + レガシーフォールバック）を維持。
+
+| ランキング | 検出方式 | 部門数 | 主な部門 |
+|-----------|---------|--------|---------|
+| mobile-carrier | sort-nav → レガシー | 2件 | プラン別（一般、シニア向け） |
+| rank_certificate | レガシー | 13件 | スタイル別、デバイス別、投資商品別など |
+| svod | レガシー | 13件 | ジャンル別（アニメ、洋画など） |
+| kids-english | sort-nav | 2件 | 幼児、小学生 |
+
+**重要**: ネット証券等の`rank_`プレフィックス形式は、slug指定時も`rank_certificate`のように完全な形式で指定する必要がある（`certificate`だけでは`rank-certificate`と解釈されるため）
+
+### v7.0 最終検証結果（2025-12-03）
+
+#### 全ランキング包括テスト
+
+| 指標 | 結果 |
+|------|------|
+| 総ランキング数 | 215件 |
+| OK（成功） | 135件（62.8%） |
+| WARN（0件検出） | 80件（37.2%） |
+| **ERROR（エラー）** | **0件（0.0%）** |
+
+**✅ 全215ランキングでエラー0件達成**
+
+#### WARNの分析
+
+80件のWARNは以下のカテゴリ：
+- 動画配信（ジャンル別）: 10件 - 既にジャンル特化型
+- 通信講座・資格スクール: 13件 - 科目別に細分化済み
+- 塾（地域・個別指導）: 20件 - 地域別に細分化済み
+- その他: 37件 - 部門がないランキング
+
+**結論**: WARNは「部門が存在しないランキング」の正常動作
+
+#### 成功例（部門検出数上位）
+
+| ランキング | 部門数 |
+|-----------|--------|
+| 中古車情報サイト | 22件 |
+| 派遣会社 | 17件 |
+| カラオケボックス | 16件 |
+| ネット証券 | 13件 |
+| 住宅ローン | 12件 |
+| FX | 10件 |
+| 携帯キャリア | 2件（プラン別新設対応）|
+
+#### レビュー結果
+
+| 観点 | 評価 |
+|------|------|
+| 機能性 | ✅ 全215ランキングでエラーなし |
+| 網羅性 | ✅ 62.8%で部門検出成功 |
+| 保守性 | ✅ クラス変数による定数化 |
+| パフォーマンス | ✅ HTTPリクエスト最適化済み |
+| 安定性 | ✅ 例外処理・リトライ処理完備 |

@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度サイトのスクレイパー
-v4.3 - 動的年度検出機能追加
-- トップページから実際の発表年度を自動検出
-- 未発表年度のスキップ機能
-- リトライ処理（v4.2より継続）
+v7.0 - ハイブリッド自動検出（sort-nav優先 + レガシーフォールバック）
+- sort-nav クラスから部門を自動検出（約63%のページで利用可能）
+- sort-nav がない場合はレガシー dept_patterns を使用（約37%のページ）
+- 同点1位獲得回数対応（analyzer.py）
+- サブパス部門検出（grade/パターン、低学年・高学年）
 """
 
 import requests
 from requests.adapters import HTTPAdapter
+from requests.exceptions import RequestException
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 import re
@@ -32,6 +34,51 @@ class OriconScraper:
     NO_RANK_PREFIX = {
         "medical_insurance",  # 医療保険
     }
+
+    # ========================================
+    # 定数定義（v7.0 リファクタリング）
+    # ========================================
+
+    # HTTPリクエスト関連の設定
+    REQUEST_DELAY_SEC = 0.2  # リクエスト間の遅延（秒）
+    REQUEST_TIMEOUT_SEC = 10  # タイムアウト（秒）
+    MAX_DEPT_NAME_LENGTH = 30  # 部門名の最大文字数
+
+    # 部門別リンクのパターン（評価項目以外）
+    DEPT_PATTERNS = [
+        r"/(age|contract|new-contract|device|business|beginner|type|purpose|nisa|ideco|style|sim|sp)(?:/|\.html)",
+        r"/(plan)(?:/|\.html)",  # 携帯キャリア: プラン別（一般的なプラン、シニア向けプラン等）v7.0追加
+        r"/(specialty|manufacturer)(?:/|\.html)",  # バイク販売店
+        r"/(general|publisher|original)(?:/|\.html)",  # 電子コミック/マンガアプリ
+        r"/(hokkaido|tohoku|kanto|kinki|tokai|chugoku-shikoku|kyushu-okinawa|koshinetsu-hokuriku|nationwide)(?:/|\.html)",  # 地域別
+        r"/(east|west)(?:/|\.html)",  # テーマパーク
+        r"/(investment-products|sp-sec|support)(?:/|\.html)",  # ネット証券: 投資商品別、スマホ証券、サポート
+        r"/(foreign-stocks|investment-trust)(?:\.html)?",  # ネット証券: 外国株式、投資信託
+        r"/(preschooler|grade-schooler)(?:/|\.html)?",  # 子ども英語教室: 幼児、小学生（トップページ用）
+        r"/(grade)(?:/|\.html)",  # 子ども英語教室: 低学年、高学年（grade-schooler配下）
+        r"/(genre)(?:/|\.html)",  # SVOD: ジャンル別
+    ]
+
+    # 除外パターン（部門ページではないもの）
+    EXCLUDE_URL_PATTERNS = [
+        r"/evaluation-item",  # 評価項目
+        r"/column",           # コラム・解説ページ
+        r"/special/",         # 特集・解説ページ
+        r"-basic",            # 基本解説ページ
+        r"/howto",            # ハウツー
+        r"/how_to",           # ハウツー（アンダースコア）
+        r"/recommend",        # おすすめ
+        r"/compare",          # 比較
+        r"/company/",         # 企業詳細ページ（部門ではない）v7.0追加
+        r"/education/",       # 教育コラムページ（部門ではない）v7.0追加
+    ]
+
+    # 除外するh3見出し（sort-nav内で部門ではないセクション）
+    EXCLUDE_HEADINGS = [
+        "評価項目別", "評価項目",
+        "過去のランキング", "過去ランキング",
+        "関連ランキング", "関連する"
+    ]
 
     # サブドメインのマッピング（slug → サブドメイン）
     SUBDOMAIN_MAP = {
@@ -566,89 +613,163 @@ class OriconScraper:
         """
         ページから部門別リンクを動的に発見
 
+        v7.0: ハイブリッドアプローチ
+        1. sort-nav クラスから自動検出（優先）
+        2. sort-nav がない場合はレガシー dept_patterns を使用
+
+        v7.0リファクタリング:
+        - クラス変数 DEPT_PATTERNS, EXCLUDE_URL_PATTERNS を参照
+        - レガシーロジックでもアンカーテキストを直接使用（HTTPリクエスト削減）
+        - 例外処理を具体化（RequestException）
+
         Returns:
             {"beginner/": "初心者", "age/50s.html": "50代", ...}
         """
         try:
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=self.REQUEST_TIMEOUT_SEC)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
 
-            dept_paths = set()  # 一意のパスを収集
+            # ========================================
+            # Phase 1: sort-nav からの自動検出（優先）
+            # ========================================
+            sort_nav = soup.find(class_="sort-nav")
+            if sort_nav:
+                departments = self._extract_departments_from_sort_nav(sort_nav, url)
+                if departments:
+                    logger.info(f"sort-nav から {len(departments)} 件の部門を検出: {url}")
+                    return departments
+                # sort-nav はあるが部門が見つからない場合はレガシーにフォールバック
+                logger.info(f"sort-nav に部門なし、レガシーパターンを試行: {url}")
 
-            # 部門別リンクのパターン（評価項目以外）
-            # 例: /rank-xxx/age/50s.html, /rank-xxx/beginner/, /rank_fx/style/
-            # v5.7追加: specialty, manufacturer (バイク販売店)
-            #           general, publisher, original (電子コミック/マンガアプリ)
-            #           地域別: hokkaido, tohoku, kanto, kinki, tokai, chugoku-shikoku, kyushu-okinawa, koshinetsu-hokuriku, nationwide
-            #           east, west (テーマパーク)
-            dept_patterns = [
-                r"/(age|contract|new-contract|device|business|beginner|type|purpose|nisa|ideco|style|sim|sp)(?:/|\.html)",
-                r"/(specialty|manufacturer)(?:/|\.html)",  # バイク販売店
-                r"/(general|publisher|original)(?:/|\.html)",  # 電子コミック/マンガアプリ
-                r"/(hokkaido|tohoku|kanto|kinki|tokai|chugoku-shikoku|kyushu-okinawa|koshinetsu-hokuriku|nationwide)(?:/|\.html)",  # 地域別
-                r"/(east|west)(?:/|\.html)",  # テーマパーク
-                r"/(investment-products|sp-sec|support)(?:/|\.html)",  # ネット証券: 投資商品別、スマホ証券、サポート
-                r"/(foreign-stocks|investment-trust)(?:\.html)?",  # ネット証券: 外国株式、投資信託
-                r"/(preschooler|grade-schooler)(?:/|\.html)?",  # 子ども英語教室: 幼児、小学生
-                r"/(genre)(?:/|\.html)",  # SVOD: ジャンル別
-            ]
-
-            # 除外パターン（部門ページではないもの）
-            exclude_patterns = [
-                r"/evaluation-item",  # 評価項目
-                r"/column",           # コラム・解説ページ
-                r"/special/",         # 特集・解説ページ
-                r"-basic",            # 基本解説ページ
-                r"/howto",            # ハウツー
-                r"/recommend",        # おすすめ
-                r"/compare",          # 比較
-            ]
-
+            # ========================================
+            # Phase 2: レガシー dept_patterns による検出（改善版）
+            # v7.0改善: アンカーテキストを直接使用（HTTPリクエスト不要）
+            # ========================================
             all_links = soup.find_all("a", href=True)
+
+            # サブパスを考慮したベースパターンを構築
+            subpath_part = f"/{self.subpath}" if self.subpath else ""
+            base_pattern = rf"/{self.url_prefix}{subpath_part}/(?:\d{{4}}/)?(.+?)(?:\?.*)?(?:#.*)?$"
+
+            # 部門情報を直接格納（HTTPリクエスト不要）
+            departments = {}
 
             for link in all_links:
                 href = link.get("href", "")
 
-                # 除外パターンにマッチする場合はスキップ
-                if any(re.search(pat, href) for pat in exclude_patterns):
+                # 除外パターンにマッチする場合はスキップ（クラス変数を参照）
+                if any(re.search(pat, href) for pat in self.EXCLUDE_URL_PATTERNS):
                     continue
 
                 # 自身のランキングのリンクか確認
                 if self.url_prefix not in href:
                     continue
 
-                # 部門別パターンにマッチするか
-                for pattern in dept_patterns:
+                # 部門別パターンにマッチするか（クラス変数を参照）
+                for pattern in self.DEPT_PATTERNS:
                     if re.search(pattern, href):
-                        # パスを抽出（クエリパラメータとハッシュを除外）
-                        match = re.search(rf"/{self.url_prefix}/(?:\d{{4}}/)?(.+?)(?:\?.*)?(?:#.*)?$", href)
+                        # パスを抽出（サブパスを考慮、クエリパラメータとハッシュを除外）
+                        match = re.search(base_pattern, href)
                         if match:
                             dept_path = match.group(1)
                             # 数字のみのパス（年度）でない、クエリパラメータを含まないことを確認
                             if dept_path and not dept_path.rstrip('/').isdigit() and '?' not in dept_path:
-                                dept_paths.add(dept_path)
-                        break
+                                # 重複チェック（既に登録済みの場合はスキップ）
+                                if dept_path not in departments:
+                                    # アンカーテキストを部門名として使用（HTTPリクエスト不要）
+                                    dept_name = link.get_text(strip=True)
+                                    # 名前の妥当性チェック
+                                    if dept_name and len(dept_name) <= self.MAX_DEPT_NAME_LENGTH:
+                                        departments[dept_path] = dept_name
+                        break  # 一致したpatternループを抜ける
 
-            # 各パスに対してページタイトルから部門名を取得
-            departments = {}
-            for dept_path in dept_paths:
-                # URLを構築
-                dept_url = f"{self.BASE_URL}/{self.url_prefix}/{dept_path}"
-                if not dept_url.endswith('/') and not dept_url.endswith('.html'):
-                    dept_url += '/'
-
-                # ページタイトルから部門名を抽出
-                dept_name = self._extract_page_title_for_dept(dept_url)
-                if dept_name:
-                    departments[dept_path] = dept_name
-                time.sleep(0.2)  # サーバー負荷軽減
+            if departments:
+                logger.info(f"レガシーパターンから {len(departments)} 件の部門を検出: {url}")
 
             return departments
 
-        except Exception as e:
-            logger.warning(f"部門リスト取得エラー ({url}): {e}")
+        except RequestException as e:
+            logger.warning(f"部門リスト取得エラー（HTTPエラー）({url}): {e}")
             return {}
+        except Exception as e:
+            logger.error(f"部門リスト取得エラー（予期せぬエラー）({url}): {e}")
+            return {}
+
+    def _extract_departments_from_sort_nav(self, sort_nav, base_url: str) -> Dict[str, str]:
+        """
+        sort-nav クラスから部門リンクを抽出
+
+        sort-nav 構造:
+        <nav class="sort-nav">
+          <section>
+            <h3>評価項目別</h3>  ← 除外
+            <ul><li><a href="...">...</a></li></ul>
+          </section>
+          <section>
+            <h3>年代別</h3>  ← 部門カテゴリ
+            <ul><li><a href=".../age/20s.html">20代</a></li></ul>
+          </section>
+        </nav>
+
+        v7.0リファクタリング:
+        - クラス変数 EXCLUDE_HEADINGS, MAX_DEPT_NAME_LENGTH を参照
+
+        Args:
+            sort_nav: sort-nav要素のBeautifulSoupオブジェクト
+            base_url: ベースURL
+
+        Returns:
+            {"age/20s.html": "20代", ...}
+        """
+        departments = {}
+
+        # サブパスを考慮
+        subpath_part = f"/{self.subpath}" if self.subpath else ""
+        base_pattern = rf"/{self.url_prefix}{subpath_part}/(?:\d{{4}}/)?(.+?)(?:\?.*)?(?:#.*)?$"
+
+        # 各sectionを処理
+        sections = sort_nav.find_all("section")
+        for section in sections:
+            h3 = section.find("h3")
+            if not h3:
+                continue
+
+            heading_text = h3.get_text(strip=True)
+
+            # 除外対象の見出しはスキップ（クラス変数を参照）
+            if any(exclude in heading_text for exclude in self.EXCLUDE_HEADINGS):
+                continue
+
+            # このセクション内のリンクを取得
+            links = section.find_all("a", href=True)
+            for link in links:
+                href = link.get("href", "")
+                link_text = link.get_text(strip=True)
+
+                # EXCLUDE_URL_PATTERNSに一致するリンクは除外（v7.0改善）
+                if any(re.search(pattern, href) for pattern in self.EXCLUDE_URL_PATTERNS):
+                    continue
+
+                # 年度リンク（/2024/など）は除外
+                if re.search(r"/\d{4}/?$", href):
+                    continue
+
+                # 自身のランキングのリンクか確認
+                if self.url_prefix not in href:
+                    continue
+
+                # パスを抽出
+                match = re.search(base_pattern, href)
+                if match:
+                    dept_path = match.group(1)
+                    # 数字のみのパス（年度）は除外
+                    if dept_path and not dept_path.rstrip('/').isdigit() and '?' not in dept_path:
+                        # リンクテキストを部門名として使用（シンプルで高精度）
+                        if link_text and len(link_text) <= self.MAX_DEPT_NAME_LENGTH:
+                            departments[dept_path] = link_text
+
+        return departments
 
     def _discover_evaluation_items(self, url: str) -> Dict[str, str]:
         """
@@ -841,7 +962,7 @@ class OriconScraper:
         # 誤検出を防ぐため、明示的にリスト化
         KNOWN_SIMPLE_DEPT_NAMES = ["NISA", "iDeCo", "つみたてNISA", "ジュニアNISA", "新NISA",
                                    "外国株式", "投資信託", "スマホ証券", "初心者", "中長期", "スイングトレード",
-                                   "幼児", "小学生"]  # 子ども英語教室
+                                   "幼児", "小学生", "低学年", "高学年"]  # 子ども英語教室
         simple_text = text.strip()
         if simple_text in KNOWN_SIMPLE_DEPT_NAMES:
             return simple_text
