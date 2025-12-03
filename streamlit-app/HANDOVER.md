@@ -680,6 +680,83 @@ Is Current: True
 
 ---
 
+## v7.2 推奨TOPICS時点表示を更新日から動的取得 (2025-12-03)
+
+### 背景
+
+v7.1で推奨TOPICSタブに月表示を追加したが、`datetime.now().month`（取得日）を使用していたため、
+ランキングページの「調査概要」に記載されている更新日（例: 2025/01/06）と一致しない問題があった。
+
+### 実装内容
+
+1. **scraper.py: `get_update_date()` メソッド追加**
+   - トップページから調査概要の更新日（年月）を動的に取得
+   - キャッシュ機構でパフォーマンス向上
+   - 更新日パターン: `(?:最終)?更新日[：:\s]*(\d{4})[-/](\d{1,2})[-/]\d{1,2}`
+
+2. **app.py: 推奨TOPICSタブの時点表示を変更**
+   - `datetime.now().month` → `update_date` から取得
+   - 取得できない場合は現在日時にフォールバック
+
+### コード例
+
+```python
+# scraper.py
+def get_update_date(self) -> Optional[tuple]:
+    """トップページから更新日（年, 月）を取得"""
+    update_match = re.search(
+        r'(?:最終)?更新日[：:\s]*(\d{4})[-/](\d{1,2})[-/]\d{1,2}', text)
+    if update_match:
+        return (int(update_match.group(1)), int(update_match.group(2)))
+    return None
+
+# app.py
+if update_date:
+    update_year, update_month = update_date
+else:
+    update_year = latest_year if latest_year else datetime.now().year
+    update_month = datetime.now().month
+```
+
+### テスト結果
+
+```
+ネット証券: update_date = (2025, 12)  # 正常取得
+結婚式場: update_date = None          # フォールバック動作
+```
+
+---
+
+## v7.1 部門タイトル抽出修正 (2025-12-03)
+
+### 問題
+
+ネット証券の部門別ページで「ネット証券 オリコン顧客満足度」という存在しない部門が検出されていた。
+原因は `get_departments()` で `_extract_page_title()` を使用しており、
+評価項目用の抽出ロジック（`_extract_item_name_from_title()`）が適用されていたため。
+
+### 修正内容
+
+1. **scraper.py: `get_departments()` で正しい関数を使用**
+   - `_extract_page_title()` → `_extract_page_title_for_dept()` に変更
+   - 部門用の抽出ロジック（`_extract_dept_name_from_title()`）が適用されるように
+
+2. **scraper.py: `_extract_dept_name_from_title()` に新パターン追加**
+   - パターン0.6: `】([^\s【】]+?)に関する満足度の高い` (例: デイトレード)
+   - パターン0.7: `】([^\s【】]+?)の運用におすすめの` (例: 外国株式)
+   - パターン0.8: 「満足度」を含む誤マッチを除外
+
+### テスト結果
+
+```
+【2025年】デイトレードに関する満足度の高いネット証券 → デイトレード ✅
+【2025年】外国株式の運用におすすめのネット証券 → 外国株式 ✅
+【2025年】スマートフォン・スマホサイトに関する満足度の高いネット証券 → スマートフォン・スマホサイト ✅
+【2025年】国内株式の運用におすすめのネット証券 → 国内株式 ✅
+```
+
+---
+
 ## v7.0 ハイブリッド自動検出 (2025-12-03)
 
 ### 背景
