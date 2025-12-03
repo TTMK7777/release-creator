@@ -241,6 +241,8 @@ class OriconScraper:
         }
         # トップページの実際の年度をキャッシュ
         self._actual_top_year = None
+        # トップページの更新日をキャッシュ (year, month)
+        self._update_date = None
 
     def _ensure_actual_top_year(self) -> int:
         """
@@ -333,6 +335,44 @@ class OriconScraper:
 
         except Exception as e:
             logger.error(f"年度検出エラー: {e}")
+            return None
+
+    def get_update_date(self) -> Optional[tuple]:
+        """
+        トップページから更新日（年, 月）を取得する。
+
+        調査概要の「更新日: 2025/01/06」などから年月を抽出。
+        キャッシュを使用し、2回目以降は高速に返す。
+
+        Returns:
+            (year, month) のタプル、取得できない場合はNone
+        """
+        if self._update_date is not None:
+            return self._update_date
+
+        try:
+            subpath_part = f"/{self.subpath}" if self.subpath else ""
+            top_url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/"
+
+            response = self.session.get(top_url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+            text = soup.get_text()
+
+            # 更新日パターン: 「最終更新日：2025-01-06」「更新日: 2025/01/06」など
+            update_match = re.search(r'(?:最終)?更新日[：:\s]*(\d{4})[-/](\d{1,2})[-/]\d{1,2}', text)
+            if update_match:
+                year = int(update_match.group(1))
+                month = int(update_match.group(2))
+                self._update_date = (year, month)
+                logger.info(f"更新日を検出: {year}年{month}月")
+                return self._update_date
+
+            logger.warning(f"更新日を検出できませんでした: {top_url}")
+            return None
+
+        except Exception as e:
+            logger.error(f"更新日取得エラー: {e}")
             return None
 
     def get_overall_rankings(self, year_range: tuple = (2020, 2024)) -> Dict[int, List[Dict]]:

@@ -1190,6 +1190,8 @@ if run_button:
                 progress_bar.progress(70)
 
             used_urls = scraper.used_urls if scrape_range else None
+            # 更新日を取得（推奨TOPICSタブで使用）
+            update_date = scraper.get_update_date()
 
             # Step 3: データ統合
             status_text.text("🔄 データを統合中...")
@@ -1241,7 +1243,8 @@ if run_button:
                 'item_most_wins': item_most_wins,
                 'dept_most_wins': dept_most_wins,
                 'item_name_changes': item_name_changes,
-                'dept_name_changes': dept_name_changes
+                'dept_name_changes': dept_name_changes,
+                'update_date': update_date  # 調査概要の更新日（年, 月）
             }
 
         except Exception as e:
@@ -1265,6 +1268,7 @@ if st.session_state.results_data:
     dept_most_wins = data.get('dept_most_wins', {})
     item_name_changes = data.get('item_name_changes', {})
     dept_name_changes = data.get('dept_name_changes', {})
+    update_date = data.get('update_date')  # (year, month) のタプル
 
     # 結果表示
     st.success(f"✅ {ranking_name}のTOPICS出しが完了しました")
@@ -1305,12 +1309,16 @@ if st.session_state.results_data:
 
     # 最新年度を取得
     latest_year = max(overall_data.keys()) if overall_data else None
-    # 現在月を取得（発表月ベース）
-    current_month = datetime.now().month
+    # 更新日から年月を取得（調査概要の更新日ベース、取得できない場合は現在日時を使用）
+    if update_date:
+        update_year, update_month = update_date
+    else:
+        update_year = latest_year if latest_year else datetime.now().year
+        update_month = datetime.now().month
 
     # タブで結果表示（新しい構成）
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        f"⭐ 推奨TOPICS（{latest_year}年{current_month}月時点）" if latest_year else "⭐ 推奨TOPICS",
+        f"⭐ 推奨TOPICS（{update_year}年{update_month}月時点）" if update_year else "⭐ 推奨TOPICS",
         "🏆 歴代記録・得点推移",
         "📊 総合ランキング",
         "📋 評価項目別",
@@ -1319,7 +1327,7 @@ if st.session_state.results_data:
     ])
 
     with tab1:
-        st.header(f"⭐ 推奨TOPICS（{latest_year}年{current_month}月時点）" if latest_year else "⭐ 推奨TOPICS")
+        st.header(f"⭐ 推奨TOPICS（{update_year}年{update_month}月時点）" if update_year else "⭐ 推奨TOPICS")
 
         # v5.9: カテゴリ別にTOPICSを分類して表示
         recommended_topics = topics.get("recommended", [])
@@ -1367,7 +1375,7 @@ if st.session_state.results_data:
 
         # コピー用テキスト（カテゴリ別に整理）
         st.subheader("📋 コピー用テキスト")
-        copy_lines = [f"【推奨TOPICS（{latest_year}年{current_month}月時点）】" if latest_year else "【推奨TOPICS】"]
+        copy_lines = [f"【推奨TOPICS（{update_year}年{update_month}月時点）】" if update_year else "【推奨TOPICS】"]
 
         if overall_topics:
             copy_lines.append("\n■ 総合ランキング")
