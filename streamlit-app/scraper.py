@@ -565,8 +565,8 @@ class OriconScraper:
 
                 data = self._fetch_ranking_page(url, self.survey_type)
                 if data:
-                    # ページタイトルから実際の名称を取得
-                    page_title = self._extract_page_title(url)
+                    # ページタイトルから実際の名称を取得（部門用の抽出関数を使用）
+                    page_title = self._extract_page_title_for_dept(url)
                     results[dept_name][year] = data
                     self.used_urls["departments"].append({
                         "name": f"{dept_name}({year}年)",
@@ -583,7 +583,7 @@ class OriconScraper:
                         alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/{dept_path}"
                         data = self._fetch_ranking_page(alt_url, self.survey_type)
                         if data:
-                            page_title = self._extract_page_title(alt_url)
+                            page_title = self._extract_page_title_for_dept(alt_url)
                             results[dept_name][year] = data
                             self.used_urls["departments"].append({
                                 "name": f"{dept_name}({year}年)",
@@ -971,15 +971,33 @@ class OriconScraper:
             if known_name in text:
                 return known_name
 
-        # パターン0.5: 【年度】XXXのYYYランキング → YYY を抽出（FX向け）
+        # パターン0.6: 【年度】XXXに関する満足度の高い → XXX を抽出（v7.1追加）
+        # 例: 【2025年】デイトレードに関する満足度の高いネット証券 → デイトレード
+        match = re.search(r"】([^\s【】]+?)に関する満足度の高い", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン0.7: 【年度】XXXの運用におすすめの → XXX を抽出（v7.1追加）
+        # 例: 【2025年】外国株式の運用におすすめのネット証券 → 外国株式
+        # 例: 【2025年】国内株式の運用におすすめのネット証券 → 国内株式
+        match = re.search(r"】([^\s【】]+?)の運用におすすめの", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン0.8: 【年度】XXXのYYYランキング → YYY を抽出（FX向け）
         # 例: 【2025年】FXの初心者ランキング・比較 → 初心者
         # 例: 【2025年】FXのスキャルピングトレードランキング・比較 → スキャルピングトレード
         # 例: 【2025年】FXのPCランキング・比較 → PC
+        # ※「満足度」を含む場合は除外（誤マッチ防止）
         match = re.search(r"】[^\s【】]+の(.+?)ランキング", text)
         if match:
             dept_name = match.group(1).strip()
-            # 「顧客満足度」などの一般的な語句は除外
-            if dept_name and dept_name not in ["顧客満足度", "オリコン顧客満足度", "満足度"] and len(dept_name) <= 20:
+            # 「顧客満足度」「満足度」などの一般的な語句は除外
+            if dept_name and dept_name not in ["顧客満足度", "オリコン顧客満足度", "満足度"] and "満足度" not in dept_name and len(dept_name) <= 20:
                 return dept_name
 
         # パターン1: 【年度】XXX向けのYYY → XXX を抽出
