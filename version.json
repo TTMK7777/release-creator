@@ -1,0 +1,21 @@
+{
+  "name": "Release Creator - プレスリリース自動生成システム",
+  "version": "1.0",
+  "edition": "",
+  "release_date": "2025-12",
+  "description": "Release Creator - プレスリリース自動生成システム",
+  "highlights": [],
+  "features": [],
+  "changelog": [
+    {
+      "version": "1.0",
+      "date": "2025-12",
+      "changes": ["Initial release"]
+    }
+  ],
+  "quick_start": {
+    "install": "pip install -r requirements.txt",
+    "run": "python main.py",
+    "env_vars": []
+  }
+}
