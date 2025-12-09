@@ -57,6 +57,11 @@ class OriconScraper:
         r"/(preschooler|grade-schooler)(?:/|\.html)?",  # 子ども英語教室: 幼児、小学生（トップページ用）
         r"/(grade)(?:/|\.html)",  # 子ども英語教室: 低学年、高学年（grade-schooler配下）
         r"/(genre)(?:/|\.html)",  # SVOD: ジャンル別
+        # v7.3追加: 引越し会社用パターン
+        r"/(family)(?:/|\.html)",  # 引越し会社: 家族構成別（単身/家族）
+        r"/(prefecture)(?:/|\.html)",  # 引越し会社: 都道府県別
+        r"/(area)(?:/|\.html)",  # 引越し会社: 地域別
+        r"/(gender)(?:/|\.html)",  # 引越し会社: 性別
     ]
 
     # 除外パターン（部門ページではないもの）

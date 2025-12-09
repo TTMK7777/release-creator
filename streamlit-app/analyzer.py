@@ -1,11 +1,62 @@
 # -*- coding: utf-8 -*-
 """
 TOPICS分析ロジック（ルールベース）
-v7.0 - ハイブリッド自動検出対応、同点1位獲得回数対応
+v7.3.1 - 社名正規化の網羅性向上、全角/半角・空白正規化追加
 """
 
+import re
 from typing import Dict, List, Any, Optional
 from collections import defaultdict
+
+
+# ========================================
+# 社名エイリアス定義（v7.3追加）
+# 社名変更があった場合、旧社名→正規社名のマッピングを定義
+# 連続記録や受賞回数を通算するために使用
+# ========================================
+COMPANY_ALIASES = {
+    # 転職エージェント系
+    "JACリクルートメント": "JAC Recruitment",
+    "ＪＡＣリクルートメント": "JAC Recruitment",
+    # 必要に応じて追加
+    # "旧社名": "正規社名（最新名）",
+}
+
+
+def normalize_company_name(company: str) -> str:
+    """社名を正規化する（エイリアスを正規社名に変換）
+
+    v7.3.1: 前処理追加（全角/半角変換、空白正規化）
+
+    Args:
+        company: 企業名
+
+    Returns:
+        正規化された企業名
+    """
+    if not company:
+        return company
+
+    # 前処理: 文字列の正規化
+    normalized = company.strip()
+
+    # 全角英数字→半角英数字
+    zen_to_han = str.maketrans(
+        'ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ０１２３４５６７８９',
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    )
+    normalized = normalized.translate(zen_to_han)
+
+    # 連続する空白を1つに（全角スペースも含む）
+    normalized = re.sub(r'[\s　]+', ' ', normalized)
+
+    # エイリアス適用（元の値と正規化後の値の両方でチェック）
+    if company in COMPANY_ALIASES:
+        return COMPANY_ALIASES[company]
+    if normalized in COMPANY_ALIASES:
+        return COMPANY_ALIASES[normalized]
+
+    return normalized
 
 
 class HistoricalAnalyzer:
@@ -83,6 +134,9 @@ class HistoricalAnalyzer:
         - 年度の連続性ではなく「発表回数」を基準にカウント
         - 未発表年度（データがない年度）があっても連続記録は途切れない
         - 例: 2016〜2021年が未発表でも、2015年→2022年で同じ企業が1位なら連続とカウント
+
+        修正: v7.3
+        - 社名エイリアス対応: 社名変更があっても連続記録を通算
         """
         if not self.overall:
             return []
@@ -99,7 +153,9 @@ class HistoricalAnalyzer:
             if not self.overall[year]:
                 continue
 
-            top_company = self.overall[year][0].get("company", "")
+            # v7.3: 社名を正規化して比較
+            top_company_raw = self.overall[year][0].get("company", "")
+            top_company = normalize_company_name(top_company_raw)
 
             if top_company == current_company:
                 # 同じ企業が1位 → 連続継続（年度の連続性は問わない）
@@ -174,6 +230,9 @@ class HistoricalAnalyzer:
         修正: v4.5
         - 同点1位対応: 1位と同じ得点の企業はすべて1位としてカウント
         - 例: ベネッセとECC KIDSが同点1位の場合、両社とも1位獲得としてカウント
+
+        修正: v7.3
+        - 社名エイリアス対応: 社名変更があっても受賞回数を通算
         """
         win_counts = defaultdict(lambda: {"count": 0, "years": []})
 
@@ -184,7 +243,9 @@ class HistoricalAnalyzer:
 
                 # 同点1位の企業をすべてカウント
                 for entry in data:
-                    company = entry.get("company", "")
+                    company_raw = entry.get("company", "")
+                    # v7.3: 社名を正規化
+                    company = normalize_company_name(company_raw)
                     score = entry.get("score")
 
                     # 1位と同じ得点の企業は1位としてカウント
@@ -214,6 +275,9 @@ class HistoricalAnalyzer:
         修正: v4.5
         - 同点1位対応: 1位と同じ得点の企業はすべて1位としてカウント
 
+        修正: v7.3
+        - 社名エイリアス対応: 社名変更があっても受賞回数を通算
+
         Returns:
             {項目名: [{"company": 企業名, "wins": 回数, "years": [年度], "total_years": 総年数}, ...]}
         """
@@ -229,7 +293,9 @@ class HistoricalAnalyzer:
 
                     # 同点1位の企業をすべてカウント
                     for entry in data:
-                        company = entry.get("company", "")
+                        company_raw = entry.get("company", "")
+                        # v7.3: 社名を正規化
+                        company = normalize_company_name(company_raw)
                         score = entry.get("score")
 
                         # 1位と同じ得点の企業は1位としてカウント
@@ -260,6 +326,9 @@ class HistoricalAnalyzer:
         修正: v4.5
         - 同点1位対応: 1位と同じ得点の企業はすべて1位としてカウント
 
+        修正: v7.3
+        - 社名エイリアス対応: 社名変更があっても受賞回数を通算
+
         Returns:
             {部門名: [{"company": 企業名, "wins": 回数, "years": [年度], "total_years": 総年数}, ...]}
         """
@@ -275,7 +344,9 @@ class HistoricalAnalyzer:
 
                     # 同点1位の企業をすべてカウント
                     for entry in data:
-                        company = entry.get("company", "")
+                        company_raw = entry.get("company", "")
+                        # v7.3: 社名を正規化
+                        company = normalize_company_name(company_raw)
                         score = entry.get("score")
 
                         # 1位と同じ得点の企業は1位としてカウント
@@ -301,12 +372,17 @@ class HistoricalAnalyzer:
         return dept_wins
 
     def _calc_first_appearances(self) -> List[Dict]:
-        """初登場年を計算"""
+        """初登場年を計算
+
+        修正: v7.3.1
+        - 社名正規化を追加（エイリアス対応）
+        """
         first_year = {}
 
         for year in sorted(self.overall.keys()):
             for item in self.overall[year]:
-                company = item.get("company", "")
+                company_raw = item.get("company", "")
+                company = normalize_company_name(company_raw)
                 if company and company not in first_year:
                     first_year[company] = {
                         "year": year,
@@ -328,7 +404,11 @@ class HistoricalAnalyzer:
         return results
 
     def analyze_score_trends(self) -> Dict[str, Any]:
-        """総合ランキングの得点推移を分析"""
+        """総合ランキングの得点推移を分析
+
+        修正: v7.3.1
+        - 社名正規化を追加（エイリアス対応）
+        """
         if not self.overall:
             return {}
 
@@ -341,11 +421,12 @@ class HistoricalAnalyzer:
             "top_score_by_year": {},  # 年度別1位得点
         }
 
-        # 全企業を収集
+        # 全企業を収集（正規化済み）
         all_companies = set()
         for year_data in self.overall.values():
             for item in year_data:
-                all_companies.add(item.get("company", ""))
+                company = normalize_company_name(item.get("company", ""))
+                all_companies.add(company)
 
         # 企業別得点推移
         for company in all_companies:
@@ -356,7 +437,8 @@ class HistoricalAnalyzer:
                 score = None
                 rank = None
                 for item in self.overall.get(year, []):
-                    if item.get("company") == company:
+                    item_company = normalize_company_name(item.get("company", ""))
+                    if item_company == company:
                         score = item.get("score")
                         rank = item.get("rank")
                         break

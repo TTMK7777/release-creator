@@ -1527,6 +1527,91 @@ if st.session_state.results_data:
                     ).properties(height=400)
                     st.altair_chart(chart, use_container_width=True)
 
+            # v7.3: 評価項目別・部門別 平均得点推移を「上位企業の得点推移」の下に移動
+            # 評価項目別 平均得点推移（縦棒グラフ）- trendsの有無に関わらず表示
+            st.divider()
+            st.subheader("📊 評価項目別 平均得点推移")
+            if item_data:
+                # 各評価項目の年度別平均得点を計算
+                item_avg_data = []
+                for item_name, year_data in item_data.items():
+                    if isinstance(year_data, dict):
+                        for year, data in year_data.items():
+                            # 0点も有効な値として扱う（Noneのみを除外）
+                            scores = [d.get("score") for d in data if d.get("score") is not None]
+                            if scores:
+                                item_avg_data.append({
+                                    "評価項目": item_name[:15],  # 長すぎる項目名を短縮
+                                    "年度": str(year),
+                                    "平均得点": round(sum(scores) / len(scores), 2)
+                                })
+
+                if item_avg_data:
+                    item_avg_df = pd.DataFrame(item_avg_data)
+                    # 最新3年度に絞る
+                    latest_years = sorted(item_avg_df["年度"].unique(), reverse=True)[:3]
+                    item_avg_df = item_avg_df[item_avg_df["年度"].isin(latest_years)]
+
+                    # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
+                    import altair as alt
+                    all_scores = item_avg_df["平均得点"].tolist()
+                    y_min = max(0, min(all_scores) - 5)
+                    y_max = max(all_scores) + 2
+                    item_avg_df["基点"] = y_min
+                    chart = alt.Chart(item_avg_df).mark_rect(width=12).encode(
+                        x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('基点:Q', title='平均得点', scale=alt.Scale(domain=[y_min, y_max])),
+                        y2=alt.Y2('平均得点:Q'),
+                        color=alt.Color('年度:N', title='年度'),
+                        column=alt.Column('評価項目:N', title=None, header=alt.Header(labelOrient='bottom')),
+                        tooltip=['評価項目', '年度', '平均得点']
+                    ).properties(width=60, height=400)
+                    st.altair_chart(chart)
+                else:
+                    st.info("評価項目別データにスコアが含まれていません")
+            else:
+                st.info("評価項目別データがありません")
+
+            # 部門別 平均得点推移（縦棒グラフ）- trendsの有無に関わらず表示
+            st.subheader("📊 部門別 平均得点推移")
+            if dept_data:
+                dept_avg_data = []
+                for dept_name, year_data in dept_data.items():
+                    if isinstance(year_data, dict):
+                        for year, data in year_data.items():
+                            scores = [d.get("score") for d in data if d.get("score") is not None]
+                            if scores:
+                                dept_avg_data.append({
+                                    "部門": dept_name[:15],
+                                    "年度": str(year),
+                                    "平均得点": round(sum(scores) / len(scores), 2)
+                                })
+
+                if dept_avg_data:
+                    dept_avg_df = pd.DataFrame(dept_avg_data)
+                    latest_years = sorted(dept_avg_df["年度"].unique(), reverse=True)[:3]
+                    dept_avg_df = dept_avg_df[dept_avg_df["年度"].isin(latest_years)]
+
+                    # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
+                    import altair as alt
+                    all_scores = dept_avg_df["平均得点"].tolist()
+                    y_min = max(0, min(all_scores) - 5)
+                    y_max = max(all_scores) + 2
+                    dept_avg_df["基点"] = y_min
+                    chart = alt.Chart(dept_avg_df).mark_rect(width=12).encode(
+                        x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('基点:Q', title='平均得点', scale=alt.Scale(domain=[y_min, y_max])),
+                        y2=alt.Y2('平均得点:Q'),
+                        color=alt.Color('年度:N', title='年度'),
+                        column=alt.Column('部門:N', title=None, header=alt.Header(labelOrient='bottom')),
+                        tooltip=['部門', '年度', '平均得点']
+                    ).properties(width=60, height=400)
+                    st.altair_chart(chart)
+                else:
+                    st.info("部門別データにスコアが含まれていません")
+            else:
+                st.info("部門別データがありません")
+
             # 評価項目別の連続1位
             st.subheader("📋 評価項目別 連続1位記録")
             item_trends = historical_data.get("item_trends", {})
@@ -1564,90 +1649,6 @@ if st.session_state.results_data:
                 if dept_records:
                     dept_records.sort(key=lambda x: -int(x["連続年数"].replace("年", "")))
                     st.dataframe(pd.DataFrame(dept_records[:15]), use_container_width=True, hide_index=True)
-
-        # 評価項目別 平均得点推移（縦棒グラフ）- trendsの有無に関わらず表示
-        st.divider()
-        st.subheader("📊 評価項目別 平均得点推移")
-        if item_data:
-            # 各評価項目の年度別平均得点を計算
-            item_avg_data = []
-            for item_name, year_data in item_data.items():
-                if isinstance(year_data, dict):
-                    for year, data in year_data.items():
-                        # 0点も有効な値として扱う（Noneのみを除外）
-                        scores = [d.get("score") for d in data if d.get("score") is not None]
-                        if scores:
-                            item_avg_data.append({
-                                "評価項目": item_name[:15],  # 長すぎる項目名を短縮
-                                "年度": str(year),
-                                "平均得点": round(sum(scores) / len(scores), 2)
-                            })
-
-            if item_avg_data:
-                item_avg_df = pd.DataFrame(item_avg_data)
-                # 最新3年度に絞る
-                latest_years = sorted(item_avg_df["年度"].unique(), reverse=True)[:3]
-                item_avg_df = item_avg_df[item_avg_df["年度"].isin(latest_years)]
-
-                # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
-                import altair as alt
-                all_scores = item_avg_df["平均得点"].tolist()
-                y_min = max(0, min(all_scores) - 5)
-                y_max = max(all_scores) + 2
-                item_avg_df["基点"] = y_min
-                chart = alt.Chart(item_avg_df).mark_rect(width=12).encode(
-                    x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('基点:Q', title='平均得点', scale=alt.Scale(domain=[y_min, y_max])),
-                    y2=alt.Y2('平均得点:Q'),
-                    color=alt.Color('年度:N', title='年度'),
-                    column=alt.Column('評価項目:N', title=None, header=alt.Header(labelOrient='bottom')),
-                    tooltip=['評価項目', '年度', '平均得点']
-                ).properties(width=60, height=400)
-                st.altair_chart(chart)
-            else:
-                st.info("評価項目別データにスコアが含まれていません")
-        else:
-            st.info("評価項目別データがありません")
-
-        # 部門別 平均得点推移（縦棒グラフ）- trendsの有無に関わらず表示
-        st.subheader("📊 部門別 平均得点推移")
-        if dept_data:
-            dept_avg_data = []
-            for dept_name, year_data in dept_data.items():
-                if isinstance(year_data, dict):
-                    for year, data in year_data.items():
-                        scores = [d.get("score") for d in data if d.get("score") is not None]
-                        if scores:
-                            dept_avg_data.append({
-                                "部門": dept_name[:15],
-                                "年度": str(year),
-                                "平均得点": round(sum(scores) / len(scores), 2)
-                            })
-
-            if dept_avg_data:
-                dept_avg_df = pd.DataFrame(dept_avg_data)
-                latest_years = sorted(dept_avg_df["年度"].unique(), reverse=True)[:3]
-                dept_avg_df = dept_avg_df[dept_avg_df["年度"].isin(latest_years)]
-
-                # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
-                import altair as alt
-                all_scores = dept_avg_df["平均得点"].tolist()
-                y_min = max(0, min(all_scores) - 5)
-                y_max = max(all_scores) + 2
-                dept_avg_df["基点"] = y_min
-                chart = alt.Chart(dept_avg_df).mark_rect(width=12).encode(
-                    x=alt.X('年度:N', title=None, axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('基点:Q', title='平均得点', scale=alt.Scale(domain=[y_min, y_max])),
-                    y2=alt.Y2('平均得点:Q'),
-                    color=alt.Color('年度:N', title='年度'),
-                    column=alt.Column('部門:N', title=None, header=alt.Header(labelOrient='bottom')),
-                    tooltip=['部門', '年度', '平均得点']
-                ).properties(width=60, height=400)
-                st.altair_chart(chart)
-            else:
-                st.info("部門別データにスコアが含まれていません")
-        else:
-            st.info("部門別データがありません")
 
     with tab3:
         st.header("📊 総合ランキング（経年詳細）")
@@ -1688,7 +1689,42 @@ if st.session_state.results_data:
                 for d in overall_wins_data:
                     d["1位回数"] = f"{d['1位回数']}回"
                 st.dataframe(pd.DataFrame(overall_wins_data), use_container_width=True, hide_index=True)
-            st.divider()
+
+        # v7.3: 総合ランキング TOP10得点の経年推移を「1位獲得回数ランキング」の下に移動
+        if overall_data and len(overall_data) > 1:
+            st.subheader("📊 得点の経年推移（TOP10企業）")
+            # 最新年度のTOP10企業を取得
+            latest_year_for_chart = max(overall_data.keys())
+            latest_top10_for_chart = sorted(overall_data[latest_year_for_chart], key=lambda x: x.get("score") or 0, reverse=True)[:10]
+            top10_companies_for_chart = [d.get("company") for d in latest_top10_for_chart if d.get("company")]
+
+            line_data_for_chart = []
+            for year in sorted(overall_data.keys()):
+                for item in overall_data[year]:
+                    company = item.get("company")
+                    score = item.get("score")
+                    if company in top10_companies_for_chart and score is not None:
+                        line_data_for_chart.append({
+                            "年度": str(year),
+                            "得点": score,
+                            "企業名": company[:15]  # 長い企業名を短縮
+                        })
+            if line_data_for_chart and len(line_data_for_chart) > 1:
+                import altair as alt
+                line_df_for_chart = pd.DataFrame(line_data_for_chart)
+                # 動的Y軸範囲
+                all_scores_for_chart = [d["得点"] for d in line_data_for_chart]
+                y_min_for_chart = max(0, min(all_scores_for_chart) - 3)
+                y_max_for_chart = max(all_scores_for_chart) + 3
+                chart = alt.Chart(line_df_for_chart).mark_line(point=True).encode(
+                    x=alt.X('年度:O', title='年度'),
+                    y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min_for_chart, y_max_for_chart])),
+                    color=alt.Color('企業名:N', title='企業名'),
+                    tooltip=['年度', '企業名', '得点']
+                ).properties(height=400, title="総合ランキング 得点の経年推移（TOP10企業）")
+                st.altair_chart(chart, use_container_width=True)
+
+        st.divider()
 
         if overall_data:
             # 年度ごとに全データを表示（アップロードデータをマーク）
@@ -1708,10 +1744,13 @@ if st.session_state.results_data:
                     if year_url:
                         st.markdown(f"🔗 **参照URL**: [{year_url}]({year_url})")
                     df = pd.DataFrame(overall_data[year])
-                    # 空白列名や数字のみの列名を除外
-                    valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
+                    # v7.3: 空白列名、数字のみの列名、Unnamed列を除外
+                    valid_cols = [col for col in df.columns
+                                  if col and str(col).strip()
+                                  and not str(col).strip().isdigit()
+                                  and not str(col).startswith('Unnamed')]
                     df = df[valid_cols]
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, use_container_width=True, hide_index=True)
 
                     # 該当年度の縦棒グラフ（得点上位10社）
                     year_data_sorted = sorted(overall_data[year], key=lambda x: x.get("score") or 0, reverse=True)[:10]
@@ -1765,40 +1804,6 @@ if st.session_state.results_data:
 
             if comparison_data:
                 st.dataframe(pd.DataFrame(comparison_data), use_container_width=True)
-
-            # 総合ランキング TOP10得点の経年推移（折れ線グラフ）
-            if len(overall_data) > 1:
-                st.subheader("📊 得点の経年推移（TOP10企業）")
-                # 最新年度のTOP10企業を取得
-                latest_year = max(overall_data.keys())
-                latest_top10 = sorted(overall_data[latest_year], key=lambda x: x.get("score") or 0, reverse=True)[:10]
-                top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
-
-                line_data = []
-                for year in sorted(overall_data.keys()):
-                    for item in overall_data[year]:
-                        company = item.get("company")
-                        score = item.get("score")
-                        if company in top10_companies and score is not None:
-                            line_data.append({
-                                "年度": str(year),
-                                "得点": score,
-                                "企業名": company[:15]  # 長い企業名を短縮
-                            })
-                if line_data and len(line_data) > 1:
-                    import altair as alt
-                    line_df = pd.DataFrame(line_data)
-                    # 動的Y軸範囲
-                    all_scores = [d["得点"] for d in line_data]
-                    y_min = max(0, min(all_scores) - 3)
-                    y_max = max(all_scores) + 3
-                    chart = alt.Chart(line_df).mark_line(point=True).encode(
-                        x=alt.X('年度:O', title='年度'),
-                        y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
-                        color=alt.Color('企業名:N', title='企業名'),
-                        tooltip=['年度', '企業名', '得点']
-                    ).properties(height=400, title="総合ランキング 得点の経年推移（TOP10企業）")
-                    st.altair_chart(chart, use_container_width=True)
 
     with tab4:
         st.header("📋 評価項目別ランキング（経年）")
@@ -1857,42 +1862,7 @@ if st.session_state.results_data:
                 st.dataframe(pd.DataFrame(item_records[:10]), use_container_width=True, hide_index=True)
             st.divider()
 
-        # 冒頭に各評価項目の得点経年推移グラフを表示
-        if item_data:
-            st.subheader("📊 評価項目別 得点の経年推移（TOP10企業）")
-            import altair as alt
-            # 評価項目ごとにグラフを作成
-            for item_name, year_data in item_data.items():
-                if isinstance(year_data, dict) and len(year_data) > 1:
-                    # 最新年度のTOP10企業を取得
-                    latest_yr = max(year_data.keys())
-                    latest_top10 = sorted(year_data[latest_yr], key=lambda x: x.get("score") or 0, reverse=True)[:10]
-                    top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
-
-                    line_data = []
-                    for yr in sorted(year_data.keys()):
-                        for item in year_data[yr]:
-                            company = item.get("company")
-                            score = item.get("score")
-                            if company in top10_companies and score is not None:
-                                line_data.append({
-                                    "年度": str(yr),
-                                    "得点": score,
-                                    "企業名": company[:15]
-                                })
-                    if line_data and len(line_data) > 1:
-                        line_df = pd.DataFrame(line_data)
-                        all_scores = [d["得点"] for d in line_data]
-                        y_min = max(0, min(all_scores) - 3)
-                        y_max = max(all_scores) + 3
-                        chart = alt.Chart(line_df).mark_line(point=True).encode(
-                            x=alt.X('年度:O', title='年度'),
-                            y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
-                            color=alt.Color('企業名:N', title='企業名'),
-                            tooltip=['年度', '企業名', '得点']
-                        ).properties(height=250, title=f"{item_name}")
-                        st.altair_chart(chart, use_container_width=True)
-            st.divider()
+        # v7.3: 「評価項目別 得点の経年推移（TOP10企業）」セクションを削除
 
         if item_data:
             for item_name, year_data in item_data.items():
@@ -1976,10 +1946,13 @@ if st.session_state.results_data:
                             else:
                                 st.markdown(f"**{year}年**")
                             df = pd.DataFrame(year_data[year])
-                            # 空白列名や数字のみの列名を除外
-                            valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
+                            # v7.3: 空白列名、数字のみの列名、Unnamed列を除外
+                            valid_cols = [col for col in df.columns
+                                          if col and str(col).strip()
+                                          and not str(col).strip().isdigit()
+                                          and not str(col).startswith('Unnamed')]
                             df = df[valid_cols]
-                            st.dataframe(df, use_container_width=True)
+                            st.dataframe(df, use_container_width=True, hide_index=True)
 
                     elif isinstance(year_data, dict):
                         # 1年分のみのデータ
@@ -1996,12 +1969,16 @@ if st.session_state.results_data:
                             else:
                                 st.markdown(f"**{year}年**")
                             df = pd.DataFrame(year_data[year])
-                            valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
+                            # v7.3: 空白列名、数字のみの列名、Unnamed列を除外
+                            valid_cols = [col for col in df.columns
+                                          if col and str(col).strip()
+                                          and not str(col).strip().isdigit()
+                                          and not str(col).startswith('Unnamed')]
                             df = df[valid_cols]
-                            st.dataframe(df, use_container_width=True)
+                            st.dataframe(df, use_container_width=True, hide_index=True)
                     else:
                         df = pd.DataFrame(year_data)
-                        st.dataframe(df, use_container_width=True)
+                        st.dataframe(df, use_container_width=True, hide_index=True)
         else:
             st.info("評価項目別データは取得できませんでした")
 
@@ -2062,42 +2039,7 @@ if st.session_state.results_data:
                 st.dataframe(pd.DataFrame(dept_records[:10]), use_container_width=True, hide_index=True)
             st.divider()
 
-        # 冒頭に各部門の得点経年推移グラフを表示
-        if dept_data:
-            st.subheader("📊 部門別 得点の経年推移（TOP10企業）")
-            import altair as alt
-            # 部門ごとにグラフを作成
-            for dept_name, year_data in dept_data.items():
-                if isinstance(year_data, dict) and len(year_data) > 1:
-                    # 最新年度のTOP10企業を取得
-                    latest_yr = max(year_data.keys())
-                    latest_top10 = sorted(year_data[latest_yr], key=lambda x: x.get("score") or 0, reverse=True)[:10]
-                    top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
-
-                    line_data = []
-                    for yr in sorted(year_data.keys()):
-                        for item in year_data[yr]:
-                            company = item.get("company")
-                            score = item.get("score")
-                            if company in top10_companies and score is not None:
-                                line_data.append({
-                                    "年度": str(yr),
-                                    "得点": score,
-                                    "企業名": company[:15]
-                                })
-                    if line_data and len(line_data) > 1:
-                        line_df = pd.DataFrame(line_data)
-                        all_scores = [d["得点"] for d in line_data]
-                        y_min = max(0, min(all_scores) - 3)
-                        y_max = max(all_scores) + 3
-                        chart = alt.Chart(line_df).mark_line(point=True).encode(
-                            x=alt.X('年度:O', title='年度'),
-                            y=alt.Y('得点:Q', title='得点', scale=alt.Scale(domain=[y_min, y_max])),
-                            color=alt.Color('企業名:N', title='企業名'),
-                            tooltip=['年度', '企業名', '得点']
-                        ).properties(height=250, title=f"{dept_name}")
-                        st.altair_chart(chart, use_container_width=True)
-            st.divider()
+        # v7.3: 「部門別 得点の経年推移（TOP10企業）」セクションを削除
 
         if dept_data:
             for dept_name, year_data in dept_data.items():
@@ -2181,10 +2123,13 @@ if st.session_state.results_data:
                             else:
                                 st.markdown(f"**{year}年**")
                             df = pd.DataFrame(year_data[year])
-                            # 空白列名や数字のみの列名を除外
-                            valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
+                            # v7.3: 空白列名、数字のみの列名、Unnamed列を除外
+                            valid_cols = [col for col in df.columns
+                                          if col and str(col).strip()
+                                          and not str(col).strip().isdigit()
+                                          and not str(col).startswith('Unnamed')]
                             df = df[valid_cols]
-                            st.dataframe(df, use_container_width=True)
+                            st.dataframe(df, use_container_width=True, hide_index=True)
 
                     elif isinstance(year_data, dict):
                         # 1年分のみのデータ
@@ -2201,9 +2146,13 @@ if st.session_state.results_data:
                             else:
                                 st.markdown(f"**{year}年**")
                             df = pd.DataFrame(year_data[year])
-                            valid_cols = [col for col in df.columns if col and str(col).strip() and not str(col).strip().isdigit()]
+                            # v7.3: 空白列名、数字のみの列名、Unnamed列を除外
+                            valid_cols = [col for col in df.columns
+                                          if col and str(col).strip()
+                                          and not str(col).strip().isdigit()
+                                          and not str(col).startswith('Unnamed')]
                             df = df[valid_cols]
-                            st.dataframe(df, use_container_width=True)
+                            st.dataframe(df, use_container_width=True, hide_index=True)
         else:
             st.info("部門別データは存在しないか取得できませんでした")
 
