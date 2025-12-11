@@ -1232,15 +1232,35 @@ v7.0で実装した `_extract_departments_from_sort_nav()` は `<section>` + `<h
 | h3タグ | カテゴリ見出し | **0個** |
 | tableタグ | なし | **1個** |
 
-**15ランキングの調査結果:**
-- TABLE構造: 12件（生命保険、FX、ネット証券、携帯キャリア、動画配信、派遣会社など）
-- NO_SORT_NAV: 2件（格安SIM、子ども英語教室）
-- ERROR: 1件（URL変更）
+### 全215ランキング包括テスト結果 (2025-12-11)
 
-**結論:**
-- 現在の `_extract_departments_from_sort_nav()` は実質的に機能していない（常に空を返す）
+`test_sort_nav_structure.py` による全ランキングの網羅的検証を実施。
+
+| 構造タイプ | 件数 | 割合 | 説明 |
+|-----------|------|------|------|
+| **TABLE構造** | 209件 | 97.2% | `<table>` + `<th>` + `<td>` |
+| SECTION構造 | **0件** | **0.0%** | `<section>` + `<h3>` + `<ul>` |
+| H3_UL構造 | 0件 | 0.0% | `<h3>` + `<ul>` のみ |
+| sort-navなし | 6件 | 2.8% | 部門なしランキング |
+| エラー | 0件 | 0.0% | - |
+
+**sort-navなしの6ランキング:**
+
+| ランキング名 | slug | URL |
+|-------------|------|-----|
+| バイク販売店 | bike-sell | rank-bike-sell |
+| 電子コミックサービス | manga-apps | rank-manga-apps |
+| 格安SIM | mvno | rank-mvno |
+| プロバイダ | _internet | rank_internet |
+| 映画館 | movie-theater | rank-movie-theater |
+| テーマパーク | theme-park | rank-theme-park |
+
+**確定した結論:**
+- **SECTION構造は全215ランキング中0件** → HANDOVERの記載は完全に間違っていた
+- 現在の `_extract_departments_from_sort_nav()` は**実質的に機能していない**（常に空を返す）
 - 全ての部門検出は **レガシーパターン（DEPT_PATTERNS）** で行われている
 - 偶然機能しているが、sort-nav検出ロジックは**死んでいるコード**
+- 詳細結果は `test_sort_nav_results.json` に保存
 
 ### 今後の課題
 
