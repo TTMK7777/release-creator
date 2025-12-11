@@ -1,3 +1,28 @@
-同点で1位をとった場合に1位獲得回数ランキングに反映されない
-例子ども英語教室 小学生で 2024年にベネッセとＥＣＣＫＩＤＳが同点だが、ＥＣＣＫＩＤＳの1位獲得回数は2025年の1回のみとなっている。
+社名の変更、例えば英会話スクールのAEONイーオン→英会話イーオンなどがあった場合、
+連続記録や受賞回数が通算されない。
 
+英会話スクールの部門別レベル別、クラス別が抽出されない
+https://juken.oricon.co.jp/rank_english/level/
+https://juken.oricon.co.jp/rank_english/class/
+https://juken.oricon.co.jp/rank_english/class/group.html
+
+また、北海道という存在しないものが部門として抽出される。
+https://juken.oricon.co.jp/rank_english/school_list/town/?pref=1
+おそらく部門別の動的な捜索が不十分なので、他のランキングにおいても同様の問題が起き得る。
+
+唯一特殊な発表年で
+https://life.oricon.co.jp/rank_insurance/2014-2015/
+のように2014-2015というものがあって対応してほしい。
+
+自動車保険の代理店型に未対応
+https://life.oricon.co.jp/rank_insurance/#2
+https://life.oricon.co.jp/rank_insurance/agency/2024/
+https://life.oricon.co.jp/rank_insurance/2023/category/agent.html
+もともと部門別だったのが分離独立した形になる
+
+バイク保険も代理店型に未対応
+https://life.oricon.co.jp/rank_bike/#2
+
+生命保険の評価項目別がすべて生命保険として抽出される
+https://life.oricon.co.jp/rank-life-insurance/evaluation-item/premium.html
+https://life.oricon.co.jp/rank-life-insurance/2024/evaluation-item/follow-up.html

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度サイトのスクレイパー
-v7.0 - ハイブリッド自動検出（sort-nav優先 + レガシーフォールバック）
-- sort-nav クラスから部門を自動検出（約63%のページで利用可能）
-- sort-nav がない場合はレガシー dept_patterns を使用（約37%のページ）
-- 同点1位獲得回数対応（analyzer.py）
-- サブパス部門検出（grade/パターン、低学年・高学年）
+v7.5 - 評価項目別部門対応
+- v7.4の全機能を継承
+- 評価項目別（evaluation-item）を部門として検出: premium, follow-up等を個別部門として抽出
+- EXCLUDE_URL_PATTERNSから/evaluation-itemを削除、DEPT_PATTERNSに移動
 """
 
 import requests
@@ -62,11 +61,19 @@ class OriconScraper:
         r"/(prefecture)(?:/|\.html)",  # 引越し会社: 都道府県別
         r"/(area)(?:/|\.html)",  # 引越し会社: 地域別
         r"/(gender)(?:/|\.html)",  # 引越し会社: 性別
+        # v7.4追加: 英会話スクール用パターン
+        r"/(level)(?:/|\.html)",  # 英会話スクール: レベル別
+        r"/(class)(?:/|\.html)",  # 英会話スクール: クラス別（グループ/個人など）
+        # v7.4追加: 保険代理店型パターン
+        r"/(agency)(?:/|\.html)",  # 自動車保険・バイク保険: 代理店型
+        r"/(category)/([^/]+)\.html",  # カテゴリ別（agent等）
+        # v7.5追加: 評価項目別パターン（生命保険等）
+        r"/(evaluation-item)/([^/.]+)\.html",  # 評価項目別: premium, follow-up等
     ]
 
     # 除外パターン（部門ページではないもの）
     EXCLUDE_URL_PATTERNS = [
-        r"/evaluation-item",  # 評価項目
+        # 注意: /evaluation-item は v7.5 で部門として検出対象に変更（DEPT_PATTERNSで処理）
         r"/column",           # コラム・解説ページ
         r"/special/",         # 特集・解説ページ
         r"-basic",            # 基本解説ページ
@@ -76,11 +83,33 @@ class OriconScraper:
         r"/compare",          # 比較
         r"/company/",         # 企業詳細ページ（部門ではない）v7.0追加
         r"/education/",       # 教育コラムページ（部門ではない）v7.0追加
+        # v7.4追加: 誤検出防止用除外パターン
+        r"/school_list/",     # 教室リストページ（部門ではない）
+        r"/town/",            # 都道府県・市区町村選択ページ
+        r"[?&]pref=",         # 都道府県クエリパラメータ（位置に依存しない）
+        r"[?&]area=",         # エリアクエリパラメータ（位置に依存しない）
+        r"/search",           # 検索ページ
+        r"/ranking-list",     # ランキング一覧ページ
+    ]
+
+    # v7.4追加: 無効な部門名（誤検出防止用）
+    INVALID_DEPT_NAMES = [
+        # 都道府県名（単体で部門として誤検出されやすい）
+        "北海道", "青森", "岩手", "宮城", "秋田", "山形", "福島",
+        "茨城", "栃木", "群馬", "埼玉", "千葉", "東京", "神奈川",
+        "新潟", "富山", "石川", "福井", "山梨", "長野", "岐阜", "静岡", "愛知",
+        "三重", "滋賀", "京都", "大阪", "兵庫", "奈良", "和歌山",
+        "鳥取", "島根", "岡山", "広島", "山口", "徳島", "香川", "愛媛", "高知",
+        "福岡", "佐賀", "長崎", "熊本", "大分", "宮崎", "鹿児島", "沖縄",
+        # その他の無効な名前
+        "ランキング", "一覧", "比較", "おすすめ", "検索結果", "教室一覧",
+        # 年度（例: 2024年, 2023年）
+        "2020年", "2021年", "2022年", "2023年", "2024年", "2025年", "2026年", "2027年",
     ]
 
     # 除外するh3見出し（sort-nav内で部門ではないセクション）
+    # v7.5変更: 「評価項目別」「評価項目」を除外対象から削除（部門として検出対象に）
     EXCLUDE_HEADINGS = [
-        "評価項目別", "評価項目",
         "過去のランキング", "過去ランキング",
         "関連ランキング", "関連する"
     ]
@@ -724,8 +753,8 @@ class OriconScraper:
                                 if dept_path not in departments:
                                     # アンカーテキストを部門名として使用（HTTPリクエスト不要）
                                     dept_name = link.get_text(strip=True)
-                                    # 名前の妥当性チェック
-                                    if dept_name and len(dept_name) <= self.MAX_DEPT_NAME_LENGTH:
+                                    # v7.4: バリデーション層追加 - 部門名の妥当性チェック強化
+                                    if self._is_valid_dept_name(dept_name):
                                         departments[dept_path] = dept_name
                         break  # 一致したpatternループを抜ける
 
@@ -810,11 +839,80 @@ class OriconScraper:
                     dept_path = match.group(1)
                     # 数字のみのパス（年度）は除外
                     if dept_path and not dept_path.rstrip('/').isdigit() and '?' not in dept_path:
-                        # リンクテキストを部門名として使用（シンプルで高精度）
-                        if link_text and len(link_text) <= self.MAX_DEPT_NAME_LENGTH:
+                        # v7.4: バリデーション層追加 - 部門名の妥当性チェック強化
+                        if self._is_valid_dept_name(link_text):
                             departments[dept_path] = link_text
 
         return departments
+
+    def _is_valid_dept_name(self, dept_name: str) -> bool:
+        """
+        部門名の妥当性をチェック（v7.4追加: バリデーション層）
+
+        誤検出防止のため、以下を検証:
+        1. 空でない（空白文字のみも除外）
+        2. 最大文字数以下
+        3. 無効な部門名リストに含まれていない（都道府県単体など）
+
+        Args:
+            dept_name: 検証する部門名
+
+        Returns:
+            True: 有効な部門名
+            False: 無効な部門名（除外すべき）
+        """
+        # 空白文字のみの文字列を除外
+        if not dept_name or not dept_name.strip():
+            return False
+
+        # 正規化（前後の空白除去）
+        dept_name = dept_name.strip()
+
+        if len(dept_name) > self.MAX_DEPT_NAME_LENGTH:
+            return False
+
+        # 無効な部門名リストに含まれていないか確認
+        # （都道府県名も含まれているため、別途の正規表現チェックは不要）
+        if dept_name in self.INVALID_DEPT_NAMES:
+            logger.debug(f"無効な部門名を除外: {dept_name}")
+            return False
+
+        # 年度パターン（例: 2024年, 2023）を除外
+        if re.match(r"^\d{4}年?$", dept_name):
+            logger.debug(f"年度パターンを除外: {dept_name}")
+            return False
+
+        return True
+
+    def _normalize_dept_url(self, url: str) -> str:
+        """
+        部門URLを正規化（v7.4追加: URL正規化レイヤー）
+
+        - クエリパラメータを除去
+        - ハッシュを除去
+        - 複数の連続スラッシュを1つに
+        - 末尾スラッシュを統一
+
+        Args:
+            url: 正規化前のURL
+
+        Returns:
+            正規化されたURL
+        """
+        if not url:
+            return ""
+
+        # クエリパラメータとハッシュを除去
+        url = re.sub(r'[?#].*$', '', url)
+
+        # 複数の連続スラッシュを1つに（プロトコル部分を除く）
+        url = re.sub(r'(?<!:)/+', '/', url)
+
+        # 末尾スラッシュを統一（.htmlで終わる場合は追加しない）
+        if not url.endswith('.html'):
+            url = url.rstrip('/') + '/'
+
+        return url
 
     def _discover_evaluation_items(self, url: str) -> Dict[str, str]:
         """
