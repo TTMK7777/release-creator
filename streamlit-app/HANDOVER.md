@@ -9,7 +9,8 @@ Webスクレイピングによる過去データ取得と、Excelファイルア
 
 | バージョン | 日付 | 主な変更点 |
 |-----------|------|-----------|
-| v7.5 | 2025-12-11 | 評価項目別部門対応: 生命保険等の評価項目別（premium, follow-up等）を個別部門として検出。EXCLUDE_URL_PATTERNSから/evaluation-itemを削除しDEPT_PATTERNSに移動、EXCLUDE_HEADINGSから「評価項目別」「評価項目」を削除。**全161ランキング検証済み（正常動作率99.4%、誤検出0件）** |
+| v7.6 | 2025-12-11 | v7.5誤検出修正: evaluation-itemは「評価項目別」であり「部門別」ではないため、v7.5の変更を取り消し。DEPT_PATTERNSからevaluation-itemパターン削除、EXCLUDE_URL_PATTERNSに/evaluation-item復元、EXCLUDE_HEADINGSに「評価項目別」「評価項目」復元。**新アーキテクチャ設計**: sort-nav内のtable構造を活用した動的サイト構造解析を設計 |
+| v7.5 | 2025-12-11 | ⚠️**取り消し済み**: evaluation-itemを部門として検出する変更は誤りだったためv7.6で取り消し |
 | v7.4 | 2025-12-11 | ハイブリッド強化方式（URL正規化 + パターン追加 + バリデーション層）: 英会話スクールlevel/class対応、代理店型agency対応、都道府県誤検出防止（INVALID_DEPT_NAMES追加）、URL正規化レイヤー追加、クエリパラメータ除外パターン強化 |
 | v7.3.1 | 2025-12-09 | 社名正規化の網羅性向上（得点推移分析・初登場年計算への適用追加）、正規化前処理追加（全角/半角英数字変換、連続空白正規化）、コードレビューによるバグ修正 |
 | v7.3 | 2025-12-09 | 引越し会社の部門別抽出対応（/family/, /prefecture/, /area/, /gender/パターン追加）、社名エイリアス機能（社名変更時の連続記録・受賞回数通算）、UI改善（歴代記録タブのグラフ位置変更、ランキング順位表のUnnamed列削除、総合/評価項目別/部門別タブのグラフ配置最適化） |
@@ -1059,3 +1060,127 @@ if any(re.search(pattern, href) for pattern in self.EXCLUDE_URL_PATTERNS):
 | 保守性 | ✅ クラス変数による定数化 |
 | パフォーマンス | ✅ HTTPリクエスト最適化済み |
 | 安定性 | ✅ 例外処理・リトライ処理完備 |
+
+---
+
+## v7.6 誤検出修正 & 新アーキテクチャ設計 (2025-12-11)
+
+### 背景
+
+v7.5で「evaluation-itemを部門として検出する」変更を実施したが、これは誤りだった。
+
+**問題点:**
+1. `evaluation-item` は「評価項目別」であり「部門別」ではない
+2. 派遣会社: 福岡県が「おすすめ派遣会社」として誤検出
+3. 工場・製造業派遣: 部門が存在しないのにevaluation-itemが部門として検出
+
+### v7.6 修正内容
+
+1. **DEPT_PATTERNS**: `evaluation-item` パターンを削除
+2. **EXCLUDE_URL_PATTERNS**: `/evaluation-item` を復元
+3. **EXCLUDE_HEADINGS**: 「評価項目別」「評価項目」を復元
+
+### マルチAIレビュー結果
+
+AI Orchestrator v5.2 (Commander/Advisor Model) による分析：
+
+| AI | 役割 | 主な提案 |
+|----|------|----------|
+| OpenAI o3 | Advisor | キャッシュ＋差分更新、Facade/Feature Flag、リトライ/バックオフ |
+| Perplexity | Research | オリコンサイト構造情報は公開情報にないため直接分析が必要 |
+| Gemini | Document | 動的判別アプローチは柔軟性・誤検出削減・網羅性で有効 |
+| GPT-5 | Reviewer | 具体的な次のステップ（サイト構造の直接分析）を推奨 |
+
+### 新アーキテクチャ設計（将来実装予定）
+
+#### 発見: sort-nav内のtable構造
+
+オリコンサイトの`sort-nav`は`<section>`タグではなく`<table>`構造を使用していることが判明：
+
+```html
+<div class="sort-nav sub-content">
+  <table>
+    <tr>
+      <th>評価項目別ランキング</th>
+      <td>
+        <a href="/evaluation-item/procedure.html">加入手続き</a>
+        <a href="/evaluation-item/plan.html">商品内容</a>
+        ...
+      </td>
+    </tr>
+    <tr>
+      <th>性別別ランキング</th>
+      <td>
+        <a href="/gender/">男性</a>
+        <a href="/gender/woman.html">女性</a>
+      </td>
+    </tr>
+    <tr>
+      <th>年代別ランキング</th>
+      <td>
+        <a href="/age/">10・20代</a>
+        <a href="/age/30s.html">30代</a>
+        ...
+      </td>
+    </tr>
+  </table>
+</div>
+```
+
+#### 動的サイト構造解析ロジック
+
+```python
+def analyze_ranking_structure(url):
+    """ランキングの構造を動的に検出"""
+    result = {
+        'has_overall': True,
+        'evaluation_items': [],  # 評価項目別
+        'departments': {},       # 部門別（カテゴリ名: リンク情報）
+        'past_years': []         # 過去年度
+    }
+
+    # sort-nav内のtableを解析
+    for row in sort_nav.find_all('tr'):
+        th = row.find('th')  # カテゴリ名
+        td = row.find('td')  # リンク一覧
+
+        category_name = th.get_text(strip=True)
+
+        if '評価項目' in category_name:
+            # → evaluation_items に追加
+        elif '過去' in category_name:
+            # → past_years に追加
+        else:
+            # → departments に追加（性別別、年代別など）
+```
+
+#### 検証結果
+
+| ランキング | 評価項目 | 部門カテゴリ | 判定 |
+|------------|----------|--------------|------|
+| 生命保険 | 4件 | 4種（性別/年代/ライフステージ/契約形態） | ✅ |
+| 派遣会社 | 6件 | 6種（性別/年代/雇用形態等） | ✅ |
+| 工場製造業派遣 | 6件 | **0種** | ✅ 正しく部門なしと判定 |
+| 動画配信サービス | 5件 | 1種（ジャンル別） | ✅ |
+
+#### 将来の実装方針
+
+1. **RankingStructureAnalyzer クラス**: sort-nav table構造を解析
+2. **キャッシュ機構**: 初回スキャン結果をJSONでキャッシュ
+3. **Feature Flag**: 新旧ロジックの切り替え
+4. **段階的移行**: Facade パターンで既存互換性を維持
+
+### テスト結果（v7.6）
+
+```
+派遣会社（_staffing）: 25件の部門検出 ✅
+  - gender, age, area など（evaluation-itemは含まれない）
+工場製造業派遣（_staffing_manufacture）: 0件 ✅
+  - 部門別が存在しないランキングで正しく0件
+```
+
+### 今後の課題
+
+1. **prefecture パターン**: 一部のランキングでは都道府県別が有効な部門（引越し会社など）
+2. **動的判定の実装**: sort-nav table構造を活用した新アーキテクチャの本格実装
+3. **キャッシュ戦略**: o3提案のキャッシュ＋差分更新ロジック

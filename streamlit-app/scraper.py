@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度サイトのスクレイパー
-v7.5 - 評価項目別部門対応
-- v7.4の全機能を継承
-- 評価項目別（evaluation-item）を部門として検出: premium, follow-up等を個別部門として抽出
-- EXCLUDE_URL_PATTERNSから/evaluation-itemを削除、DEPT_PATTERNSに移動
+v7.6 - v7.5誤検出修正
+- v7.5で追加した evaluation-item を部門扱いする変更を取り消し
+- evaluation-item は「評価項目別」であり「部門別」ではないため、除外対象に復元
+- DEPT_PATTERNS から evaluation-item パターンを削除
+- EXCLUDE_URL_PATTERNS に /evaluation-item を復元
+- EXCLUDE_HEADINGS に「評価項目別」「評価項目」を復元
 """
 
 import requests
@@ -67,13 +69,13 @@ class OriconScraper:
         # v7.4追加: 保険代理店型パターン
         r"/(agency)(?:/|\.html)",  # 自動車保険・バイク保険: 代理店型
         r"/(category)/([^/]+)\.html",  # カテゴリ別（agent等）
-        # v7.5追加: 評価項目別パターン（生命保険等）
-        r"/(evaluation-item)/([^/.]+)\.html",  # 評価項目別: premium, follow-up等
+        # v7.5で追加した evaluation-item パターンは v7.6 で削除
+        # 理由: evaluation-item は「評価項目別」であり「部門別」ではない
     ]
 
     # 除外パターン（部門ページではないもの）
     EXCLUDE_URL_PATTERNS = [
-        # 注意: /evaluation-item は v7.5 で部門として検出対象に変更（DEPT_PATTERNSで処理）
+        r"/evaluation-item",  # 評価項目別ページ（部門ではない）- v7.6で復元
         r"/column",           # コラム・解説ページ
         r"/special/",         # 特集・解説ページ
         r"-basic",            # 基本解説ページ
@@ -108,8 +110,10 @@ class OriconScraper:
     ]
 
     # 除外するh3見出し（sort-nav内で部門ではないセクション）
-    # v7.5変更: 「評価項目別」「評価項目」を除外対象から削除（部門として検出対象に）
+    # v7.6変更: 「評価項目別」「評価項目」を除外対象に復元
+    # 理由: evaluation-item は「評価項目別」であり「部門別」ではない
     EXCLUDE_HEADINGS = [
+        "評価項目別", "評価項目",  # v7.6で復元
         "過去のランキング", "過去ランキング",
         "関連ランキング", "関連する"
     ]
