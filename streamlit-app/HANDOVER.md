@@ -780,6 +780,12 @@ v6.2までは部門検出にハードコードされた`dept_patterns`（URLパ�
 
 ### sort-nav 構造（オリコンサイト共通）
 
+⚠️ **v7.6で判明**: 以下の構造は実際のサイトと異なることが判明。
+実際のサイトは `<table>` 構造を使用しており、`<section>` タグは存在しない。
+そのため、現在の `_extract_departments_from_sort_nav()` は常に空を返し、
+レガシーパターンにフォールバックしている。
+
+**HANDOVERに記載されていた構造（実際には存在しない）:**
 ```html
 <nav class="sort-nav">
   <section>
@@ -788,15 +794,49 @@ v6.2までは部門検出にハードコードされた`dept_patterns`（URLパ�
       <li><a href=".../evaluation-item/...">項目名</a></li>
     </ul>
   </section>
-  <section>
-    <h3>年代別</h3>  <!-- ← これが部門カテゴリ -->
-    <ul>
-      <li><a href=".../age/20s.html">20代</a></li>
-      <li><a href=".../age/30s.html">30代</a></li>
-    </ul>
-  </section>
 </nav>
 ```
+
+**実際のサイト構造（v7.6で発見）:**
+```html
+<div class="sort-nav sub-content">
+  <h2>項目別ランキング一覧</h2>
+  <p>説明文</p>
+  <table>
+    <tr>
+      <th>TOP</th>
+      <td>総合満足度ランキング</td>
+    </tr>
+    <tr>
+      <th>評価項目別ランキング</th>
+      <td>
+        <a href="/evaluation-item/procedure.html">加入手続き</a>
+        <a href="/evaluation-item/plan.html">商品内容</a>
+      </td>
+    </tr>
+    <tr>
+      <th>性別別ランキング</th>
+      <td>
+        <a href="/gender/">男性</a>
+        <a href="/gender/woman.html">女性</a>
+      </td>
+    </tr>
+    <tr>
+      <th>年代別ランキング</th>
+      <td>
+        <a href="/age/">10・20代</a>
+        <a href="/age/30s.html">30代</a>
+      </td>
+    </tr>
+  </table>
+</div>
+```
+
+**現状の動作:**
+1. sort-navは見つかる（`<div class="sort-nav">`が存在）
+2. `<section>`タグを探すが見つからない → 空のDictを返す
+3. レガシーパターン（DEPT_PATTERNS）にフォールバック
+4. レガシーパターンで部門を検出（現在機能している）
 
 ### 除外ルール
 
@@ -1179,8 +1219,32 @@ def analyze_ranking_structure(url):
   - 部門別が存在しないランキングで正しく0件
 ```
 
+### 重要な発見: HANDOVERの記載と実際のサイト構造の乖離
+
+v7.0で実装した `_extract_departments_from_sort_nav()` は `<section>` + `<h3>` 構造を想定していたが、
+実際のオリコンサイトは `<table>` + `<th>` 構造を使用していることが判明。
+
+| 項目 | HANDOVERの記載 | 実際のサイト |
+|------|----------------|--------------|
+| コンテナ | `<nav class="sort-nav">` | `<div class="sort-nav">` |
+| 構造 | `<section>` + `<h3>` + `<ul>` | `<table>` + `<th>` + `<td>` |
+| sectionタグ | 複数あり | **0個** |
+| h3タグ | カテゴリ見出し | **0個** |
+| tableタグ | なし | **1個** |
+
+**15ランキングの調査結果:**
+- TABLE構造: 12件（生命保険、FX、ネット証券、携帯キャリア、動画配信、派遣会社など）
+- NO_SORT_NAV: 2件（格安SIM、子ども英語教室）
+- ERROR: 1件（URL変更）
+
+**結論:**
+- 現在の `_extract_departments_from_sort_nav()` は実質的に機能していない（常に空を返す）
+- 全ての部門検出は **レガシーパターン（DEPT_PATTERNS）** で行われている
+- 偶然機能しているが、sort-nav検出ロジックは**死んでいるコード**
+
 ### 今後の課題
 
-1. **prefecture パターン**: 一部のランキングでは都道府県別が有効な部門（引越し会社など）
-2. **動的判定の実装**: sort-nav table構造を活用した新アーキテクチャの本格実装
-3. **キャッシュ戦略**: o3提案のキャッシュ＋差分更新ロジック
+1. **sort-nav検出ロジックの修正**: `<table>` + `<th>` 構造に対応させる（または削除）
+2. **prefecture パターン**: 一部のランキングでは都道府県別が有効な部門（引越し会社など）
+3. **動的判定の実装**: sort-nav table構造を活用した新アーキテクチャの本格実装
+4. **キャッシュ戦略**: o3提案のキャッシュ＋差分更新ロジック
