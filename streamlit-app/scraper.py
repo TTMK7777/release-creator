@@ -1225,12 +1225,14 @@ class OriconScraper:
         # 例: 【2025年】FXのスキャルピングトレードランキング・比較 → スキャルピングトレード
         # 例: 【2025年】FXのPCランキング・比較 → PC
         # ※「満足度」を含む場合は除外（誤マッチ防止）
-        match = re.search(r"】[^\s【】]+の(.+?)ランキング", text)
-        if match:
-            dept_name = match.group(1).strip()
-            # 「顧客満足度」「満足度」などの一般的な語句は除外
-            if dept_name and dept_name not in ["顧客満足度", "オリコン顧客満足度", "満足度"] and "満足度" not in dept_name and len(dept_name) <= 20:
-                return dept_name
+        # ※「におすすめの」「のおすすめ」「に強い」「を希望」を含む場合は除外（派遣会社等の誤マッチ防止 v7.10）
+        if "におすすめの" not in text and "のおすすめ" not in text and "に強い" not in text and "を希望" not in text:
+            match = re.search(r"】[^\s【】]+の(.+?)ランキング", text)
+            if match:
+                dept_name = match.group(1).strip()
+                # 「顧客満足度」「満足度」などの一般的な語句は除外
+                if dept_name and dept_name not in ["顧客満足度", "オリコン顧客満足度", "満足度"] and "満足度" not in dept_name and len(dept_name) <= 20:
+                    return dept_name
 
         # パターン1: 【年度】XXX向けのYYY → XXX を抽出
         # 例: 【2025年】初心者向けのネット証券 → 初心者
@@ -1245,6 +1247,38 @@ class OriconScraper:
         match = re.search(r"】([^\s【】]+?)におすすめの", text)
         if match:
             dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン2.5: 【年度】XXXに強いYYY → XXX を抽出（派遣会社向け v7.10）
+        # 例: 【2025年】オフィス・事務系に強い派遣会社 → オフィス・事務系
+        match = re.search(r"】([^\s【】]+?)に強い", text)
+        if match:
+            dept_name = match.group(1).strip()
+            if dept_name and len(dept_name) <= 20:
+                return dept_name
+
+        # パターン2.55: 【年度】XXXを希望おすすめYYY → XXX を抽出（派遣会社・雇用形態向け v7.10）
+        # 例: 【2025年】無期雇用派遣を希望おすすめ派遣会社 → 無期雇用派遣 → 無期雇用
+        match = re.search(r"】([^\s【】]+?)を希望", text)
+        if match:
+            dept_name = match.group(1).strip()
+            # "派遣" を末尾から除去
+            if dept_name.endswith("派遣"):
+                dept_name = dept_name[:-2]
+            if dept_name and len(dept_name) <= 15:
+                return dept_name
+
+        # パターン2.6: 【年度】XXXのおすすめYYY → XXX を抽出（派遣会社向け v7.10）
+        # 例: 【2025年】北海道地方のおすすめ派遣会社 → 北海道地方 → 北海道
+        # 例: 【2025年】物流系のおすすめ派遣会社 → 物流系
+        # 例: 【2025年】東京都のおすすめ派遣会社 → 東京都
+        match = re.search(r"】([^\s【】]+?)のおすすめ", text)
+        if match:
+            dept_name = match.group(1).strip()
+            # "地方" を除去して地域名のみにする
+            if dept_name.endswith("地方"):
+                dept_name = dept_name[:-2]
             if dept_name and len(dept_name) <= 15:
                 return dept_name
 
