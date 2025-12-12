@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度サイトのスクレイパー
+v7.8 - sort-nav TABLE構造の複数リンク対応
+- _extract_departments_from_sort_nav でTD内の全リンクを取得するよう修正
+- 派遣会社の業務内容別（type/logistics.html等）が正しく検出されるように
+- 1つのTD内に複数リンクがある場合にすべて取得
+
 v7.7 - sort-nav TABLE構造対応
 - _extract_departments_from_sort_nav を実際のサイト構造（TABLE）に対応
 - 旧SECTION構造はフォールバックとして残す
@@ -831,36 +836,39 @@ class OriconScraper:
                     continue
 
                 # この行内のTDからリンクを取得
+                # v7.8: TD内の全リンクを取得（find_allを使用）
                 for td in tr.find_all("td"):
-                    link = td.find("a", href=True)
-                    if not link:
+                    # TD内のすべてのリンクを取得（派遣会社の業務内容別など）
+                    links = td.find_all("a", href=True)
+                    if not links:
                         continue
 
-                    href = link.get("href", "")
-                    link_text = link.get_text(strip=True)
+                    for link in links:
+                        href = link.get("href", "")
+                        link_text = link.get_text(strip=True)
 
-                    # EXCLUDE_URL_PATTERNSに一致するリンクは除外
-                    if any(re.search(pattern, href) for pattern in self.EXCLUDE_URL_PATTERNS):
-                        continue
+                        # EXCLUDE_URL_PATTERNSに一致するリンクは除外
+                        if any(re.search(pattern, href) for pattern in self.EXCLUDE_URL_PATTERNS):
+                            continue
 
-                    # 年度リンク（/2024/など）は除外
-                    if re.search(r"/\d{4}/?$", href):
-                        continue
+                        # 年度リンク（/2024/など）は除外
+                        if re.search(r"/\d{4}/?$", href):
+                            continue
 
-                    # 自身のランキングのリンクか確認
-                    if self.url_prefix not in href:
-                        continue
+                        # 自身のランキングのリンクか確認
+                        if self.url_prefix not in href:
+                            continue
 
-                    # パスを抽出（#1などのフラグメントを除去）
-                    href_clean = href.split('#')[0]
-                    match = re.search(base_pattern, href_clean)
-                    if match:
-                        dept_path = match.group(1)
-                        # 数字のみのパス（年度）は除外
-                        if dept_path and not dept_path.rstrip('/').isdigit() and '?' not in dept_path:
-                            # v7.4: バリデーション層 - 部門名の妥当性チェック
-                            if self._is_valid_dept_name(link_text):
-                                departments[dept_path] = link_text
+                        # パスを抽出（#1などのフラグメントを除去）
+                        href_clean = href.split('#')[0]
+                        match = re.search(base_pattern, href_clean)
+                        if match:
+                            dept_path = match.group(1)
+                            # 数字のみのパス（年度）は除外
+                            if dept_path and not dept_path.rstrip('/').isdigit() and '?' not in dept_path:
+                                # v7.4: バリデーション層 - 部門名の妥当性チェック
+                                if self._is_valid_dept_name(link_text):
+                                    departments[dept_path] = link_text
 
         # フォールバック: 旧SECTION構造（互換性のため残す）
         if not departments:
