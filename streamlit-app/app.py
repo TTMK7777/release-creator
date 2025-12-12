@@ -446,10 +446,17 @@ def parse_uploaded_excel(uploaded_file, specified_year=None):
                             "score": score
                         })
 
-                    # 3. 部門別シート（業態別、投資スタイル別、利用チャート別、レベル別、サポート別）
-                    elif any(x in sheet_name for x in ['業態', '投資スタイル', '利用チャート', 'チャート', 'レベル', 'サポート', '別']):
-                        # カテゴリ名があればそれを使用、なければシート名
-                        dept_name = category_name if category_name else sheet_name.replace('別', '')
+                    # 3. 部門別シート（業態別、投資スタイル別、利用チャート別、レベル別、サポート別、部門_XXX）
+                    # v7.10: '部門'を追加（エクスポートされたExcelの"部門_XXX"シートを認識）
+                    elif any(x in sheet_name for x in ['業態', '投資スタイル', '利用チャート', 'チャート', 'レベル', 'サポート', '別', '部門']):
+                        # カテゴリ名があればそれを使用、なければシート名から抽出
+                        # v7.10: "部門_XXX"形式に対応（例: "部門_男性" → "男性"）
+                        if category_name:
+                            dept_name = category_name
+                        elif sheet_name.startswith('部門_'):
+                            dept_name = sheet_name[3:]  # "部門_" を除去
+                        else:
+                            dept_name = sheet_name.replace('別', '')
                         if dept_name not in dept_data:
                             dept_data[dept_name] = {}
                         if year not in dept_data[dept_name]:
