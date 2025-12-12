@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度サイトのスクレイパー
+v7.9 - SiteStructureAnalyzer統合
+- SiteStructureAnalyzerを導入し、1回のリクエストで構造を解析
+- 評価項目・部門の検出を効率化（HTTPリクエスト削減）
+- analyze_structure()メソッドを追加
+- 旧ロジック（_discover_*）はフォールバックとして残す
+
 v7.8 - sort-nav TABLE構造の複数リンク対応
 - _extract_departments_from_sort_nav でTD内の全リンクを取得するよう修正
 - 派遣会社の業務内容別（type/logistics.html等）が正しく検出されるように
@@ -24,6 +30,9 @@ import re
 from typing import Dict, List, Optional
 import time
 import logging
+
+# v7.9: SiteStructureAnalyzer統合
+from site_analyzer import SiteStructureAnalyzer, SiteStructure
 
 logger = logging.getLogger(__name__)
 
@@ -101,15 +110,10 @@ class OriconScraper:
     ]
 
     # v7.4追加: 無効な部門名（誤検出防止用）
+    # v7.9変更: 都道府県名を削除（派遣会社・引越し会社等では有効な部門のため）
+    # 都道府県別部門はprefectureパターンで検出される
     INVALID_DEPT_NAMES = [
-        # 都道府県名（単体で部門として誤検出されやすい）
-        "北海道", "青森", "岩手", "宮城", "秋田", "山形", "福島",
-        "茨城", "栃木", "群馬", "埼玉", "千葉", "東京", "神奈川",
-        "新潟", "富山", "石川", "福井", "山梨", "長野", "岐阜", "静岡", "愛知",
-        "三重", "滋賀", "京都", "大阪", "兵庫", "奈良", "和歌山",
-        "鳥取", "島根", "岡山", "広島", "山口", "徳島", "香川", "愛媛", "高知",
-        "福岡", "佐賀", "長崎", "熊本", "大分", "宮崎", "鹿児島", "沖縄",
-        # その他の無効な名前
+        # 一般的な無効名
         "ランキング", "一覧", "比較", "おすすめ", "検索結果", "教室一覧",
         # 年度（例: 2024年, 2023年）
         "2020年", "2021年", "2022年", "2023年", "2024年", "2025年", "2026年", "2027年",
@@ -287,6 +291,33 @@ class OriconScraper:
         self._actual_top_year = None
         # トップページの更新日をキャッシュ (year, month)
         self._update_date = None
+        # v7.9: SiteStructureAnalyzerのキャッシュ
+        self._site_structure: Optional[SiteStructure] = None
+        self._structure_analyzer = SiteStructureAnalyzer()
+
+    def analyze_structure(self) -> SiteStructure:
+        """
+        サイト構造を解析（v7.9追加）
+
+        1回のHTTPリクエストで評価項目・部門・過去年度を一括取得。
+        結果はキャッシュされ、2回目以降は即座に返す。
+
+        Returns:
+            SiteStructure: サイト構造情報
+        """
+        if self._site_structure is not None:
+            return self._site_structure
+
+        subpath_part = f"/{self.subpath}" if self.subpath else ""
+        top_url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/"
+
+        self._site_structure = self._structure_analyzer.analyze(top_url, self.url_prefix)
+
+        # 年度情報を同期
+        if self._site_structure.current_year and self._actual_top_year is None:
+            self._actual_top_year = self._site_structure.current_year
+
+        return self._site_structure
 
     def _ensure_actual_top_year(self) -> int:
         """

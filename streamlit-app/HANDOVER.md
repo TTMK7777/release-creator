@@ -9,6 +9,7 @@ Webスクレイピングによる過去データ取得と、Excelファイルア
 
 | バージョン | 日付 | 主な変更点 |
 |-----------|------|-----------|
+| v7.9 | 2025-12-12 | **SiteStructureAnalyzer統合+エラーハンドリング強化**: 1回のHTTPリクエストで評価項目・部門・過去年度を一括取得。`site_analyzer.py` (v1.1)を新規追加。`analyze_structure()`メソッドを追加。キャッシュ機能付き。**エラーハンドリング強化**: `StructureValidator`クラスによる構造妥当性検証、評価項目数/部門数/年度範囲の閾値チェック、`check_structure_change()`による前回比較検知機能 |
 | v7.8 | 2025-12-12 | **sort-nav TABLE構造の複数リンク対応**: `_extract_departments_from_sort_nav()`で`td.find()`→`td.find_all()`に修正。派遣会社の業務内容別（type/logistics.html等）が正しく検出されるように。修正前: 6部門 → 修正後: 26部門を検出 |
 | v7.7 | 2025-12-11 | **sort-nav TABLE構造対応**: `_extract_departments_from_sort_nav()`を実際のサイト構造（`<table>` + `<th>` + `<td>`）に対応。全215ランキング包括テストで確認（TABLE構造97.2%、SECTION構造0%）。旧SECTION構造はフォールバック。**新アーキテクチャ実装方針策定**: SiteStructureAnalyzer/DepartmentDetector Facade/Feature Flag/Cache Layerの4フェーズ計画 |
 | v7.6 | 2025-12-11 | v7.5誤検出修正: evaluation-itemは「評価項目別」であり「部門別」ではないため、v7.5の変更を取り消し |
