@@ -59,6 +59,7 @@ streamlit-app/
 ├── app.py              # メインアプリケーション
 ├── scraper.py          # Webスクレイピングロジック
 ├── analyzer.py         # TOPICS分析・歴代記録分析
+├── site_analyzer.py    # サイト構造解析モジュール（v7.9追加）
 ├── requirements.txt    # 依存パッケージ
 ├── HANDOVER.md         # 本引継ぎ資料
 └── test/               # テストデータ
