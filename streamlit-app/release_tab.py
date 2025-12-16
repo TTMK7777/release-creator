@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-プレスリリースタブ モジュール (v1.0)
+プレスリリースタブ モジュール (v1.1)
 app.py のタブとして統合するためのヘルパーモジュール
+
+v1.1: 設定ヒント表示追加（社名エイリアス、URL形式、同点1位の説明）
 
 使い方:
 1. app.py の import セクションに以下を追加:
@@ -98,6 +100,22 @@ def render_release_tab(
         excel_upload_data: アップロードされたExcelデータ（任意）
     """
     st.header("📝 プレスリリース作成")
+
+    # 設定ヒント（展開可能）
+    with st.expander("💡 設定のヒント", expanded=False):
+        st.markdown("""
+        **社名エイリアス設定**
+        - 社名変更があった企業の連続記録を通算するには、`config/company_aliases.json` を編集してください
+        - 例: `"Z会の通信教育": "Z会"` で「Z会の通信教育」を「Z会」として扱います
+
+        **対応URL形式**
+        - 標準形式: `https://life.oricon.co.jp/rank-xxx/2024/`
+        - 年度連結形式: `https://life.oricon.co.jp/rank_fx/2014-2015/` (FX等)
+
+        **同点1位の扱い**
+        - 同じ得点の企業はすべて1位としてカウントされます
+        - 連続記録も同点1位を考慮して計算されます
+        """)
 
     if not RELEASE_FEATURES_AVAILABLE:
         st.error("プレスリリース機能のモジュールが見つかりません。validator.py と release_generator.py が必要です。")

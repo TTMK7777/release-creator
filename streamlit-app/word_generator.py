@@ -25,7 +25,7 @@ TEMPLATE_DIR = os.path.join(
 )
 WORD_TEMPLATE_PATH = os.path.join(
     TEMPLATE_DIR,
-    "【テンプレ】プレスリリース_v2.docx"
+    "【テンプレ】プレスリリース_v3.docx"
 )
 
 # 曜日マッピング

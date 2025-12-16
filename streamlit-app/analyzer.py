@@ -1,26 +1,71 @@
 # -*- coding: utf-8 -*-
 """
 TOPICS分析ロジック（ルールベース）
+v7.5 - 企業マスタ外部ファイル化
+- 社名エイリアスを外部JSONファイル（config/company_aliases.json）で管理
+- 非エンジニアでもエイリアス追加・編集が可能に
+
+v7.4 - 同点1位対応強化
+- 連続1位記録計算で同点1位を考慮（_calc_consecutive_wins, analyze_item_trends, analyze_dept_trends）
+- Z会エイリアス追加（Z会の通信教育、Ｚ会の通信教育、Ｚ会 → Z会）
+
 v7.3.1 - 社名正規化の網羅性向上、全角/半角・空白正規化追加
 """
 
+import os
+import json
 import re
+import logging
 from typing import Dict, List, Any, Optional
 from collections import defaultdict
 
+logger = logging.getLogger(__name__)
 
 # ========================================
-# 社名エイリアス定義（v7.3追加）
-# 社名変更があった場合、旧社名→正規社名のマッピングを定義
-# 連続記録や受賞回数を通算するために使用
+# 社名エイリアス定義
+# 外部ファイル（config/company_aliases.json）から読み込み
+# ファイルがない場合はデフォルト値を使用
 # ========================================
-COMPANY_ALIASES = {
-    # 転職エージェント系
+
+# デフォルトエイリアス（外部ファイルがない場合のフォールバック）
+DEFAULT_COMPANY_ALIASES = {
     "JACリクルートメント": "JAC Recruitment",
     "ＪＡＣリクルートメント": "JAC Recruitment",
-    # 必要に応じて追加
-    # "旧社名": "正規社名（最新名）",
+    "Z会の通信教育": "Z会",
+    "Ｚ会の通信教育": "Z会",
+    "Ｚ会": "Z会",
 }
+
+
+def _load_company_aliases() -> Dict[str, str]:
+    """外部ファイルから社名エイリアスを読み込む
+
+    Returns:
+        社名エイリアス辞書（旧社名→正規社名）
+    """
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        "config",
+        "company_aliases.json"
+    )
+
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                aliases = data.get("aliases", {})
+                logger.info(f"社名エイリアスを読み込みました: {len(aliases)}件")
+                return aliases
+        except Exception as e:
+            logger.warning(f"社名エイリアスファイル読み込みエラー: {e}")
+            return DEFAULT_COMPANY_ALIASES
+    else:
+        logger.info("社名エイリアスファイルが見つかりません、デフォルト値を使用")
+        return DEFAULT_COMPANY_ALIASES
+
+
+# モジュール読み込み時にエイリアスをロード
+COMPANY_ALIASES = _load_company_aliases()
 
 
 def normalize_company_name(company: str) -> str:
@@ -137,51 +182,70 @@ class HistoricalAnalyzer:
 
         修正: v7.3
         - 社名エイリアス対応: 社名変更があっても連続記録を通算
+
+        修正: v7.4
+        - 同点1位対応: 同じ得点の企業はすべて1位としてカウントし、それぞれの連続記録を計算
+        - 例: A社とB社が同点1位の年も、両社の連続記録として計算
         """
         if not self.overall:
             return []
 
         years = sorted(self.overall.keys())
         company_streaks = defaultdict(list)  # 企業ごとの連続1位期間
-
-        current_company = None
-        streak_start = None
-        streak_years = []  # 実際に1位を獲得した年度リスト
-        consecutive_count = 0  # 連続発表回数
+        company_current = {}  # 企業ごとの現在の連続状態
 
         for year in years:
             if not self.overall[year]:
                 continue
 
-            # v7.3: 社名を正規化して比較
-            top_company_raw = self.overall[year][0].get("company", "")
-            top_company = normalize_company_name(top_company_raw)
+            # v7.4: 同点1位の企業をすべて取得
+            top_score = self.overall[year][0].get("score")
+            top_companies = set()
 
-            if top_company == current_company:
-                # 同じ企業が1位 → 連続継続（年度の連続性は問わない）
-                consecutive_count += 1
-                streak_years.append(year)
-            else:
-                # 企業が変わった → 連続が途切れた
-                if current_company and streak_start and consecutive_count >= 1:
-                    company_streaks[current_company].append({
-                        "start": streak_start,
-                        "end": streak_years[-1] if streak_years else streak_start,
-                        "count": consecutive_count,  # 発表回数
-                        "years_list": streak_years.copy()
+            for entry in self.overall[year]:
+                company_raw = entry.get("company", "")
+                score = entry.get("score")
+
+                # 同点1位の企業をすべて収集（得点が異なれば終了）
+                if score is not None and score == top_score:
+                    company = normalize_company_name(company_raw)
+                    if company:
+                        top_companies.add(company)
+                elif score is not None and score != top_score:
+                    break
+
+            # 各1位企業について連続記録を更新
+            for company in top_companies:
+                if company in company_current:
+                    # 連続継続
+                    company_current[company]["count"] += 1
+                    company_current[company]["years_list"].append(year)
+                else:
+                    # 新しい連続記録開始
+                    company_current[company] = {
+                        "start": year,
+                        "count": 1,
+                        "years_list": [year]
+                    }
+
+            # 1位から外れた企業の連続記録を確定
+            for company in list(company_current.keys()):
+                if company not in top_companies:
+                    streak = company_current.pop(company)
+                    company_streaks[company].append({
+                        "start": streak["start"],
+                        "end": streak["years_list"][-1] if streak["years_list"] else streak["start"],
+                        "count": streak["count"],
+                        "years_list": streak["years_list"]
                     })
-                current_company = top_company
-                streak_start = year
-                streak_years = [year]
-                consecutive_count = 1
 
-        # 最後の連続記録
-        if current_company and streak_start and consecutive_count >= 1:
-            company_streaks[current_company].append({
-                "start": streak_start,
-                "end": streak_years[-1] if streak_years else streak_start,
-                "count": consecutive_count,
-                "years_list": streak_years.copy()
+        # 最後の連続記録を確定
+        for company, streak in company_current.items():
+            company_streaks[company].append({
+                "start": streak["start"],
+                "end": streak["years_list"][-1] if streak["years_list"] else streak["start"],
+                "count": streak["count"],
+                "years_list": streak["years_list"]
             })
 
         # 結果を整形
@@ -473,6 +537,9 @@ class HistoricalAnalyzer:
         - 連続記録は「発表回数」を基準にカウント（年度差ではなく）
         - 発表がない年はスキップして連続とカウント
         - 例: 2016〜2025(2018は発表なし)の場合、連続年数は9年
+
+        修正: v7.4
+        - 同点1位対応: 同じ得点の企業はすべて1位としてカウント
         """
         if not self.items:
             return {}
@@ -490,48 +557,69 @@ class HistoricalAnalyzer:
                 "consecutive_wins": [],  # 連続1位記録
             }
 
-            # 年度別1位
-            current_company = None
-            streak_start = None
-            streak_years = []  # 実際に1位を獲得した年度リスト
-            consecutive_count = 0  # 発表回数ベースの連続カウント
+            # 連続1位計算用（同点1位対応）
+            company_current = {}  # 企業ごとの現在の連続状態
 
             for year in years:
-                if year_data.get(year):
-                    top = year_data[year][0]
-                    item_trends[item_name]["top_by_year"][year] = {
-                        "company": top.get("company"),
-                        "score": top.get("score")
-                    }
+                if not year_data.get(year):
+                    continue
 
-                    # 連続1位計算（発表回数ベース）
-                    top_company = top.get("company")
-                    if top_company == current_company:
-                        consecutive_count += 1
-                        streak_years.append(year)
+                data = year_data[year]
+                top = data[0]
+                top_score = top.get("score")
+
+                # 年度別1位（表示用、同点含む）
+                item_trends[item_name]["top_by_year"][year] = {
+                    "company": top.get("company"),
+                    "score": top_score
+                }
+
+                # v7.4: 同点1位の企業をすべて取得
+                top_companies = set()
+                for entry in data:
+                    company_raw = entry.get("company", "")
+                    score = entry.get("score")
+                    if score is not None and score == top_score:
+                        company = normalize_company_name(company_raw)
+                        if company:
+                            top_companies.add(company)
+                    elif score is not None and score != top_score:
+                        break
+
+                # 各1位企業について連続記録を更新
+                for company in top_companies:
+                    if company in company_current:
+                        company_current[company]["count"] += 1
+                        company_current[company]["years_list"].append(year)
                     else:
-                        if current_company and streak_start and consecutive_count >= 1:
-                            item_trends[item_name]["consecutive_wins"].append({
-                                "company": current_company,
-                                "start": streak_start,
-                                "end": streak_years[-1] if streak_years else streak_start,
-                                "years": consecutive_count,  # 発表回数を連続年数として表示
-                                "years_list": streak_years.copy()
-                            })
-                        current_company = top_company
-                        streak_start = year
-                        streak_years = [year]
-                        consecutive_count = 1
+                        company_current[company] = {
+                            "start": year,
+                            "count": 1,
+                            "years_list": [year]
+                        }
 
-            # 最後の連続
-            if current_company and streak_start and consecutive_count >= 1:
+                # 1位から外れた企業の連続記録を確定
+                for company in list(company_current.keys()):
+                    if company not in top_companies:
+                        streak = company_current.pop(company)
+                        item_trends[item_name]["consecutive_wins"].append({
+                            "company": company,
+                            "start": streak["start"],
+                            "end": streak["years_list"][-1] if streak["years_list"] else streak["start"],
+                            "years": streak["count"],
+                            "years_list": streak["years_list"]
+                        })
+
+            # 最後の連続記録を確定
+            max_year = max(years) if years else None
+            for company, streak in company_current.items():
                 item_trends[item_name]["consecutive_wins"].append({
-                    "company": current_company,
-                    "start": streak_start,
-                    "end": streak_years[-1] if streak_years else streak_start,
-                    "years": consecutive_count,  # 発表回数を連続年数として表示
-                    "years_list": streak_years.copy(),
-                    "is_current": True
+                    "company": company,
+                    "start": streak["start"],
+                    "end": streak["years_list"][-1] if streak["years_list"] else streak["start"],
+                    "years": streak["count"],
+                    "years_list": streak["years_list"],
+                    "is_current": streak["years_list"][-1] == max_year if streak["years_list"] and max_year else False
                 })
 
         return item_trends
@@ -543,6 +631,9 @@ class HistoricalAnalyzer:
         - 連続記録は「発表回数」を基準にカウント（年度差ではなく）
         - 発表がない年はスキップして連続とカウント
         - 例: 2016〜2025(2018は発表なし)の場合、連続年数は9年
+
+        修正: v7.4
+        - 同点1位対応: 同じ得点の企業はすべて1位としてカウント
         """
         if not self.depts:
             return {}
@@ -560,45 +651,69 @@ class HistoricalAnalyzer:
                 "consecutive_wins": [],
             }
 
-            current_company = None
-            streak_start = None
-            streak_years = []  # 実際に1位を獲得した年度リスト
-            consecutive_count = 0  # 発表回数ベースの連続カウント
+            # 連続1位計算用（同点1位対応）
+            company_current = {}  # 企業ごとの現在の連続状態
 
             for year in years:
-                if year_data.get(year):
-                    top = year_data[year][0]
-                    dept_trends[dept_name]["top_by_year"][year] = {
-                        "company": top.get("company"),
-                        "score": top.get("score")
-                    }
+                if not year_data.get(year):
+                    continue
 
-                    top_company = top.get("company")
-                    if top_company == current_company:
-                        consecutive_count += 1
-                        streak_years.append(year)
+                data = year_data[year]
+                top = data[0]
+                top_score = top.get("score")
+
+                # 年度別1位（表示用）
+                dept_trends[dept_name]["top_by_year"][year] = {
+                    "company": top.get("company"),
+                    "score": top_score
+                }
+
+                # v7.4: 同点1位の企業をすべて取得
+                top_companies = set()
+                for entry in data:
+                    company_raw = entry.get("company", "")
+                    score = entry.get("score")
+                    if score is not None and score == top_score:
+                        company = normalize_company_name(company_raw)
+                        if company:
+                            top_companies.add(company)
+                    elif score is not None and score != top_score:
+                        break
+
+                # 各1位企業について連続記録を更新
+                for company in top_companies:
+                    if company in company_current:
+                        company_current[company]["count"] += 1
+                        company_current[company]["years_list"].append(year)
                     else:
-                        if current_company and streak_start and consecutive_count >= 1:
-                            dept_trends[dept_name]["consecutive_wins"].append({
-                                "company": current_company,
-                                "start": streak_start,
-                                "end": streak_years[-1] if streak_years else streak_start,
-                                "years": consecutive_count,  # 発表回数を連続年数として表示
-                                "years_list": streak_years.copy()
-                            })
-                        current_company = top_company
-                        streak_start = year
-                        streak_years = [year]
-                        consecutive_count = 1
+                        company_current[company] = {
+                            "start": year,
+                            "count": 1,
+                            "years_list": [year]
+                        }
 
-            if current_company and streak_start and consecutive_count >= 1:
+                # 1位から外れた企業の連続記録を確定
+                for company in list(company_current.keys()):
+                    if company not in top_companies:
+                        streak = company_current.pop(company)
+                        dept_trends[dept_name]["consecutive_wins"].append({
+                            "company": company,
+                            "start": streak["start"],
+                            "end": streak["years_list"][-1] if streak["years_list"] else streak["start"],
+                            "years": streak["count"],
+                            "years_list": streak["years_list"]
+                        })
+
+            # 最後の連続記録を確定
+            max_year = max(years) if years else None
+            for company, streak in company_current.items():
                 dept_trends[dept_name]["consecutive_wins"].append({
-                    "company": current_company,
-                    "start": streak_start,
-                    "end": streak_years[-1] if streak_years else streak_start,
-                    "years": consecutive_count,  # 発表回数を連続年数として表示
-                    "years_list": streak_years.copy(),
-                    "is_current": True
+                    "company": company,
+                    "start": streak["start"],
+                    "end": streak["years_list"][-1] if streak["years_list"] else streak["start"],
+                    "years": streak["count"],
+                    "years_list": streak["years_list"],
+                    "is_current": streak["years_list"][-1] == max_year if streak["years_list"] and max_year else False
                 })
 
         return dept_trends
@@ -689,7 +804,7 @@ class TopicsAnalyzer:
         }
 
     def _analyze_consecutive_wins(self) -> Dict:
-        """連続1位を分析"""
+        """連続1位を分析（v7.5: 同点1位対応）"""
         if not self.overall:
             return None
 
@@ -697,41 +812,98 @@ class TopicsAnalyzer:
         if not years:
             return None
 
-        # 最新の1位
+        # 最新の1位（同点1位の企業をすべて取得）
         latest_year = years[0]
         if not self.overall[latest_year]:
             return None
 
-        top_company = self.overall[latest_year][0].get("company", "")
-
-        # 連続年数をカウント
-        consecutive = 0
-        for year in years:
-            if self.overall[year] and self.overall[year][0].get("company") == top_company:
-                consecutive += 1
-            else:
+        top_score = self.overall[latest_year][0].get("score")
+        top_companies = []
+        for entry in self.overall[latest_year]:
+            score = entry.get("score")
+            if score is not None and score == top_score:
+                company = normalize_company_name(entry.get("company", ""))
+                if company:
+                    top_companies.append(company)
+            elif score is not None and score != top_score:
                 break
 
-        if consecutive >= 2:
-            return {
-                "category": "総合ランキング",  # v5.9: カテゴリ追加
-                "importance": "最重要",
-                "title": f"{top_company}が{consecutive}年連続で総合1位を達成",
-                "evidence": f"{years[-consecutive+1] if consecutive > 1 else latest_year}年〜{latest_year}年の総合ランキング1位",
-                "impact": 5
-            }
-        elif consecutive == 1:
+        if not top_companies:
+            return None
+
+        # 各1位企業の連続年数をカウント
+        best_consecutive = 0
+        best_company = top_companies[0]
+
+        for company in top_companies:
+            consecutive = 0
+            for year in years:
+                if not self.overall[year]:
+                    continue
+                # その年の1位企業（同点含む）を取得
+                year_top_score = self.overall[year][0].get("score")
+                year_top_companies = set()
+                for entry in self.overall[year]:
+                    score = entry.get("score")
+                    if score is not None and score == year_top_score:
+                        c = normalize_company_name(entry.get("company", ""))
+                        if c:
+                            year_top_companies.add(c)
+                    elif score is not None and score != year_top_score:
+                        break
+
+                if company in year_top_companies:
+                    consecutive += 1
+                else:
+                    break
+
+            if consecutive > best_consecutive:
+                best_consecutive = consecutive
+                best_company = company
+
+        if best_consecutive >= 2:
+            # 同点1位の場合のタイトル調整
+            if len(top_companies) >= 2:
+                companies_str = "と".join(top_companies[:2])
+                if len(top_companies) > 2:
+                    companies_str += f"ら{len(top_companies)}社"
+                return {
+                    "category": "総合ランキング",
+                    "importance": "最重要",
+                    "title": f"{companies_str}が同率1位、{best_company}は{best_consecutive}年連続",
+                    "evidence": f"{years[best_consecutive-1]}年〜{latest_year}年の総合ランキング1位",
+                    "impact": 5
+                }
+            else:
+                return {
+                    "category": "総合ランキング",
+                    "importance": "最重要",
+                    "title": f"{best_company}が{best_consecutive}年連続で総合1位を達成",
+                    "evidence": f"{years[best_consecutive-1]}年〜{latest_year}年の総合ランキング1位",
+                    "impact": 5
+                }
+        elif best_consecutive == 1:
             # 前年と比較
-            if len(years) >= 2:
-                prev_top = self.overall[years[1]][0].get("company", "") if self.overall[years[1]] else ""
-                if prev_top != top_company:
-                    return {
-                        "category": "総合ランキング",  # v5.9: カテゴリ追加
-                        "importance": "重要",
-                        "title": f"{top_company}が{prev_top}を抜いて総合1位を獲得",
-                        "evidence": f"{years[1]}年1位の{prev_top}から{latest_year}年は{top_company}が1位に",
-                        "impact": 5
-                    }
+            if len(years) >= 2 and self.overall[years[1]]:
+                prev_top = normalize_company_name(self.overall[years[1]][0].get("company", ""))
+                if prev_top not in top_companies:
+                    if len(top_companies) >= 2:
+                        companies_str = "と".join(top_companies[:2])
+                        return {
+                            "category": "総合ランキング",
+                            "importance": "重要",
+                            "title": f"{companies_str}が同率1位、{prev_top}から首位交代",
+                            "evidence": f"{years[1]}年1位の{prev_top}から{latest_year}年は{companies_str}が1位に",
+                            "impact": 5
+                        }
+                    else:
+                        return {
+                            "category": "総合ランキング",
+                            "importance": "重要",
+                            "title": f"{best_company}が{prev_top}を抜いて総合1位を獲得",
+                            "evidence": f"{years[1]}年1位の{prev_top}から{latest_year}年は{best_company}が1位に",
+                            "impact": 5
+                        }
 
         return None
 
@@ -964,7 +1136,7 @@ class TopicsAnalyzer:
     # ========================================
 
     def _analyze_item_consecutive_wins(self) -> List[Dict]:
-        """評価項目別の連続1位記録を分析"""
+        """評価項目別の連続1位記録を分析（v7.5: 同点1位対応）"""
         topics = []
 
         if not self.items:
@@ -978,32 +1150,54 @@ class TopicsAnalyzer:
             if len(years) < 2:
                 continue
 
-            # 連続1位を計算
-            current_company = None
-            streak_start = None
             latest_year = years[-1]
 
-            for year in years:
-                if not year_data.get(year):
-                    continue
-                top_company = year_data[year][0].get("company")
+            # 最新年の1位企業（同点含む）を取得
+            if not year_data.get(latest_year):
+                continue
+            latest_data = year_data[latest_year]
+            top_score = latest_data[0].get("score")
+            latest_top_companies = set()
+            for entry in latest_data:
+                score = entry.get("score")
+                if score is not None and score == top_score:
+                    company = normalize_company_name(entry.get("company", ""))
+                    if company:
+                        latest_top_companies.add(company)
+                elif score is not None and score != top_score:
+                    break
 
-                if top_company == current_company:
-                    pass  # 連続中
-                else:
-                    # 新しい企業が1位
-                    current_company = top_company
-                    streak_start = year
+            # 各1位企業の連続年数をカウント
+            for company in latest_top_companies:
+                consecutive_count = 0
+                streak_start = None
+                for year in reversed(years):
+                    if not year_data.get(year):
+                        continue
+                    data = year_data[year]
+                    year_top_score = data[0].get("score")
+                    year_top_companies = set()
+                    for entry in data:
+                        score = entry.get("score")
+                        if score is not None and score == year_top_score:
+                            c = normalize_company_name(entry.get("company", ""))
+                            if c:
+                                year_top_companies.add(c)
+                        elif score is not None and score != year_top_score:
+                            break
 
-            # 最新年まで連続している場合のみ対象
-            if current_company and streak_start and streak_start < latest_year:
-                consecutive_years = latest_year - streak_start + 1
-                if consecutive_years >= 3:  # 3年以上連続
+                    if company in year_top_companies:
+                        consecutive_count += 1
+                        streak_start = year
+                    else:
+                        break
+
+                if consecutive_count >= 3:  # 3年以上連続
                     topics.append({
                         "importance": "注目",
-                        "title": f"『{item_name}』で{current_company}が{consecutive_years}年連続1位",
+                        "title": f"『{item_name}』で{company}が{consecutive_count}年連続1位",
                         "evidence": f"{streak_start}年〜{latest_year}年の評価項目別ランキング",
-                        "impact": min(4, 2 + consecutive_years // 2),  # 3年で3, 5年で4
+                        "impact": min(4, 2 + consecutive_count // 2),
                         "category": "評価項目別"
                     })
 
@@ -1012,7 +1206,7 @@ class TopicsAnalyzer:
         return topics
 
     def _analyze_dept_consecutive_wins(self) -> List[Dict]:
-        """部門別の連続1位記録を分析"""
+        """部門別の連続1位記録を分析（v7.5: 同点1位対応）"""
         topics = []
 
         if not self.depts:
@@ -1026,31 +1220,54 @@ class TopicsAnalyzer:
             if len(years) < 2:
                 continue
 
-            # 連続1位を計算
-            current_company = None
-            streak_start = None
             latest_year = years[-1]
 
-            for year in years:
-                if not year_data.get(year):
-                    continue
-                top_company = year_data[year][0].get("company")
+            # 最新年の1位企業（同点含む）を取得
+            if not year_data.get(latest_year):
+                continue
+            latest_data = year_data[latest_year]
+            top_score = latest_data[0].get("score")
+            latest_top_companies = set()
+            for entry in latest_data:
+                score = entry.get("score")
+                if score is not None and score == top_score:
+                    company = normalize_company_name(entry.get("company", ""))
+                    if company:
+                        latest_top_companies.add(company)
+                elif score is not None and score != top_score:
+                    break
 
-                if top_company == current_company:
-                    pass  # 連続中
-                else:
-                    current_company = top_company
-                    streak_start = year
+            # 各1位企業の連続年数をカウント
+            for company in latest_top_companies:
+                consecutive_count = 0
+                streak_start = None
+                for year in reversed(years):
+                    if not year_data.get(year):
+                        continue
+                    data = year_data[year]
+                    year_top_score = data[0].get("score")
+                    year_top_companies = set()
+                    for entry in data:
+                        score = entry.get("score")
+                        if score is not None and score == year_top_score:
+                            c = normalize_company_name(entry.get("company", ""))
+                            if c:
+                                year_top_companies.add(c)
+                        elif score is not None and score != year_top_score:
+                            break
 
-            # 最新年まで連続している場合のみ対象
-            if current_company and streak_start and streak_start < latest_year:
-                consecutive_years = latest_year - streak_start + 1
-                if consecutive_years >= 3:  # 3年以上連続
+                    if company in year_top_companies:
+                        consecutive_count += 1
+                        streak_start = year
+                    else:
+                        break
+
+                if consecutive_count >= 3:  # 3年以上連続
                     topics.append({
                         "importance": "注目",
-                        "title": f"『{dept_name}』部門で{current_company}が{consecutive_years}年連続1位",
+                        "title": f"『{dept_name}』部門で{company}が{consecutive_count}年連続1位",
                         "evidence": f"{streak_start}年〜{latest_year}年の部門別ランキング",
-                        "impact": min(4, 2 + consecutive_years // 2),
+                        "impact": min(4, 2 + consecutive_count // 2),
                         "category": "部門別"
                     })
 

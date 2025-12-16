@@ -517,12 +517,22 @@ class OriconScraper:
                         self.used_urls["overall"].append({"year": year, "url": alt_url, "survey_type": self.survey_type, "status": "success"})
                         continue
 
-                # 代替パターン2: 特殊年度パターン（例: 2014-2015）
+                # 代替パターン2: 特殊年度パターン（例: 2014-2015 → 2015年度として扱う）
+                # FXなど一部のランキングでは「2014-2015」形式で公開されている
                 special_url = f"{self.BASE_URL}/{self.url_prefix}/{year}-{year+1}{subpath_part}/"
                 data = self._fetch_ranking_page(special_url, self.survey_type)
                 if data:
-                    results[year] = data
-                    self.used_urls["overall"].append({"year": f"{year}-{year+1}", "url": special_url, "survey_type": self.survey_type, "status": "success"})
+                    # 2014-2015 形式は後ろの年度（2015）として扱う
+                    # ただし results には year+1 キーで格納
+                    results[year + 1] = data
+                    self.used_urls["overall"].append({
+                        "year": year + 1,  # 実際の年度（後ろの年度）
+                        "year_format": f"{year}-{year+1}",  # URL上の表記
+                        "url": special_url,
+                        "survey_type": self.survey_type,
+                        "status": "success"
+                    })
+                    logger.info(f"{year}-{year+1}形式を{year+1}年度として取得: {special_url}")
                 else:
                     self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "not_found"})
 
