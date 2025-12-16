@@ -373,14 +373,54 @@ def render_release_tab(
     # ========================================
     with sub_tab4:
         st.subheader("📄 Word出力")
-        st.caption("Wordテンプレートを使用してプレスリリース文書を生成します")
+        st.caption("Wordテンプレートを使用してプレスリリース文書を生成します（v2.0 {{KEY}}形式対応）")
 
         if not WORD_AVAILABLE:
             st.warning("Word出力モジュールが見つかりません。word_generator.py が必要です。")
             st.info("python-docx をインストールしてください: `pip install python-docx`")
         else:
-            # オプション設定
-            col1, col2 = st.columns(2)
+            # === 文章の自動生成からの連動 ===
+            # text_content がある場合、Word用のデフォルト値を設定
+            if 'text_content' in st.session_state and 'word_data_synced' not in st.session_state:
+                content = st.session_state['text_content']
+                # 初回のみ同期
+                st.session_state['word_headline_val'] = content.highlights[0] if content.highlights else ""
+                st.session_state['word_subheadline_val'] = content.highlights[1] if len(content.highlights) > 1 else ""
+                # paragraphsをTOPICSとして使用（最初の3つ）
+                paragraphs = content.paragraphs if content.paragraphs else []
+                st.session_state['topic1_title_val'] = content.highlights[0] if content.highlights else ""
+                st.session_state['topic1_detail_val'] = paragraphs[0] if len(paragraphs) > 0 else ""
+                st.session_state['topic2_title_val'] = content.highlights[1] if len(content.highlights) > 1 else ""
+                st.session_state['topic2_detail_val'] = paragraphs[1] if len(paragraphs) > 1 else ""
+                st.session_state['topic3_title_val'] = content.highlights[2] if len(content.highlights) > 2 else ""
+                st.session_state['topic3_detail_val'] = paragraphs[2] if len(paragraphs) > 2 else ""
+                st.session_state['word_data_synced'] = True
+                st.success("✅ 「文章の自動生成」の結果を反映しました")
+
+            # デフォルト値を取得（連動データがあれば使用）
+            default_headline = st.session_state.get('word_headline_val', '')
+            default_subheadline = st.session_state.get('word_subheadline_val', '')
+            default_topic1_title = st.session_state.get('topic1_title_val', '')
+            default_topic1_detail = st.session_state.get('topic1_detail_val', '')
+            default_topic2_title = st.session_state.get('topic2_title_val', '')
+            default_topic2_detail = st.session_state.get('topic2_detail_val', '')
+            default_topic3_title = st.session_state.get('topic3_title_val', '')
+            default_topic3_detail = st.session_state.get('topic3_detail_val', '')
+
+            # === 連動状態の表示 ===
+            if 'text_content' in st.session_state:
+                st.info("💡 「文章の自動生成」タブの結果が反映されています。編集して調整できます。")
+                if st.button("🔄 最新の生成結果を再反映", key="resync_word"):
+                    st.session_state.pop('word_data_synced', None)
+                    st.rerun()
+            else:
+                st.info("💡 先に「文章の自動生成」タブで文章を生成すると、ここに自動反映されます。")
+
+            st.divider()
+
+            # === 基本設定 ===
+            st.write("**📅 基本設定**")
+            col1, col2, col3 = st.columns(3)
             with col1:
                 word_target_year = st.selectbox(
                     "対象年度",
@@ -388,6 +428,7 @@ def render_release_tab(
                     index=0,
                     key="word_target_year"
                 )
+            with col2:
                 word_month = st.number_input(
                     "発表月",
                     min_value=1,
@@ -395,7 +436,7 @@ def render_release_tab(
                     value=datetime.now().month,
                     key="word_month"
                 )
-            with col2:
+            with col3:
                 word_day = st.number_input(
                     "発表日",
                     min_value=1,
@@ -403,35 +444,108 @@ def render_release_tab(
                     value=datetime.now().day,
                     key="word_day"
                 )
-                include_table = st.checkbox(
-                    "ランキング表を含める",
-                    value=True,
-                    key="include_table"
-                )
 
-            # TOPICS入力
-            st.write("**TOPICS（任意）**")
-            topics_text = st.text_area(
-                "TOPICS（1行1項目）",
-                height=100,
-                key="word_topics",
-                placeholder="例:\nSBI証券が3年連続1位\n楽天証券と同率1位を達成"
-            )
-            topics_list = [t.strip() for t in topics_text.split("\n") if t.strip()] if topics_text else []
+            st.divider()
 
-            # ハイライト入力
-            highlight_text = st.text_input(
-                "ハイライト（見出し）",
-                key="word_highlight",
+            # === 見出し ===
+            st.write("**🎯 見出し**")
+            headline_text = st.text_input(
+                "メイン見出し（HEADLINE）",
+                value=default_headline,
+                key="word_headline",
                 placeholder="例: SBI証券が3年連続1位、楽天証券と同率"
             )
-            highlights_list = [highlight_text] if highlight_text else []
+            subheadline_text = st.text_input(
+                "サブ見出し（SUBHEADLINE）",
+                value=default_subheadline,
+                key="word_subheadline",
+                placeholder="例: 業界初の同率1位、手数料競争が加速"
+            )
 
-            if st.button("📄 Word文書を生成", key="generate_word"):
+            st.divider()
+
+            # === TOPICS ===
+            st.write("**📋 TOPICS（最大3つ）**")
+
+            # TOPIC 1
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                topic1_title = st.text_input(
+                    "TOPIC 1 タイトル",
+                    value=default_topic1_title,
+                    key="topic1_title",
+                    placeholder="■の後に表示"
+                )
+            with col2:
+                topic1_detail = st.text_area(
+                    "TOPIC 1 詳細",
+                    value=default_topic1_detail,
+                    key="topic1_detail",
+                    height=68,
+                    placeholder="詳細説明文"
+                )
+
+            # TOPIC 2
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                topic2_title = st.text_input(
+                    "TOPIC 2 タイトル",
+                    value=default_topic2_title,
+                    key="topic2_title"
+                )
+            with col2:
+                topic2_detail = st.text_area(
+                    "TOPIC 2 詳細",
+                    value=default_topic2_detail,
+                    key="topic2_detail",
+                    height=68
+                )
+
+            # TOPIC 3
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                topic3_title = st.text_input(
+                    "TOPIC 3 タイトル",
+                    value=default_topic3_title,
+                    key="topic3_title"
+                )
+            with col2:
+                topic3_detail = st.text_area(
+                    "TOPIC 3 詳細",
+                    value=default_topic3_detail,
+                    key="topic3_detail",
+                    height=68
+                )
+
+            st.divider()
+
+            # === 調査概要 ===
+            with st.expander("📊 調査概要（任意）"):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    sample_size = st.number_input("サンプル数", min_value=0, value=0, key="sample_size")
+                with col2:
+                    company_count = st.number_input("調査企業数", min_value=0, value=0, key="company_count")
+                with col3:
+                    ranking_url = st.text_input("ランキングURL", key="ranking_url", placeholder="https://cs.oricon.co.jp/...")
+
+            # === オプション ===
+            include_table = st.checkbox(
+                "ランキング表を文末に追加",
+                value=False,
+                key="include_table"
+            )
+
+            # === 生成ボタン ===
+            if st.button("📄 Word文書を生成", key="generate_word", type="primary"):
                 with st.spinner("Word文書を生成中..."):
                     try:
                         # 総合ランキングデータを取得
                         year_data = overall_data.get(word_target_year, [])
+
+                        # TOPICSリスト構築
+                        topics_list = [t for t in [topic1_title, topic2_title, topic3_title] if t]
+                        topic_details_list = [d for d in [topic1_detail, topic2_detail, topic3_detail] if d]
 
                         # Word生成
                         word_buffer = generate_word_release(
@@ -439,9 +553,14 @@ def render_release_tab(
                             year=word_target_year,
                             overall_data=year_data,
                             topics=topics_list,
-                            highlights=highlights_list,
+                            topic_details=topic_details_list,
+                            highlights=[headline_text] if headline_text else [],
+                            subheadline=subheadline_text,
                             month=word_month,
                             day=word_day,
+                            sample_size=sample_size if sample_size > 0 else None,
+                            company_count=company_count if company_count > 0 else None,
+                            ranking_url=ranking_url,
                             include_table=include_table
                         )
 
