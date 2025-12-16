@@ -48,6 +48,13 @@ from datetime import datetime
 from scraper import OriconScraper
 from analyzer import TopicsAnalyzer, HistoricalAnalyzer
 
+# プレスリリース生成・正誤チェックモジュール (v8.0追加)
+try:
+    from release_tab import render_release_tab, RELEASE_FEATURES_AVAILABLE
+except ImportError as e:
+    logger.warning(f"プレスリリース機能モジュールが見つかりません: {e}")
+    RELEASE_FEATURES_AVAILABLE = False
+
 # アップロード機能の有効化フラグ（環境変数で制御）
 # Streamlit Cloud: Secrets で ENABLE_UPLOAD_FEATURE = "true" を設定
 # ローカル: 環境変数 ENABLE_UPLOAD_FEATURE=true を設定
@@ -1324,12 +1331,13 @@ if st.session_state.results_data:
         update_month = datetime.now().month
 
     # タブで結果表示（新しい構成）
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         f"⭐ 推奨TOPICS（{update_year}年{update_month}月時点）" if update_year else "⭐ 推奨TOPICS",
         "🏆 歴代記録・得点推移",
         "📊 総合ランキング",
         "📋 評価項目別",
         "🏷️ 部門別",
+        "📝 プレスリリース作成",
         "📎 参考資料"
     ])
 
@@ -2164,6 +2172,20 @@ if st.session_state.results_data:
             st.info("部門別データは存在しないか取得できませんでした")
 
     with tab6:
+        # プレスリリース作成タブ (v8.0追加)
+        if RELEASE_FEATURES_AVAILABLE:
+            render_release_tab(
+                ranking_name=ranking_name,
+                overall_data=overall_data,
+                item_data=item_data,
+                dept_data=dept_data,
+                historical_data=historical_data
+            )
+        else:
+            st.warning("プレスリリース機能のモジュールが見つかりません")
+            st.info("release_tab.py, validator.py, release_generator.py, company_master.py が必要です")
+
+    with tab7:
         st.header("📎 参考資料（使用したURL）")
 
         if used_urls:

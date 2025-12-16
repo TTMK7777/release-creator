@@ -1,6 +1,18 @@
+# Core
 streamlit>=1.28.0
 pandas>=2.0.0
 requests>=2.31.0
 beautifulsoup4>=4.12.0
+
+# Excel
 openpyxl>=3.1.0
 xlsxwriter>=3.1.0
+
+# Word出力 (v8.0追加)
+python-docx>=0.8.11
+
+# 画像出力 (v8.0追加)
+matplotlib>=3.7.0
+
+# 企業名マッチング (v8.0追加)
+rapidfuzz>=3.0.0
