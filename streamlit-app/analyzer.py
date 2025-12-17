@@ -474,7 +474,7 @@ class HistoricalAnalyzer:
             for company, info in first_year.items()
         ]
 
-        results.sort(key=lambda x: (x["first_year"], x["first_rank"] or 999))
+        results.sort(key=lambda x: (_year_sort_key(x["first_year"]), x["first_rank"] or 999))
         return results
 
     def analyze_score_trends(self) -> Dict[str, Any]:
