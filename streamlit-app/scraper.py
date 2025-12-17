@@ -529,8 +529,8 @@ class OriconScraper:
 
             data = self._fetch_ranking_page(url, self.survey_type)
             if data:
-                results[year] = data
-                self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "success"})
+                results[str(year)] = data  # 文字列で統一
+                self.used_urls["overall"].append({"year": str(year), "url": url, "survey_type": self.survey_type, "status": "success"})
             else:
                 # 代替パターン1: /year/subpath/ 形式を試す
                 # 例: rank_fitness/2024/24hours/
@@ -538,8 +538,8 @@ class OriconScraper:
                     alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/"
                     data = self._fetch_ranking_page(alt_url, self.survey_type)
                     if data:
-                        results[year] = data
-                        self.used_urls["overall"].append({"year": year, "url": alt_url, "survey_type": self.survey_type, "status": "success"})
+                        results[str(year)] = data  # 文字列で統一
+                        self.used_urls["overall"].append({"year": str(year), "url": alt_url, "survey_type": self.survey_type, "status": "success"})
                         continue
 
                 # 代替パターン2: 特殊年度パターン（例: 2014-2015 → 2015年度として扱う）
@@ -549,9 +549,9 @@ class OriconScraper:
                 if data:
                     # 2014-2015 形式は後ろの年度（2015）として扱う
                     # ただし results には year+1 キーで格納
-                    results[year + 1] = data
+                    results[str(year + 1)] = data  # 文字列で統一
                     self.used_urls["overall"].append({
-                        "year": year + 1,  # 実際の年度（後ろの年度）
+                        "year": str(year + 1),  # 実際の年度（後ろの年度）
                         "year_format": f"{year}-{year+1}",  # URL上の表記
                         "url": special_url,
                         "survey_type": self.survey_type,
@@ -559,7 +559,7 @@ class OriconScraper:
                     })
                     logger.info(f"{year}-{year+1}形式を{year+1}年度として取得: {special_url}")
                 else:
-                    self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "not_found"})
+                    self.used_urls["overall"].append({"year": str(year), "url": url, "survey_type": self.survey_type, "status": "not_found"})
 
             time.sleep(0.3)  # サーバー負荷軽減
 
@@ -645,7 +645,7 @@ class OriconScraper:
                 if data:
                     # ページタイトルから実際の名称を取得
                     page_title = self._extract_page_title(url)
-                    results[item_name][year] = data
+                    results[item_name][str(year)] = data  # 文字列で統一
                     self.used_urls["items"].append({
                         "name": f"{item_name}({year}年)",
                         "url": url,
@@ -653,7 +653,7 @@ class OriconScraper:
                         "status": "success",
                         "page_title": page_title,  # ページから取得した実際の名称
                         "item_slug": item_slug,
-                        "year": year
+                        "year": str(year)  # 文字列で統一
                     })
                 else:
                     # 代替パターン: /year/subpath/ 形式を試す
@@ -662,7 +662,7 @@ class OriconScraper:
                         data = self._fetch_ranking_page(alt_url, self.survey_type)
                         if data:
                             page_title = self._extract_page_title(alt_url)
-                            results[item_name][year] = data
+                            results[item_name][str(year)] = data  # 文字列で統一
                             self.used_urls["items"].append({
                                 "name": f"{item_name}({year}年)",
                                 "url": alt_url,
@@ -670,7 +670,7 @@ class OriconScraper:
                                 "status": "success",
                                 "page_title": page_title,
                                 "item_slug": item_slug,
-                                "year": year
+                                "year": str(year)  # 文字列で統一
                             })
                             continue
 
@@ -742,7 +742,7 @@ class OriconScraper:
                 if data:
                     # ページタイトルから実際の名称を取得（部門用の抽出関数を使用）
                     page_title = self._extract_page_title_for_dept(url)
-                    results[dept_name][year] = data
+                    results[dept_name][str(year)] = data  # 文字列で統一
                     self.used_urls["departments"].append({
                         "name": f"{dept_name}({year}年)",
                         "url": url,
@@ -750,7 +750,7 @@ class OriconScraper:
                         "status": "success",
                         "page_title": page_title,  # ページから取得した実際の名称
                         "dept_path": dept_path,
-                        "year": year
+                        "year": str(year)  # 文字列で統一
                     })
                 else:
                     # 代替パターン: /year/subpath/ 形式を試す
@@ -759,7 +759,7 @@ class OriconScraper:
                         data = self._fetch_ranking_page(alt_url, self.survey_type)
                         if data:
                             page_title = self._extract_page_title_for_dept(alt_url)
-                            results[dept_name][year] = data
+                            results[dept_name][str(year)] = data  # 文字列で統一
                             self.used_urls["departments"].append({
                                 "name": f"{dept_name}({year}年)",
                                 "url": alt_url,
@@ -767,7 +767,7 @@ class OriconScraper:
                                 "status": "success",
                                 "page_title": page_title,
                                 "dept_path": dept_path,
-                                "year": year
+                                "year": str(year)  # 文字列で統一
                             })
                             continue
 

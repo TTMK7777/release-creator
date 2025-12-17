@@ -422,7 +422,7 @@ class SiteStructureAnalyzer:
                 match = re.search(r"/(\d{4}(?:-\d{4})?)/?$", href)
                 if match:
                     year_str = match.group(1)
-                    # ハイフン付き年度（例: 2014-2015）は文字列で保持
+                    # 全ての年度を文字列で統一（int/str混在を防止）
                     if "-" in year_str:
                         # 開始年が妥当な範囲かチェック
                         start_year = int(year_str.split("-")[0])
@@ -431,7 +431,7 @@ class SiteStructureAnalyzer:
                     else:
                         year = int(year_str)
                         if 2000 <= year <= 2030:
-                            result.available_years.append(year)
+                            result.available_years.append(str(year))  # 文字列で統一
 
         # ソート（新しい順）- 文字列と数値が混在するためカスタムキー使用
         def sort_key(y):
