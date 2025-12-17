@@ -29,7 +29,7 @@ import pandas as pd
 from io import BytesIO
 from datetime import datetime
 from scraper import OriconScraper
-from analyzer import TopicsAnalyzer, HistoricalAnalyzer
+from analyzer import TopicsAnalyzer, HistoricalAnalyzer, _year_sort_key
 
 # プレスリリース生成・正誤チェックモジュール (v8.0追加)
 try:
@@ -72,7 +72,7 @@ def create_excel_export(ranking_name, overall_data, item_data, dept_data, histor
 
         # === シート2: 総合ランキング（全年度） ===
         all_overall = []
-        for year in sorted(overall_data.keys(), reverse=True):
+        for year in sorted(overall_data.keys(), key=_year_sort_key, reverse=True):
             for item in overall_data[year]:
                 all_overall.append({
                     "年度": year,
@@ -94,7 +94,7 @@ def create_excel_export(ranking_name, overall_data, item_data, dept_data, histor
             if not company:
                 continue
             row = {"企業名": company}
-            for year in sorted(overall_data.keys()):
+            for year in sorted(overall_data.keys(), key=_year_sort_key):
                 score = None
                 rank = None
                 for item in overall_data.get(year, []):
@@ -157,7 +157,7 @@ def create_excel_export(ranking_name, overall_data, item_data, dept_data, histor
         for item_name, year_data in item_data.items():
             if isinstance(year_data, dict):
                 item_rows = []
-                for year in sorted(year_data.keys(), reverse=True):
+                for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
                     for item in year_data.get(year, []):
                         item_rows.append({
                             "年度": year,
@@ -174,7 +174,7 @@ def create_excel_export(ranking_name, overall_data, item_data, dept_data, histor
         for dept_name, year_data in dept_data.items():
             if isinstance(year_data, dict):
                 dept_rows = []
-                for year in sorted(year_data.keys(), reverse=True):
+                for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
                     for item in year_data.get(year, []):
                         dept_rows.append({
                             "年度": year,
@@ -557,7 +557,7 @@ def detect_name_changes(used_urls, category="items"):
     name_changes = {}
     for slug, items in slug_map.items():
         # 年度でソート（古い順）
-        items_sorted = sorted(items, key=lambda x: x["year"])
+        items_sorted = sorted(items, key=lambda x: _year_sort_key(x["year"]))
 
         if len(items_sorted) < 2:
             continue
@@ -1118,7 +1118,7 @@ if run_button:
                 uploaded_years = set(uploaded_overall.keys())
                 log(f"[OK] ファイル解析完了: {uploaded_file.name}")
                 log(f"  - 総合ランキング: {len(uploaded_overall)}年分")
-                log(f"  - 含まれる年度: {sorted(uploaded_years)}")
+                log(f"  - 含まれる年度: {sorted(uploaded_years, key=_year_sort_key)}")
                 for year, data in uploaded_overall.items():
                     log(f"    {year}年: {len(data)}社")
                     if data:
@@ -1151,7 +1151,7 @@ if run_button:
 
             log(f"[INFO] 年度範囲設定: {year_range[0]}〜{year_range[1]}")
             log(f"[INFO] Webサイト最新年度: {current_year}")
-            log(f"[INFO] アップロード年度: {sorted(uploaded_years) if uploaded_years else 'なし'}")
+            log(f"[INFO] アップロード年度: {sorted(uploaded_years, key=_year_sort_key) if uploaded_years else 'なし'}")
 
             if scrape_years:
                 log(f"[INFO] スクレイピング対象年度: {scrape_years}")
@@ -1279,10 +1279,10 @@ if st.session_state.results_data:
         col_info1, col_info2 = st.columns(2)
         with col_info1:
             if uploaded_years:
-                st.info(f"📁 **アップロードデータ**: {sorted(uploaded_years)}年")
+                st.info(f"📁 **アップロードデータ**: {sorted(uploaded_years, key=_year_sort_key)}年")
         with col_info2:
             if scraped_years:
-                st.info(f"🌐 **Webスクレイピング**: {sorted(scraped_years)}年")
+                st.info(f"🌐 **Webスクレイピング**: {sorted(scraped_years, key=_year_sort_key)}年")
 
     # Excelダウンロードボタン（大きく目立つように）
     st.markdown("---")
@@ -1468,7 +1468,7 @@ if st.session_state.results_data:
                             "1位企業": top_by_year[year]["company"],
                             "得点": f"{top_by_year[year]['score']}点"
                         }
-                        for year in sorted(top_by_year.keys(), reverse=True)
+                        for year in sorted(top_by_year.keys(), key=_year_sort_key, reverse=True)
                     ])
                     st.dataframe(top_df, use_container_width=True, hide_index=True)
 
@@ -1484,7 +1484,7 @@ if st.session_state.results_data:
             if avg_scores:
                 avg_df = pd.DataFrame([
                     {"年度": year, "平均得点": score}
-                    for year, score in sorted(avg_scores.items())
+                    for year, score in sorted(avg_scores.items(), key=lambda x: _year_sort_key(x[0]))
                 ])
                 import altair as alt
                 # 動的Y軸範囲（折れ線グラフはzero=Falseが有効）
@@ -1551,7 +1551,7 @@ if st.session_state.results_data:
                 if item_avg_data:
                     item_avg_df = pd.DataFrame(item_avg_data)
                     # 最新3年度に絞る
-                    latest_years = sorted(item_avg_df["年度"].unique(), reverse=True)[:3]
+                    latest_years = sorted(item_avg_df["年度"].unique(), key=_year_sort_key, reverse=True)[:3]
                     item_avg_df = item_avg_df[item_avg_df["年度"].isin(latest_years)]
 
                     # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
@@ -1591,7 +1591,7 @@ if st.session_state.results_data:
 
                 if dept_avg_data:
                     dept_avg_df = pd.DataFrame(dept_avg_data)
-                    latest_years = sorted(dept_avg_df["年度"].unique(), reverse=True)[:3]
+                    latest_years = sorted(dept_avg_df["年度"].unique(), key=_year_sort_key, reverse=True)[:3]
                     dept_avg_df = dept_avg_df[dept_avg_df["年度"].isin(latest_years)]
 
                     # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
@@ -1701,7 +1701,7 @@ if st.session_state.results_data:
             top10_companies_for_chart = [d.get("company") for d in latest_top10_for_chart if d.get("company")]
 
             line_data_for_chart = []
-            for year in sorted(overall_data.keys()):
+            for year in sorted(overall_data.keys(), key=_year_sort_key):
                 for item in overall_data[year]:
                     company = item.get("company")
                     score = item.get("score")
@@ -1730,7 +1730,7 @@ if st.session_state.results_data:
 
         if overall_data:
             # 年度ごとに全データを表示（アップロードデータをマーク）
-            for year in sorted(overall_data.keys(), reverse=True):
+            for year in sorted(overall_data.keys(), key=_year_sort_key, reverse=True):
                 source_mark = "📁" if year in uploaded_years else "🌐"
                 # 該当年度のURLを取得
                 year_url = None
@@ -1792,7 +1792,7 @@ if st.session_state.results_data:
             comparison_data = []
             for company in sorted(companies):
                 row = {"企業名": company}
-                for year in sorted(overall_data.keys()):
+                for year in sorted(overall_data.keys(), key=_year_sort_key):
                     score = "-"
                     rank = "-"
                     for item in overall_data[year]:
@@ -1886,7 +1886,7 @@ if st.session_state.results_data:
                         # 2. 1位の推移（名称変更の直後に配置）
                         st.markdown("**📈 1位の推移**")
                         history = []
-                        for year in sorted(year_data.keys(), reverse=True):
+                        for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
                             if year_data[year]:
                                 top = year_data[year][0]
                                 history.append({
@@ -1905,7 +1905,7 @@ if st.session_state.results_data:
                         top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
 
                         line_data = []
-                        for yr in sorted(year_data.keys()):
+                        for yr in sorted(year_data.keys(), key=_year_sort_key):
                             for item in year_data[yr]:
                                 company = item.get("company")
                                 score = item.get("score")
@@ -1933,7 +1933,7 @@ if st.session_state.results_data:
                         st.divider()
 
                         # 4. 各年度データ（年数/URL）
-                        for year in sorted(year_data.keys(), reverse=True):
+                        for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
                             # 該当年度のURLを取得
                             year_url = None
                             if used_urls:
@@ -1958,7 +1958,7 @@ if st.session_state.results_data:
 
                     elif isinstance(year_data, dict):
                         # 1年分のみのデータ
-                        for year in sorted(year_data.keys(), reverse=True):
+                        for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
                             year_url = None
                             if used_urls:
                                 for url_item in used_urls.get("items", []):
@@ -2063,7 +2063,7 @@ if st.session_state.results_data:
                         # 2. 1位の推移（名称変更の直後に配置）
                         st.markdown("**📈 1位の推移**")
                         history = []
-                        for year in sorted(year_data.keys(), reverse=True):
+                        for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
                             if year_data[year]:
                                 top = year_data[year][0]
                                 history.append({
@@ -2082,7 +2082,7 @@ if st.session_state.results_data:
                         top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
 
                         line_data = []
-                        for yr in sorted(year_data.keys()):
+                        for yr in sorted(year_data.keys(), key=_year_sort_key):
                             for item in year_data[yr]:
                                 company = item.get("company")
                                 score = item.get("score")
@@ -2110,7 +2110,7 @@ if st.session_state.results_data:
                         st.divider()
 
                         # 4. 各年度データ（年数/URL）
-                        for year in sorted(year_data.keys(), reverse=True):
+                        for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
                             # 該当年度のURLを取得
                             year_url = None
                             if used_urls:
@@ -2135,7 +2135,7 @@ if st.session_state.results_data:
 
                     elif isinstance(year_data, dict):
                         # 1年分のみのデータ
-                        for year in sorted(year_data.keys(), reverse=True):
+                        for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
                             year_url = None
                             if used_urls:
                                 for url_item in used_urls.get("departments", []):
