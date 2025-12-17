@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 TOPICS分析ロジック（ルールベース）
+v7.8 - 年度リストソート修正
+- _calc_most_wins, calc_item_most_wins, calc_dept_most_wins内の
+  info["years"]ソートにも_year_sort_keyを適用
+- int/str混在年度リストでのTypeError完全対策
+
 v7.7 - 混合年度ソート対応
 - int/str混在年度（2014, "2014-2015"等）のソートに対応
 - _year_sort_key ヘルパー関数を追加
@@ -370,7 +375,7 @@ class HistoricalAnalyzer:
             {
                 "company": company,
                 "wins": info["count"],
-                "years": sorted(info["years"]),
+                "years": sorted(info["years"], key=_year_sort_key),
                 "total_years": len(self.overall)
             }
             for company, info in win_counts.items()
@@ -402,7 +407,7 @@ class HistoricalAnalyzer:
                 {
                     "company": company,
                     "wins": info["count"],
-                    "years": sorted(info["years"]),
+                    "years": sorted(info["years"], key=_year_sort_key),
                     "total_years": len(year_data)
                 }
                 for company, info in win_counts.items()
@@ -435,7 +440,7 @@ class HistoricalAnalyzer:
                 {
                     "company": company,
                     "wins": info["count"],
-                    "years": sorted(info["years"]),
+                    "years": sorted(info["years"], key=_year_sort_key),
                     "total_years": len(year_data)
                 }
                 for company, info in win_counts.items()
