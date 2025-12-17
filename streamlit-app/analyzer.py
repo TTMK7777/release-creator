@@ -291,7 +291,7 @@ class HistoricalAnalyzer:
                     })
 
         # 連続年数（発表回数）でソート
-        results.sort(key=lambda x: (-x["years"], -x["end_year"]))
+        results.sort(key=lambda x: (-x["years"], -_year_sort_key(x["end_year"])))
         return results
 
     def _count_wins_from_year_data(self, year_data: Dict) -> Dict[str, Dict]:
