@@ -285,8 +285,13 @@ class HistoricalAnalyzer:
         """
         win_counts = defaultdict(lambda: {"count": 0, "years": []})
 
+        # 辞書でない場合は空の結果を返す
+        if not isinstance(year_data, dict):
+            return win_counts
+
         for year, data in year_data.items():
-            if not data:
+            # データが空またはリストでない場合はスキップ
+            if not data or not isinstance(data, list) or len(data) == 0:
                 continue
 
             # 1位の得点を取得
