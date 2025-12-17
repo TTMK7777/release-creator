@@ -1155,7 +1155,7 @@ if run_button:
 
             if scrape_years:
                 log(f"[INFO] スクレイピング対象年度: {scrape_years}")
-                scrape_range = (min(scrape_years), max(scrape_years))
+                scrape_range = (min(scrape_years, key=_year_sort_key), max(scrape_years, key=_year_sort_key))
             else:
                 log(f"[INFO] アップロードデータで全年度カバー済み、スクレイピングをスキップ")
                 scrape_range = None
@@ -1670,7 +1670,7 @@ if st.session_state.results_data:
             all_years = set()
             for r in most_wins:
                 all_years.update(r.get("years", []))
-            latest_year = max(all_years) if all_years else None
+            latest_year = max(all_years, key=_year_sort_key) if all_years else None
 
             overall_wins_data = []
             for r in most_wins:
@@ -1818,7 +1818,7 @@ if st.session_state.results_data:
             for wins_list in item_most_wins.values():
                 for r in wins_list:
                     all_years.update(r.get("years", []))
-            latest_year = max(all_years) if all_years else None
+            latest_year = max(all_years, key=_year_sort_key) if all_years else None
 
             item_wins_data = []
             for item_name, wins_list in item_most_wins.items():
@@ -1995,7 +1995,7 @@ if st.session_state.results_data:
             for wins_list in dept_most_wins.values():
                 for r in wins_list:
                     all_years.update(r.get("years", []))
-            latest_year = max(all_years) if all_years else None
+            latest_year = max(all_years, key=_year_sort_key) if all_years else None
 
             dept_wins_data = []
             for dept_name, wins_list in dept_most_wins.items():
