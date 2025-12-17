@@ -369,6 +369,10 @@ class HistoricalAnalyzer:
         item_wins = {}
 
         for item_name, year_data in self.items.items():
+            # 辞書でない場合はスキップ
+            if not isinstance(year_data, dict):
+                continue
+
             win_counts = self._count_wins_from_year_data(year_data)
 
             results = [
@@ -398,6 +402,10 @@ class HistoricalAnalyzer:
         dept_wins = {}
 
         for dept_name, year_data in self.depts.items():
+            # 辞書でない場合はスキップ
+            if not isinstance(year_data, dict):
+                continue
+
             win_counts = self._count_wins_from_year_data(year_data)
 
             results = [

@@ -1245,9 +1245,13 @@ if run_button:
             }
 
         except Exception as e:
-            # セキュリティ対策: スタックトレースはログのみに出力（ユーザーには非表示）
-            logger.error(f"処理エラー: {str(e)}", exc_info=True)
+            import traceback
+            error_detail = traceback.format_exc()
+            logger.error(f"処理エラー: {str(e)}\n{error_detail}")
             st.error(f"エラーが発生しました。入力データやネットワーク接続を確認してください。")
+            # デバッグ用: エラー詳細を折りたたみ表示
+            with st.expander("🔍 エラー詳細（開発者向け）", expanded=False):
+                st.code(error_detail, language="python")
 
 # 結果表示（セッション状態から）
 if st.session_state.results_data:
