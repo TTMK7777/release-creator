@@ -1309,7 +1309,7 @@ if st.session_state.results_data:
     st.markdown("---")
 
     # 最新年度を取得
-    latest_year = max(overall_data.keys()) if overall_data else None
+    latest_year = max(overall_data.keys(), key=_year_sort_key) if overall_data else None
     # 更新日から年月を取得（調査概要の更新日ベース、取得できない場合は現在日時を使用）
     if update_date:
         update_year, update_month = update_date
@@ -1696,7 +1696,7 @@ if st.session_state.results_data:
         if overall_data and len(overall_data) > 1:
             st.subheader("📊 得点の経年推移（TOP10企業）")
             # 最新年度のTOP10企業を取得
-            latest_year_for_chart = max(overall_data.keys())
+            latest_year_for_chart = max(overall_data.keys(), key=_year_sort_key)
             latest_top10_for_chart = sorted(overall_data[latest_year_for_chart], key=lambda x: x.get("score") or 0, reverse=True)[:10]
             top10_companies_for_chart = [d.get("company") for d in latest_top10_for_chart if d.get("company")]
 
@@ -1741,7 +1741,7 @@ if st.session_state.results_data:
                             break
                 # expanderのタイトル（URLはクリック可能にするため中に表示）
                 expander_title = f"{source_mark} {year}年"
-                with st.expander(expander_title, expanded=(year == max(overall_data.keys()))):
+                with st.expander(expander_title, expanded=(year == max(overall_data.keys(), key=_year_sort_key))):
                     # URLを表の上にクリック可能なリンクとして表示
                     if year_url:
                         st.markdown(f"🔗 **参照URL**: [{year_url}]({year_url})")
@@ -1900,7 +1900,7 @@ if st.session_state.results_data:
                         # 3. 経年変化の折れ線グラフ（TOP10企業の得点推移）
                         st.markdown("**📊 得点の経年推移（TOP10企業）**")
                         # 最新年度のTOP10企業を取得
-                        latest_yr = max(year_data.keys())
+                        latest_yr = max(year_data.keys(), key=_year_sort_key)
                         latest_top10 = sorted(year_data[latest_yr], key=lambda x: x.get("score") or 0, reverse=True)[:10]
                         top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
 
@@ -2077,7 +2077,7 @@ if st.session_state.results_data:
                         # 3. 経年変化の折れ線グラフ（TOP10企業の得点推移）
                         st.markdown("**📊 得点の経年推移（TOP10企業）**")
                         # 最新年度のTOP10企業を取得
-                        latest_yr = max(year_data.keys())
+                        latest_yr = max(year_data.keys(), key=_year_sort_key)
                         latest_top10 = sorted(year_data[latest_yr], key=lambda x: x.get("score") or 0, reverse=True)[:10]
                         top10_companies = [d.get("company") for d in latest_top10 if d.get("company")]
 
