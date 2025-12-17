@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 """
 SiteStructureAnalyzer - オリコンサイト構造解析モジュール
-v1.1 - 2025-12-12
+v1.2 - 2025-12-17
 
 sort-navのTABLE構造を1回の解析で動的に判定し、
 総合/評価項目別/部門別/過去年度の情報を一括取得する。
+
+v1.2 - 型安全性・リソース管理改善
+- 過去年度検証でUnion[int, str]を正しく処理
+- close()メソッド追加でセッションリソースを解放
+- コンテキストマネージャー対応
 
 v1.1 - エラーハンドリング強化
 - validate()メソッド追加: 構造の妥当性チェック
@@ -18,7 +23,7 @@ from requests.exceptions import RequestException
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 import re
-from typing import Dict, List, Optional, NamedTuple
+from typing import Dict, List, Optional, NamedTuple, Union
 from dataclasses import dataclass, field
 import logging
 
@@ -53,7 +58,7 @@ class SiteStructure:
 
     # 過去年度
     has_past_years: bool = False
-    available_years: List[int] = field(default_factory=list)
+    available_years: List[Union[int, str]] = field(default_factory=list)  # 2014-2015形式にも対応
     current_year: Optional[int] = None
 
     # エラー情報
@@ -125,10 +130,19 @@ class StructureValidator:
                     f"年度が範囲外です（{structure.current_year}年）"
                 )
 
-        # 過去年度の検証
+        # 過去年度の検証（Union[int, str]対応）
         for year in structure.available_years:
-            if not (cls.MIN_YEAR <= year <= cls.MAX_YEAR):
-                structure.warnings.append(f"過去年度が範囲外です（{year}年）")
+            # 文字列年度（例: "2014-2015"）の場合は開始年を基準に検証
+            if isinstance(year, str):
+                try:
+                    start_year = int(year.split("-")[0])
+                    if not (cls.MIN_YEAR <= start_year <= cls.MAX_YEAR):
+                        structure.warnings.append(f"過去年度が範囲外です（{year}）")
+                except (ValueError, IndexError):
+                    structure.warnings.append(f"不正な年度形式です（{year}）")
+            else:
+                if not (cls.MIN_YEAR <= year <= cls.MAX_YEAR):
+                    structure.warnings.append(f"過去年度が範囲外です（{year}年）")
 
         # 警告があれば注意ステータス
         if structure.warnings:
@@ -251,6 +265,21 @@ class SiteStructureAnalyzer:
         """
         self.timeout = timeout
         self.session = self._create_session(max_retries)
+
+    def close(self):
+        """セッションを閉じてリソースを解放（v1.2追加）"""
+        if self.session:
+            self.session.close()
+            logger.debug("SiteStructureAnalyzerセッションを閉じました")
+
+    def __enter__(self):
+        """コンテキストマネージャー対応（v1.2追加）"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """コンテキストマネージャー終了時にセッションを閉じる（v1.2追加）"""
+        self.close()
+        return False
 
     def _create_session(self, max_retries: int) -> requests.Session:
         """リトライ機能付きセッションを作成"""
@@ -382,22 +411,34 @@ class SiteStructureAnalyzer:
                     result.evaluation_items[slug] = link_text
 
     def _extract_past_years(self, tr, result: SiteStructure):
-        """過去年度を抽出"""
+        """過去年度を抽出（2014-2015形式にも対応）"""
         result.has_past_years = True
 
         for td in tr.find_all("td"):
             for link in td.find_all("a", href=True):
                 href = link.get("href", "")
 
-                # 年度パターンを抽出
-                match = re.search(r"/(\d{4})/?$", href)
+                # 年度パターンを抽出（2014-2015形式にも対応）
+                match = re.search(r"/(\d{4}(?:-\d{4})?)/?$", href)
                 if match:
-                    year = int(match.group(1))
-                    if 2000 <= year <= 2030:
-                        result.available_years.append(year)
+                    year_str = match.group(1)
+                    # ハイフン付き年度（例: 2014-2015）は文字列で保持
+                    if "-" in year_str:
+                        # 開始年が妥当な範囲かチェック
+                        start_year = int(year_str.split("-")[0])
+                        if 2000 <= start_year <= 2030:
+                            result.available_years.append(year_str)
+                    else:
+                        year = int(year_str)
+                        if 2000 <= year <= 2030:
+                            result.available_years.append(year)
 
-        # ソート（新しい順）
-        result.available_years.sort(reverse=True)
+        # ソート（新しい順）- 文字列と数値が混在するためカスタムキー使用
+        def sort_key(y):
+            if isinstance(y, str):
+                return int(y.split("-")[0])  # 2014-2015 → 2014 で比較
+            return y
+        result.available_years.sort(key=sort_key, reverse=True)
 
     def _extract_department_category(self, tr, heading_text: str, result: SiteStructure, url_prefix: str):
         """部門カテゴリを抽出"""
@@ -412,8 +453,8 @@ class SiteStructureAnalyzer:
                 if any(re.search(pat, href) for pat in self.EXCLUDE_URL_PATTERNS):
                     continue
 
-                # 年度リンクは除外
-                if re.search(r"/\d{4}/?$", href):
+                # 年度リンクは除外（2014-2015形式にも対応）
+                if re.search(r"/\d{4}(?:-\d{4})?/?$", href):
                     continue
 
                 # url_prefixが指定されている場合、それを含むリンクのみ

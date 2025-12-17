@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 TOPICS分析ロジック（ルールベース）
+v7.6 - コードリファクタリング
+- 同点1位検出ロジックを共通メソッド(_count_wins_from_data)に統合
+- 重複コード削減（~150行 × 3箇所を1箇所に集約）
+
 v7.5 - 企業マスタ外部ファイル化
 - 社名エイリアスを外部JSONファイル（config/company_aliases.json）で管理
 - 非エンジニアでもエイリアス追加・編集が可能に
@@ -267,6 +271,43 @@ class HistoricalAnalyzer:
         results.sort(key=lambda x: (-x["years"], -x["end_year"]))
         return results
 
+    def _count_wins_from_year_data(self, year_data: Dict) -> Dict[str, Dict]:
+        """年度別データから1位獲得回数を集計する共通ヘルパー（v7.6追加）
+
+        同点1位対応: 1位と同じ得点の企業はすべて1位としてカウント
+        社名エイリアス対応: 社名変更があっても受賞回数を通算
+
+        Args:
+            year_data: {年度: [企業データ]} の形式
+
+        Returns:
+            {企業名: {"count": 回数, "years": [年度]}}
+        """
+        win_counts = defaultdict(lambda: {"count": 0, "years": []})
+
+        for year, data in year_data.items():
+            if not data:
+                continue
+
+            # 1位の得点を取得
+            top_score = data[0].get("score")
+
+            # 同点1位の企業をすべてカウント
+            for entry in data:
+                company_raw = entry.get("company", "")
+                company = normalize_company_name(company_raw)
+                score = entry.get("score")
+
+                # 1位と同じ得点の企業は1位としてカウント
+                if company and score is not None and score == top_score:
+                    win_counts[company]["count"] += 1
+                    win_counts[company]["years"].append(year)
+                elif score is not None and score != top_score:
+                    # 得点が異なったらループ終了
+                    break
+
+        return win_counts
+
     def _calc_highest_scores(self) -> List[Dict]:
         """過去最高得点を計算"""
         all_scores = []
@@ -291,34 +332,11 @@ class HistoricalAnalyzer:
     def _calc_most_wins(self) -> List[Dict]:
         """最多1位獲得を計算（総合ランキング）
 
-        修正: v4.5
-        - 同点1位対応: 1位と同じ得点の企業はすべて1位としてカウント
-        - 例: ベネッセとECC KIDSが同点1位の場合、両社とも1位獲得としてカウント
-
-        修正: v7.3
-        - 社名エイリアス対応: 社名変更があっても受賞回数を通算
+        修正: v7.6 - 共通ヘルパーメソッドを使用
+        修正: v4.5 - 同点1位対応
+        修正: v7.3 - 社名エイリアス対応
         """
-        win_counts = defaultdict(lambda: {"count": 0, "years": []})
-
-        for year, data in self.overall.items():
-            if data:
-                # 1位の得点を取得
-                top_score = data[0].get("score")
-
-                # 同点1位の企業をすべてカウント
-                for entry in data:
-                    company_raw = entry.get("company", "")
-                    # v7.3: 社名を正規化
-                    company = normalize_company_name(company_raw)
-                    score = entry.get("score")
-
-                    # 1位と同じ得点の企業は1位としてカウント
-                    if company and score is not None and score == top_score:
-                        win_counts[company]["count"] += 1
-                        win_counts[company]["years"].append(year)
-                    elif score is not None and score != top_score:
-                        # 得点が異なったらループ終了
-                        break
+        win_counts = self._count_wins_from_year_data(self.overall)
 
         results = [
             {
@@ -336,11 +354,9 @@ class HistoricalAnalyzer:
     def calc_item_most_wins(self) -> Dict[str, List[Dict]]:
         """評価項目別の1位獲得回数を計算
 
-        修正: v4.5
-        - 同点1位対応: 1位と同じ得点の企業はすべて1位としてカウント
-
-        修正: v7.3
-        - 社名エイリアス対応: 社名変更があっても受賞回数を通算
+        修正: v7.6 - 共通ヘルパーメソッドを使用
+        修正: v4.5 - 同点1位対応
+        修正: v7.3 - 社名エイリアス対応
 
         Returns:
             {項目名: [{"company": 企業名, "wins": 回数, "years": [年度], "total_years": 総年数}, ...]}
@@ -348,27 +364,7 @@ class HistoricalAnalyzer:
         item_wins = {}
 
         for item_name, year_data in self.items.items():
-            win_counts = defaultdict(lambda: {"count": 0, "years": []})
-
-            for year, data in year_data.items():
-                if data:
-                    # 1位の得点を取得
-                    top_score = data[0].get("score")
-
-                    # 同点1位の企業をすべてカウント
-                    for entry in data:
-                        company_raw = entry.get("company", "")
-                        # v7.3: 社名を正規化
-                        company = normalize_company_name(company_raw)
-                        score = entry.get("score")
-
-                        # 1位と同じ得点の企業は1位としてカウント
-                        if company and score is not None and score == top_score:
-                            win_counts[company]["count"] += 1
-                            win_counts[company]["years"].append(year)
-                        elif score is not None and score != top_score:
-                            # 得点が異なったらループ終了
-                            break
+            win_counts = self._count_wins_from_year_data(year_data)
 
             results = [
                 {
@@ -387,11 +383,9 @@ class HistoricalAnalyzer:
     def calc_dept_most_wins(self) -> Dict[str, List[Dict]]:
         """部門別の1位獲得回数を計算
 
-        修正: v4.5
-        - 同点1位対応: 1位と同じ得点の企業はすべて1位としてカウント
-
-        修正: v7.3
-        - 社名エイリアス対応: 社名変更があっても受賞回数を通算
+        修正: v7.6 - 共通ヘルパーメソッドを使用
+        修正: v4.5 - 同点1位対応
+        修正: v7.3 - 社名エイリアス対応
 
         Returns:
             {部門名: [{"company": 企業名, "wins": 回数, "years": [年度], "total_years": 総年数}, ...]}
@@ -399,27 +393,7 @@ class HistoricalAnalyzer:
         dept_wins = {}
 
         for dept_name, year_data in self.depts.items():
-            win_counts = defaultdict(lambda: {"count": 0, "years": []})
-
-            for year, data in year_data.items():
-                if data:
-                    # 1位の得点を取得
-                    top_score = data[0].get("score")
-
-                    # 同点1位の企業をすべてカウント
-                    for entry in data:
-                        company_raw = entry.get("company", "")
-                        # v7.3: 社名を正規化
-                        company = normalize_company_name(company_raw)
-                        score = entry.get("score")
-
-                        # 1位と同じ得点の企業は1位としてカウント
-                        if company and score is not None and score == top_score:
-                            win_counts[company]["count"] += 1
-                            win_counts[company]["years"].append(year)
-                        elif score is not None and score != top_score:
-                            # 得点が異なったらループ終了
-                            break
+            win_counts = self._count_wins_from_year_data(year_data)
 
             results = [
                 {

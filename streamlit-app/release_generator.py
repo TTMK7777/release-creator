@@ -182,7 +182,8 @@ class TableGenerator:
                 normalized = normalize_company_name(company)
                 prev_rank = prev_ranks.get(normalized)
                 if prev_rank:
-                    diff = prev_rank - rank if rank else None
+                    # rank=0 も有効な値として扱う（Noneのみを除外）
+                    diff = prev_rank - rank if rank is not None else None
                     if diff is not None:
                         if diff > 0:
                             row["前年比"] = f"↑{diff}"

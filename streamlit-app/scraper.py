@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度サイトのスクレイパー
+v7.10 - リソース管理改善
+- close()メソッドを追加してセッションリソースを解放
+- コンテキストマネージャー（with文）対応
+
 v7.9 - SiteStructureAnalyzer統合
 - SiteStructureAnalyzerを導入し、1回のリクエストで構造を解析
 - 評価項目・部門の検出を効率化（HTTPリクエスト削減）
@@ -295,6 +299,21 @@ class OriconScraper:
         self._site_structure: Optional[SiteStructure] = None
         self._structure_analyzer = SiteStructureAnalyzer()
 
+    def close(self):
+        """セッションを閉じてリソースを解放（v7.10追加）"""
+        if self.session:
+            self.session.close()
+            logger.debug("Scraperセッションを閉じました")
+
+    def __enter__(self):
+        """コンテキストマネージャー対応（v7.10追加）"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """コンテキストマネージャー終了時にセッションを閉じる（v7.10追加）"""
+        self.close()
+        return False
+
     def analyze_structure(self) -> SiteStructure:
         """
         サイト構造を解析（v7.9追加）
@@ -390,14 +409,20 @@ class OriconScraper:
             # パターン4: 過去ランキングリンクから推定（フォールバック、信頼性低）
             # 最新の過去年度リンク + 1 = 現在の年度
             # ※ 年度が飛んでいる場合は不正確になるため、最終手段として使用
-            past_links = soup.find_all('a', href=re.compile(r'/\d{4}/?$'))
+            # ※ 2014-2015形式にも対応
+            past_links = soup.find_all('a', href=re.compile(r'/\d{4}(?:-\d{4})?/?$'))
             if past_links:
                 years = []
                 for link in past_links:
                     href = link.get('href', '')
-                    year_match = re.search(r'/(\d{4})/?$', href)
+                    year_match = re.search(r'/(\d{4}(?:-\d{4})?)/?$', href)
                     if year_match:
-                        years.append(int(year_match.group(1)))
+                        year_str = year_match.group(1)
+                        # ハイフン付き年度（例: 2014-2015）は終了年を使用
+                        if "-" in year_str:
+                            years.append(int(year_str.split("-")[1]))
+                        else:
+                            years.append(int(year_str))
                 if years:
                     max_past_year = max(years)
                     # 過去年度の最大値 + 1 が現在の年度
@@ -535,6 +560,31 @@ class OriconScraper:
                     logger.info(f"{year}-{year+1}形式を{year+1}年度として取得: {special_url}")
                 else:
                     self.used_urls["overall"].append({"year": year, "url": url, "survey_type": self.survey_type, "status": "not_found"})
+
+            time.sleep(0.3)  # サーバー負荷軽減
+
+        # 特殊年度パターン（YYYY-YYYY形式）を独立した年度として追加取得
+        # FXなど一部のランキングでは「2014-2015」形式で別の調査データが公開されている
+        for year in range(end_year - 1, start_year - 1, -1):
+            special_year_str = f"{year}-{year+1}"
+            special_url = f"{self.BASE_URL}/{self.url_prefix}/{special_year_str}{subpath_part}/"
+
+            # 既に取得済みの場合はスキップ
+            if special_year_str in results:
+                continue
+
+            data = self._fetch_ranking_page(special_url, self.survey_type)
+            if data:
+                # 文字列キーで保存（例: "2014-2015"）
+                results[special_year_str] = data
+                self.used_urls["overall"].append({
+                    "year": special_year_str,
+                    "url": special_url,
+                    "survey_type": self.survey_type,
+                    "status": "success",
+                    "note": "特殊年度形式（独立データ）"
+                })
+                logger.info(f"特殊年度形式を独立データとして取得: {special_year_str} ({special_url})")
 
             time.sleep(0.3)  # サーバー負荷軽減
 
@@ -892,8 +942,8 @@ class OriconScraper:
                         if any(re.search(pattern, href) for pattern in self.EXCLUDE_URL_PATTERNS):
                             continue
 
-                        # 年度リンク（/2024/など）は除外
-                        if re.search(r"/\d{4}/?$", href):
+                        # 年度リンク（/2024/や/2014-2015/など）は除外
+                        if re.search(r"/\d{4}(?:-\d{4})?/?$", href):
                             continue
 
                         # 自身のランキングのリンクか確認
@@ -930,7 +980,8 @@ class OriconScraper:
 
                     if any(re.search(pattern, href) for pattern in self.EXCLUDE_URL_PATTERNS):
                         continue
-                    if re.search(r"/\d{4}/?$", href):
+                    # 年度リンク（/2024/や/2014-2015/など）は除外
+                    if re.search(r"/\d{4}(?:-\d{4})?/?$", href):
                         continue
                     if self.url_prefix not in href:
                         continue
@@ -1444,8 +1495,38 @@ class OriconScraper:
                 except Exception as e:
                     continue
 
+            # フォールバック: 古いHTML構造（2014-2015年頃のページ）への対応
+            # 古いページは ul.rankin > li > p.rank + p.name 構造を使用
+            if not rankings:
+                legacy_list = target_section.find("ul", class_="rankin")
+                if legacy_list:
+                    logger.info(f"古いHTML構造（ul.rankin）を検出: {url}")
+                    for li in legacy_list.find_all("li"):
+                        try:
+                            rank_elem = li.find("p", class_="rank")
+                            name_elem = li.find("p", class_="name")
+
+                            if rank_elem and name_elem:
+                                rank_text = rank_elem.get_text(strip=True)
+                                rank_match = re.search(r"(\d+)", rank_text)
+                                rank = int(rank_match.group(1)) if rank_match else None
+
+                                # 企業名はリンクテキストまたは直接テキストから取得
+                                name_link = name_elem.find("a")
+                                company = name_link.get_text(strip=True) if name_link else name_elem.get_text(strip=True)
+
+                                if rank and company and company not in seen_companies:
+                                    rankings.append({
+                                        "rank": rank,
+                                        "company": company,
+                                        "score": None  # 古いページには得点がない場合がある
+                                    })
+                                    seen_companies.add(company)
+                        except Exception as e:
+                            continue
+
             # 順位でソート、同順位の場合は得点で降順ソート
-            rankings.sort(key=lambda x: (x.get("rank", 999), -x.get("score", 0)))
+            rankings.sort(key=lambda x: (x.get("rank", 999), -(x.get("score") or 0)))
 
             return rankings
 
