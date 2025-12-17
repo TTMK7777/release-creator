@@ -14,25 +14,8 @@ Streamlit版 - バージョンはHANDOVER.mdで管理
 - 動的年度検出: トップページから実際の発表年度を自動判定
 """
 
-# バージョン情報はHANDOVER.mdから動的に取得（二重管理を解消）
-def get_version_from_handover():
-    """HANDOVER.mdから最新バージョンを取得"""
-    import os
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    handover_path = os.path.join(current_dir, "HANDOVER.md")
-    try:
-        with open(handover_path, "r", encoding="utf-8") as f:
-            for line in f:
-                # | v4.9 | 2025-11-28 | ... | の形式から最初のバージョンを取得
-                if line.startswith("| v") and "|" in line:
-                    parts = [p.strip() for p in line.split("|") if p.strip()]
-                    if parts and parts[0].startswith("v"):
-                        return parts[0]
-    except Exception:
-        pass
-    return "unknown"
-
-__version__ = get_version_from_handover()
+# バージョン情報
+__version__ = "β版"
 
 import logging
 
@@ -2278,59 +2261,3 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("📌 **データソース**: life.oricon.co.jp")
 st.sidebar.markdown(f"🔧 **バージョン**: {__version__}")
 
-# 更新履歴をHANDOVER.mdから動的に読み込んで表示
-def load_version_history():
-    """HANDOVER.mdからバージョン履歴を読み込む"""
-    import os
-    import re
-
-    # HANDOVER.mdのパスを取得（app.pyと同じディレクトリ）
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    handover_path = os.path.join(current_dir, "HANDOVER.md")
-
-    try:
-        with open(handover_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # バージョン履歴テーブルを抽出
-        # パターン: | バージョン | 日付 | 主な変更点 | から始まるテーブル
-        lines = content.split("\n")
-        version_lines = []
-        in_table = False
-
-        for line in lines:
-            # テーブルヘッダーを検出
-            if "| バージョン |" in line:
-                in_table = True
-                continue
-            # 区切り行をスキップ
-            if in_table and line.startswith("|--"):
-                continue
-            # テーブル終了を検出
-            if in_table and not line.startswith("|"):
-                break
-            # データ行を収集
-            if in_table and line.startswith("|"):
-                # | v4.7 | 2025-11-28 | 説明 | の形式をパース
-                parts = [p.strip() for p in line.split("|") if p.strip()]
-                if len(parts) >= 3:
-                    version = parts[0]
-                    date = parts[1]
-                    desc = parts[2][:50] + "..." if len(parts[2]) > 50 else parts[2]
-                    version_lines.append(f"**{version}** ({date})\n{desc}")
-
-        return version_lines
-    except Exception as e:
-        logger.warning(f"バージョン履歴の読み込みに失敗: {e}")
-        return []
-
-# 更新履歴を折りたたみ表示
-with st.sidebar.expander("📜 更新履歴", expanded=False):
-    version_history = load_version_history()
-    if version_history:
-        for entry in version_history[:10]:  # 最新10件まで表示
-            st.markdown(entry)
-            st.markdown("---")
-        st.caption("詳細はHANDOVER.mdを参照")
-    else:
-        st.info("更新履歴を読み込めませんでした")
