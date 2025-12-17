@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 TOPICS分析ロジック（ルールベース）
+v7.7 - 混合年度ソート対応
+- int/str混在年度（2014, "2014-2015"等）のソートに対応
+- _year_sort_key ヘルパー関数を追加
+
 v7.6 - コードリファクタリング
 - 同点1位検出ロジックを共通メソッド(_count_wins_from_data)に統合
 - 重複コード削減（~150行 × 3箇所を1箇所に集約）
@@ -108,6 +112,25 @@ def normalize_company_name(company: str) -> str:
     return normalized
 
 
+def _year_sort_key(year):
+    """年度のソートキー（int/str混在対応）
+
+    v7.7追加: "2014-2015"のような文字列年度と整数年度を混在ソート可能にする
+
+    Args:
+        year: 年度（int または str）
+
+    Returns:
+        ソート用の整数値（文字列の場合は開始年を返す）
+    """
+    if isinstance(year, str):
+        try:
+            return int(year.split("-")[0])
+        except (ValueError, IndexError):
+            return 0
+    return year
+
+
 class HistoricalAnalyzer:
     """歴代記録・得点推移の分析"""
 
@@ -138,7 +161,7 @@ class HistoricalAnalyzer:
         if not self.overall:
             return {}
 
-        years = sorted(self.overall.keys())
+        years = sorted(self.overall.keys(), key=_year_sort_key)
         records = {
             "consecutive_wins": [],      # 連続1位記録
             "highest_scores": [],        # 過去最高得点
@@ -194,7 +217,7 @@ class HistoricalAnalyzer:
         if not self.overall:
             return []
 
-        years = sorted(self.overall.keys())
+        years = sorted(self.overall.keys(), key=_year_sort_key)
         company_streaks = defaultdict(list)  # 企業ごとの連続1位期間
         company_current = {}  # 企業ごとの現在の連続状態
 
@@ -254,7 +277,7 @@ class HistoricalAnalyzer:
 
         # 結果を整形
         results = []
-        max_year = max(self.overall.keys())
+        max_year = max(self.overall.keys(), key=_year_sort_key)
         for company, streaks in company_streaks.items():
             for streak in streaks:
                 if streak["count"] >= 1:
@@ -430,7 +453,7 @@ class HistoricalAnalyzer:
         """
         first_year = {}
 
-        for year in sorted(self.overall.keys()):
+        for year in sorted(self.overall.keys(), key=_year_sort_key):
             for item in self.overall[year]:
                 company_raw = item.get("company", "")
                 company = normalize_company_name(company_raw)
@@ -463,7 +486,7 @@ class HistoricalAnalyzer:
         if not self.overall:
             return {}
 
-        years = sorted(self.overall.keys())
+        years = sorted(self.overall.keys(), key=_year_sort_key)
         trends = {
             "years": years,
             "companies": {},          # 企業別得点推移
@@ -509,7 +532,7 @@ class HistoricalAnalyzer:
                 }
 
         # 上位企業（最新年度ベース）
-        latest_year = max(years)
+        latest_year = max(years, key=_year_sort_key)
         if self.overall.get(latest_year):
             trends["top_companies"] = [
                 item.get("company") for item in self.overall[latest_year][:10]
@@ -537,7 +560,7 @@ class HistoricalAnalyzer:
             if not isinstance(year_data, dict):
                 continue
 
-            years = sorted(year_data.keys())
+            years = sorted(year_data.keys(), key=_year_sort_key)
             item_trends[item_name] = {
                 "years": years,
                 "top_by_year": {},      # 年度別1位
@@ -598,7 +621,7 @@ class HistoricalAnalyzer:
                         })
 
             # 最後の連続記録を確定
-            max_year = max(years) if years else None
+            max_year = max(years, key=_year_sort_key) if years else None
             for company, streak in company_current.items():
                 item_trends[item_name]["consecutive_wins"].append({
                     "company": company,
@@ -631,7 +654,7 @@ class HistoricalAnalyzer:
             if not isinstance(year_data, dict):
                 continue
 
-            years = sorted(year_data.keys())
+            years = sorted(year_data.keys(), key=_year_sort_key)
             dept_trends[dept_name] = {
                 "years": years,
                 "top_by_year": {},
@@ -692,7 +715,7 @@ class HistoricalAnalyzer:
                         })
 
             # 最後の連続記録を確定
-            max_year = max(years) if years else None
+            max_year = max(years, key=_year_sort_key) if years else None
             for company, streak in company_current.items():
                 dept_trends[dept_name]["consecutive_wins"].append({
                     "company": company,
@@ -795,7 +818,7 @@ class TopicsAnalyzer:
         if not self.overall:
             return None
 
-        years = sorted(self.overall.keys(), reverse=True)
+        years = sorted(self.overall.keys(), key=_year_sort_key, reverse=True)
         if not years:
             return None
 
@@ -899,7 +922,7 @@ class TopicsAnalyzer:
         if not self.overall:
             return None
 
-        latest_year = max(self.overall.keys())
+        latest_year = max(self.overall.keys(), key=_year_sort_key)
         data = self.overall[latest_year]
 
         if len(data) < 2:
@@ -982,7 +1005,7 @@ class TopicsAnalyzer:
             # 新形式（経年データ）の場合は最新年度を使用
             if isinstance(year_data, dict):
                 if year_data:
-                    latest_year = max(year_data.keys())
+                    latest_year = max(year_data.keys(), key=_year_sort_key)
                     data = year_data[latest_year]
                 else:
                     continue
@@ -1032,7 +1055,7 @@ class TopicsAnalyzer:
             # 新形式（経年データ）の場合は最新年度を使用
             if isinstance(year_data, dict):
                 if year_data:
-                    latest_year = max(year_data.keys())
+                    latest_year = max(year_data.keys(), key=_year_sort_key)
                     data = year_data[latest_year]
                 else:
                     continue
@@ -1065,7 +1088,7 @@ class TopicsAnalyzer:
         if len(self.overall) < 2:
             return changes
 
-        years = sorted(self.overall.keys(), reverse=True)
+        years = sorted(self.overall.keys(), key=_year_sort_key, reverse=True)
         latest = self.overall[years[0]]
         previous = self.overall[years[1]]
 
@@ -1133,7 +1156,7 @@ class TopicsAnalyzer:
             if not isinstance(year_data, dict) or not year_data:
                 continue
 
-            years = sorted(year_data.keys())
+            years = sorted(year_data.keys(), key=_year_sort_key)
             if len(years) < 2:
                 continue
 
@@ -1203,7 +1226,7 @@ class TopicsAnalyzer:
             if not isinstance(year_data, dict) or not year_data:
                 continue
 
-            years = sorted(year_data.keys())
+            years = sorted(year_data.keys(), key=_year_sort_key)
             if len(years) < 2:
                 continue
 
@@ -1275,7 +1298,7 @@ class TopicsAnalyzer:
                 continue
 
             if year_data:
-                latest_year = max(year_data.keys())
+                latest_year = max(year_data.keys(), key=_year_sort_key)
                 data = year_data[latest_year]
             else:
                 continue
@@ -1323,7 +1346,7 @@ class TopicsAnalyzer:
                 continue
 
             if year_data:
-                latest_year = max(year_data.keys())
+                latest_year = max(year_data.keys(), key=_year_sort_key)
                 data = year_data[latest_year]
             else:
                 continue

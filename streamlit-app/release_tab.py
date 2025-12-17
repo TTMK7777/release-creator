@@ -391,12 +391,19 @@ def render_release_tab(
     # ========================================
     with sub_tab4:
         st.subheader("📄 Word出力")
-        st.caption("Wordテンプレートを使用してプレスリリース文書を生成します（v2.0 {{KEY}}形式対応）")
+        st.caption("Wordテンプレートを使用してプレスリリース文書を生成します（v3.0 複数表対応）")
 
         if not WORD_AVAILABLE:
             st.warning("Word出力モジュールが見つかりません。word_generator.py が必要です。")
             st.info("python-docx をインストールしてください: `pip install python-docx`")
         else:
+            # テンプレート情報の取得
+            try:
+                from word_generator import get_available_templates
+                available_templates = get_available_templates()
+            except:
+                available_templates = {}
+
             # === 文章の自動生成からの連動 ===
             # text_content がある場合、Word用のデフォルト値を設定
             if 'text_content' in st.session_state and 'word_data_synced' not in st.session_state:
@@ -433,6 +440,30 @@ def render_release_tab(
                     st.rerun()
             else:
                 st.info("💡 先に「文章の自動生成」タブで文章を生成すると、ここに自動反映されます。")
+
+            st.divider()
+
+            # === テンプレート選択 ===
+            st.write("**📋 テンプレート設定**")
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                template_options = list(available_templates.keys()) if available_templates else ["v3"]
+                template_labels = {
+                    "v3": "v3 (基本版)",
+                    "v4": "v4 (企業別プレースホルダー対応)"
+                }
+                template_version = st.selectbox(
+                    "テンプレートバージョン",
+                    template_options,
+                    index=len(template_options) - 1 if template_options else 0,
+                    format_func=lambda x: template_labels.get(x, x),
+                    key="template_version"
+                )
+            with col2:
+                if available_templates:
+                    st.caption(f"📁 利用可能: {', '.join(available_templates.keys())}")
+                else:
+                    st.warning("テンプレートが見つかりません")
 
             st.divider()
 
@@ -547,12 +578,48 @@ def render_release_tab(
                 with col3:
                     ranking_url = st.text_input("ランキングURL", key="ranking_url", placeholder="https://cs.oricon.co.jp/...")
 
-            # === オプション ===
-            include_table = st.checkbox(
-                "ランキング表を文末に追加",
-                value=False,
-                key="include_table"
-            )
+            # === 表の追加オプション (v3.0新機能) ===
+            st.write("**📊 ランキング表の追加**")
+            col1, col2 = st.columns(2)
+            with col1:
+                include_overall_table = st.checkbox(
+                    "総合ランキング表を追加",
+                    value=False,
+                    key="include_overall_table",
+                    help="TOP10の総合ランキング表を文末に追加します"
+                )
+                include_comparison_table = st.checkbox(
+                    "前年比較表を追加",
+                    value=False,
+                    key="include_comparison_table",
+                    help="前年との順位変動を含む比較表を追加します"
+                )
+            with col2:
+                include_item_tables = st.checkbox(
+                    "評価項目別表を追加",
+                    value=False,
+                    key="include_item_tables",
+                    help="評価項目ごとのTOP5表を追加します"
+                )
+                include_dept_tables = st.checkbox(
+                    "部門別表を追加",
+                    value=False,
+                    key="include_dept_tables",
+                    help="部門ごとのTOP5表を追加します"
+                )
+
+            # 表示件数設定
+            if include_overall_table or include_comparison_table or include_item_tables or include_dept_tables:
+                table_top_n = st.slider(
+                    "各表の表示件数",
+                    min_value=3,
+                    max_value=20,
+                    value=10,
+                    key="table_top_n",
+                    help="総合ランキング・前年比較表の表示件数（評価項目別・部門別は最大5件）"
+                )
+            else:
+                table_top_n = 10
 
             # === 生成ボタン ===
             if st.button("📄 Word文書を生成", key="generate_word", type="primary"):
@@ -560,6 +627,10 @@ def render_release_tab(
                     try:
                         # 総合ランキングデータを取得
                         year_data = overall_data.get(word_target_year, [])
+
+                        # 前年データを取得（前年比較表用）
+                        prev_year = word_target_year - 1
+                        prev_year_data = overall_data.get(prev_year, []) if include_comparison_table else None
 
                         # TOPICSリスト構築
                         topics_list = [t for t in [topic1_title, topic2_title, topic3_title] if t]
@@ -579,13 +650,35 @@ def render_release_tab(
                             sample_size=sample_size if sample_size > 0 else None,
                             company_count=company_count if company_count > 0 else None,
                             ranking_url=ranking_url,
-                            include_table=include_table
+                            include_overall_table=include_overall_table,
+                            include_comparison_table=include_comparison_table,
+                            include_item_tables=include_item_tables,
+                            include_dept_tables=include_dept_tables,
+                            item_data=item_data if include_item_tables else None,
+                            dept_data=dept_data if include_dept_tables else None,
+                            prev_year_data=prev_year_data,
+                            table_top_n=table_top_n,
+                            template_version=template_version
                         )
 
                         if word_buffer:
                             st.session_state['word_buffer'] = word_buffer
                             st.session_state['word_filename'] = f"release_{ranking_name}_{word_target_year}年{word_month}月.docx"
                             st.success("✅ Word文書の生成が完了しました")
+
+                            # 生成情報を表示
+                            tables_added = []
+                            if include_overall_table:
+                                tables_added.append("総合ランキング")
+                            if include_comparison_table:
+                                tables_added.append("前年比較")
+                            if include_item_tables:
+                                tables_added.append(f"評価項目別（{len(item_data) if item_data else 0}項目）")
+                            if include_dept_tables:
+                                tables_added.append(f"部門別（{len(dept_data) if dept_data else 0}部門）")
+
+                            if tables_added:
+                                st.info(f"📊 追加された表: {', '.join(tables_added)}")
                         else:
                             st.error("Word文書の生成に失敗しました。テンプレートファイルを確認してください。")
 
