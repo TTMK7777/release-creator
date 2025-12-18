@@ -1,0 +1,203 @@
+name: テスト自動実行
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: リポジトリをチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Pythonセットアップ
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    - name: 依存パッケージのインストール
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pytest pytest-cov
+
+    - name: テスト実行
+      id: test
+      continue-on-error: true
+      run: |
+        if [ -d "tests" ] || [ -d "test" ]; then
+          pytest tests/ test/ -v --cov=. --cov-report=xml --cov-report=term --junitxml=test-results.xml 2>&1 | tee test-output.txt
+        else
+          echo "テストディレクトリが見つかりません。スキップします。" | tee test-output.txt
+          exit 0
+        fi
+
+    - name: テスト結果のアップロード
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          test-results.xml
+          test-output.txt
+          .coverage
+
+    - name: エラー時に詳細Issueを作成（Claude Code用）
+      if: failure() && github.event_name == 'push'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+
+          let testOutput = '';
+          let errorSummary = '';
+
+          if (fs.existsSync('test-results.xml')) {
+            const testResults = fs.readFileSync('test-results.xml', 'utf8');
+            const errorMatches = testResults.match(/<failure[^>]*>([\s\S]*?)<\/failure>/g);
+            if (errorMatches) {
+              errorSummary = errorMatches.slice(0, 5).map(m => {
+                const msg = m.match(/<failure[^>]*>([\s\S]*?)<\/failure>/)[1];
+                return msg.substring(0, 500);
+              }).join('\n\n---\n\n');
+            }
+          }
+
+          if (fs.existsSync('test-output.txt')) {
+            testOutput = fs.readFileSync('test-output.txt', 'utf8');
+            const lines = testOutput.split('\n');
+            testOutput = lines.slice(-100).join('\n');
+          }
+
+          const commit = await github.rest.repos.getCommit({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: context.sha
+          });
+
+          const commitMessage = commit.data.commit.message;
+          const commitAuthor = commit.data.commit.author.name;
+          const changedFiles = commit.data.files.map(f => f.filename).join(', ');
+
+          const issueTitle = `[自動修正] テスト失敗: ${context.sha.substring(0, 7)}`;
+          const issueBody = `## 🔴 テスト失敗 - Claude Codeによる自動修正が必要です
+
+**ステータス**: ❌ テスト失敗
+**コミット**: \`${context.sha.substring(0, 7)}\`
+**コミットメッセージ**: ${commitMessage.split('\n')[0]}
+**作成者**: ${commitAuthor}
+**実行日時**: ${new Date().toISOString()}
+**ワークフロー**: [${context.workflow}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+
+### 📝 変更されたファイル
+\`\`\`
+${changedFiles || '不明'}
+\`\`\`
+
+### ❌ エラーサマリー
+${errorSummary ? `\`\`\`\n${errorSummary.substring(0, 2000)}\n\`\`\`` : 'エラー詳細を取得できませんでした'}
+
+### 📋 テスト出力（最後100行）
+\`\`\`
+${testOutput.substring(0, 3000)}
+\`\`\`
+
+### 🤖 Claude Codeへの指示
+
+このIssueを読み取って、以下の手順で修正してください：
+
+1. **エラー原因の特定**: 上記のエラーサマリーとテスト出力を分析
+2. **修正の実装**: エラーを修正するコードを実装
+3. **テストの確認**: ローカルでテストを実行して確認
+4. **コミット & プッシュ**: 修正をコミットしてプッシュ
+5. **再テスト**: GitHub Actionsが自動で再テストを実行
+
+### ✅ 修正完了チェックリスト
+
+- [ ] エラー原因を特定
+- [ ] 修正コードを実装
+- [ ] ローカルでテスト成功を確認
+- [ ] 修正をコミット & プッシュ
+- [ ] GitHub Actionsで再テスト成功を確認
+
+---
+*このIssueはGitHub Actionsによって自動生成されました。Claude Codeが自動修正を試みます。*`;
+
+          const existingIssues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            labels: 'auto-fix',
+            per_page: 10
+          });
+
+          const existingIssue = existingIssues.data.find(issue =>
+            issue.title.includes(context.sha.substring(0, 7))
+          );
+
+          if (existingIssue) {
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existingIssue.number,
+              body: issueBody,
+              state: 'open'
+            });
+            console.log(`既存のIssue #${existingIssue.number} を更新しました`);
+          } else {
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: issueBody,
+              labels: ['bug', 'automated', 'test-failure', 'auto-fix']
+            });
+            console.log(`新しいIssue #${issue.data.number} を作成しました`);
+          }
+
+    - name: テスト成功時にauto-fix Issueをクローズ
+      if: success() && github.event_name == 'push'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            labels: 'auto-fix',
+            per_page: 10
+          });
+
+          for (const issue of issues.data) {
+            const commit = await github.rest.repos.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `## ✅ テスト成功！修正完了
+
+**コミット**: \`${context.sha.substring(0, 7)}\`
+**実行日時**: ${new Date().toISOString()}
+
+すべてのテストが成功しました。このIssueをクローズします。`
+            });
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              state: 'closed'
+            });
+
+            console.log(`Issue #${issue.number} をクローズしました`);
+          }
