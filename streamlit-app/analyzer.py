@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 TOPICS分析ロジック（ルールベース）
+v7.9 - AIレビュー対応リファクタリング
+- マジックナンバー定数化（MIN_CONSECUTIVE_YEARS_OVERALL等）
+- NonePointer対策強化（data[0]の型チェック追加）
+- 重複コード統合（_analyze_category_consecutive_wins共通関数化）
+- 評価項目別/部門別連続記録分析を~140行から~110行に削減
+
 v7.8 - 年度リストソート修正
 - _calc_most_wins, calc_item_most_wins, calc_dept_most_wins内の
   info["years"]ソートにも_year_sort_keyを適用
@@ -33,6 +39,15 @@ from typing import Dict, List, Any, Optional
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
+
+# ========================================
+# 分析パラメータ定数（v7.9追加 - マジックナンバー定数化）
+# ========================================
+MIN_CONSECUTIVE_YEARS_OVERALL = 2     # 総合ランキング連続記録の最小年数
+MIN_CONSECUTIVE_YEARS_CATEGORY = 3    # 評価項目別/部門別連続記録の最小年数
+MIN_NOTABLE_SCORE_DIFF = 2.0          # 注目すべき得点差（点）
+MAX_CLOSE_SCORE_DIFF = 0.5            # 僅差と判定する得点差（点）
+DOMINANCE_THRESHOLD = 0.6             # 独占と判定する割合
 
 # ========================================
 # 社名エイリアス定義
@@ -322,8 +337,11 @@ class HistoricalAnalyzer:
             if not data or not isinstance(data, list) or len(data) == 0:
                 continue
 
-            # 1位の得点を取得
-            top_score = data[0].get("score")
+            # 1位の得点を取得（v7.9: NonePointer対策強化）
+            first_entry = data[0]
+            if not first_entry or not isinstance(first_entry, dict):
+                continue
+            top_score = first_entry.get("score")
 
             # 同点1位の企業をすべてカウント
             for entry in data:
@@ -876,7 +894,7 @@ class TopicsAnalyzer:
                 best_consecutive = consecutive
                 best_company = company
 
-        if best_consecutive >= 2:
+        if best_consecutive >= MIN_CONSECUTIVE_YEARS_OVERALL:
             # 同点1位の場合のタイトル調整
             if len(top_companies) >= 2:
                 companies_str = "と".join(top_companies[:2])
@@ -978,7 +996,7 @@ class TopicsAnalyzer:
 
         diff = round(score1 - score2, 1)
 
-        if diff >= 2.0:
+        if diff >= MIN_NOTABLE_SCORE_DIFF:
             return {
                 "category": "総合ランキング",  # v5.9: カテゴリ追加
                 "importance": "重要",
@@ -986,7 +1004,7 @@ class TopicsAnalyzer:
                 "evidence": f"{first['company']}({score1}点) vs {second['company']}({score2}点)",
                 "impact": 4
             }
-        elif diff <= 0.5:
+        elif diff <= MAX_CLOSE_SCORE_DIFF:
             return {
                 "category": "総合ランキング",  # v5.9: カテゴリ追加
                 "importance": "注目",
@@ -1148,16 +1166,34 @@ class TopicsAnalyzer:
 
     # ========================================
     # v5.8追加: 評価項目別・部門別の連続記録分析
+    # v7.9リファクタリング: 共通関数に統合
     # ========================================
 
-    def _analyze_item_consecutive_wins(self) -> List[Dict]:
-        """評価項目別の連続1位記録を分析（v7.5: 同点1位対応）"""
+    def _analyze_category_consecutive_wins(
+        self,
+        data_dict: Dict,
+        category_type: str
+    ) -> List[Dict]:
+        """評価項目別/部門別の連続1位記録を分析する共通関数（v7.9統合）
+
+        Args:
+            data_dict: 分析対象データ {カテゴリ名: {年度: [企業データ]}}
+            category_type: "評価項目別" または "部門別"
+
+        Returns:
+            TOPICSリスト
+        """
         topics = []
 
-        if not self.items:
+        if not data_dict:
             return topics
 
-        for item_name, year_data in self.items.items():
+        # カテゴリタイプに応じたタイトルフォーマット
+        is_dept = category_type == "部門別"
+        title_format = "『{name}』部門で{company}が{count}年連続1位" if is_dept else "『{name}』で{company}が{count}年連続1位"
+        evidence_suffix = "部門別ランキング" if is_dept else "評価項目別ランキング"
+
+        for category_name, year_data in data_dict.items():
             if not isinstance(year_data, dict) or not year_data:
                 continue
 
@@ -1171,7 +1207,12 @@ class TopicsAnalyzer:
             if not year_data.get(latest_year):
                 continue
             latest_data = year_data[latest_year]
+
+            # NonePointer対策（v7.9）
+            if not latest_data or not isinstance(latest_data[0], dict):
+                continue
             top_score = latest_data[0].get("score")
+
             latest_top_companies = set()
             for entry in latest_data:
                 score = entry.get("score")
@@ -1190,7 +1231,12 @@ class TopicsAnalyzer:
                     if not year_data.get(year):
                         continue
                     data = year_data[year]
+
+                    # NonePointer対策（v7.9）
+                    if not data or not isinstance(data[0], dict):
+                        break
                     year_top_score = data[0].get("score")
+
                     year_top_companies = set()
                     for entry in data:
                         score = entry.get("score")
@@ -1207,87 +1253,30 @@ class TopicsAnalyzer:
                     else:
                         break
 
-                if consecutive_count >= 3:  # 3年以上連続
+                if consecutive_count >= MIN_CONSECUTIVE_YEARS_CATEGORY:
                     topics.append({
                         "importance": "注目",
-                        "title": f"『{item_name}』で{company}が{consecutive_count}年連続1位",
-                        "evidence": f"{streak_start}年〜{latest_year}年の評価項目別ランキング",
+                        "title": title_format.format(
+                            name=category_name,
+                            company=company,
+                            count=consecutive_count
+                        ),
+                        "evidence": f"{streak_start}年〜{latest_year}年の{evidence_suffix}",
                         "impact": min(4, 2 + consecutive_count // 2),
-                        "category": "評価項目別"
+                        "category": category_type
                     })
 
         # impactが高い順にソートして上位3件まで
         topics = sorted(topics, key=lambda x: x["impact"], reverse=True)[:3]
         return topics
 
+    def _analyze_item_consecutive_wins(self) -> List[Dict]:
+        """評価項目別の連続1位記録を分析"""
+        return self._analyze_category_consecutive_wins(self.items, "評価項目別")
+
     def _analyze_dept_consecutive_wins(self) -> List[Dict]:
-        """部門別の連続1位記録を分析（v7.5: 同点1位対応）"""
-        topics = []
-
-        if not self.depts:
-            return topics
-
-        for dept_name, year_data in self.depts.items():
-            if not isinstance(year_data, dict) or not year_data:
-                continue
-
-            years = sorted(year_data.keys(), key=_year_sort_key)
-            if len(years) < 2:
-                continue
-
-            latest_year = years[-1]
-
-            # 最新年の1位企業（同点含む）を取得
-            if not year_data.get(latest_year):
-                continue
-            latest_data = year_data[latest_year]
-            top_score = latest_data[0].get("score")
-            latest_top_companies = set()
-            for entry in latest_data:
-                score = entry.get("score")
-                if score is not None and score == top_score:
-                    company = normalize_company_name(entry.get("company", ""))
-                    if company:
-                        latest_top_companies.add(company)
-                elif score is not None and score != top_score:
-                    break
-
-            # 各1位企業の連続年数をカウント
-            for company in latest_top_companies:
-                consecutive_count = 0
-                streak_start = None
-                for year in reversed(years):
-                    if not year_data.get(year):
-                        continue
-                    data = year_data[year]
-                    year_top_score = data[0].get("score")
-                    year_top_companies = set()
-                    for entry in data:
-                        score = entry.get("score")
-                        if score is not None and score == year_top_score:
-                            c = normalize_company_name(entry.get("company", ""))
-                            if c:
-                                year_top_companies.add(c)
-                        elif score is not None and score != year_top_score:
-                            break
-
-                    if company in year_top_companies:
-                        consecutive_count += 1
-                        streak_start = year
-                    else:
-                        break
-
-                if consecutive_count >= 3:  # 3年以上連続
-                    topics.append({
-                        "importance": "注目",
-                        "title": f"『{dept_name}』部門で{company}が{consecutive_count}年連続1位",
-                        "evidence": f"{streak_start}年〜{latest_year}年の部門別ランキング",
-                        "impact": min(4, 2 + consecutive_count // 2),
-                        "category": "部門別"
-                    })
-
-        topics = sorted(topics, key=lambda x: x["impact"], reverse=True)[:3]
-        return topics
+        """部門別の連続1位記録を分析"""
+        return self._analyze_category_consecutive_wins(self.depts, "部門別")
 
     def _analyze_dept_dominance(self) -> Dict:
         """部門別の独占状況を分析"""

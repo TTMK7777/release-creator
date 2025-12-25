@@ -371,10 +371,11 @@ def parse_uploaded_excel(uploaded_file, specified_year=None):
 
             if company_col and (rank_col or score_col):
                 for _, row in df.iterrows():
-                    # 年度の取得
+                    # 年度の取得（v7.9: "2024年"形式に対応）
                     if year_col and pd.notna(row.get(year_col)):
                         try:
-                            year = int(row[year_col])
+                            year_str = str(row[year_col]).replace('年', '').strip()
+                            year = int(year_str)
                             # 動的年度範囲: 2000年から現在年+5年まで
                             current_year = datetime.now().year
                             max_year = current_year + 5
@@ -1131,14 +1132,11 @@ if run_button:
                 for dept_name in list(uploaded_dept.keys())[:3]:
                     log(f"    [{dept_name}]")
 
-            # Step 2: Webスクレイピングで過去データを取得
+            # Step 2: Webスクレイピングで過去データを取得（v7.9: with文でリソース管理）
             status_text.text("🌐 Webから過去データを取得中...")
             progress_bar.progress(20)
 
             log(f"[INFO] スクレイパー初期化: {ranking_slug} ({ranking_name})")
-            scraper = OriconScraper(ranking_slug, ranking_name)
-            subpath_info = f" + subpath: {scraper.subpath}" if scraper.subpath else ""
-            log(f"[INFO] URL prefix: {scraper.url_prefix}{subpath_info}")
 
             # スクレイピング対象年度を決定
             # - アップロードデータに含まれる年度は除外
@@ -1163,32 +1161,40 @@ if run_button:
             scraped_overall = {}
             scraped_item = {}
             scraped_dept = {}
+            used_urls = None
+            update_date = None
 
-            if scrape_range:
-                status_text.text(f"📊 総合ランキングを取得中... ({scrape_range[0]}年〜{scrape_range[1]}年)")
-                progress_bar.progress(30)
+            # with文でスクレイパーを使用（自動的にセッションをクローズ）
+            with OriconScraper(ranking_slug, ranking_name) as scraper:
+                subpath_info = f" + subpath: {scraper.subpath}" if scraper.subpath else ""
+                log(f"[INFO] URL prefix: {scraper.url_prefix}{subpath_info}")
 
-                scraped_overall = scraper.get_overall_rankings(scrape_range)
-                # アップロード済み年度を除外
-                scraped_overall = {y: d for y, d in scraped_overall.items() if y not in uploaded_years}
-                log(f"[OK] 総合ランキング: {len(scraped_overall)}年分取得")
-                for year, data in scraped_overall.items():
-                    log(f"  - {year}年: {len(data)}社")
-                progress_bar.progress(45)
+                if scrape_range:
+                    status_text.text(f"📊 総合ランキングを取得中... ({scrape_range[0]}年〜{scrape_range[1]}年)")
+                    progress_bar.progress(30)
 
-                status_text.text(f"📋 評価項目別データを取得中...")
-                scraped_item = scraper.get_evaluation_items(scrape_range)
-                log(f"[OK] 評価項目別: {len(scraped_item)}項目")
-                progress_bar.progress(60)
+                    scraped_overall = scraper.get_overall_rankings(scrape_range)
+                    # アップロード済み年度を除外
+                    scraped_overall = {y: d for y, d in scraped_overall.items() if y not in uploaded_years}
+                    log(f"[OK] 総合ランキング: {len(scraped_overall)}年分取得")
+                    for year, data in scraped_overall.items():
+                        log(f"  - {year}年: {len(data)}社")
+                    progress_bar.progress(45)
 
-                status_text.text(f"🏷️ 部門別データを取得中...")
-                scraped_dept = scraper.get_departments(scrape_range)
-                log(f"[OK] 部門別: {len(scraped_dept)}部門")
-                progress_bar.progress(70)
+                    status_text.text(f"📋 評価項目別データを取得中...")
+                    scraped_item = scraper.get_evaluation_items(scrape_range)
+                    log(f"[OK] 評価項目別: {len(scraped_item)}項目")
+                    progress_bar.progress(60)
 
-            used_urls = scraper.used_urls if scrape_range else None
-            # 更新日を取得（推奨TOPICSタブで使用）
-            update_date = scraper.get_update_date()
+                    status_text.text(f"🏷️ 部門別データを取得中...")
+                    scraped_dept = scraper.get_departments(scrape_range)
+                    log(f"[OK] 部門別: {len(scraped_dept)}部門")
+                    progress_bar.progress(70)
+
+                    used_urls = scraper.used_urls
+
+                # 更新日を取得（推奨TOPICSタブで使用）
+                update_date = scraper.get_update_date()
 
             # Step 3: データ統合
             status_text.text("🔄 データを統合中...")
@@ -1249,9 +1255,11 @@ if run_button:
             error_detail = traceback.format_exc()
             logger.error(f"処理エラー: {str(e)}\n{error_detail}")
             st.error(f"エラーが発生しました。入力データやネットワーク接続を確認してください。")
-            # デバッグ用: エラー詳細を折りたたみ表示
-            with st.expander("🔍 エラー詳細（開発者向け）", expanded=False):
-                st.code(error_detail, language="python")
+            # デバッグ用: エラー詳細を折りたたみ表示（v7.9: 環境変数で制御）
+            # 本番環境ではSHOW_DEBUG_INFO=falseに設定してセキュリティを向上
+            if os.environ.get("SHOW_DEBUG_INFO", "true").lower() == "true":
+                with st.expander("🔍 エラー詳細（開発者向け）", expanded=False):
+                    st.code(error_detail, language="python")
 
 # 結果表示（セッション状態から）
 if st.session_state.results_data:
