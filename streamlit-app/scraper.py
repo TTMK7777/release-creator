@@ -39,6 +39,7 @@ import re
 from typing import Dict, List, Optional
 import time
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # v7.9: SiteStructureAnalyzer統合
 from site_analyzer import SiteStructureAnalyzer, SiteStructure
@@ -736,9 +737,54 @@ class OriconScraper:
             logger.error(f"更新日取得エラー: {e}")
             return None
 
+    def _fetch_year_data(self, year: int, actual_top_year: int, top_url: str, subpath_part: str) -> tuple:
+        """
+        年度ごとのデータ取得（並列処理用ヘルパー）
+        
+        Returns:
+            (year, data, url_info) のタプル
+        """
+        if year == actual_top_year:
+            url = top_url
+            logger.info(f"{year}年: トップページURL使用 {url}")
+        elif year > actual_top_year:
+            return (year, None, {
+                "year": year,
+                "url": "-",
+                "survey_type": self.survey_type,
+                "status": "not_published"
+            })
+        else:
+            url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/{year}/"
+
+        data = self._fetch_ranking_page(url, self.survey_type)
+        if data:
+            return (year, data, {"year": str(year), "url": url, "survey_type": self.survey_type, "status": "success"})
+        
+        # 代替パターン1: /year/subpath/ 形式を試す
+        if self.subpath:
+            alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/"
+            data = self._fetch_ranking_page(alt_url, self.survey_type)
+            if data:
+                return (year, data, {"year": str(year), "url": alt_url, "survey_type": self.survey_type, "status": "success"})
+
+        # 代替パターン2: 特殊年度パターン
+        special_url = f"{self.BASE_URL}/{self.url_prefix}/{year}-{year+1}{subpath_part}/"
+        data = self._fetch_ranking_page(special_url, self.survey_type)
+        if data:
+            return (year + 1, data, {
+                "year": str(year + 1),
+                "year_format": f"{year}-{year+1}",
+                "url": special_url,
+                "survey_type": self.survey_type,
+                "status": "success"
+            })
+        
+        return (year, None, {"year": str(year), "url": url, "survey_type": self.survey_type, "status": "not_found"})
+
     def get_overall_rankings(self, year_range: tuple = (2020, 2024)) -> Dict[int, List[Dict]]:
         """
-        総合ランキングを取得
+        総合ランキングを取得（v8.1: 並列処理対応）
 
         Args:
             year_range: (開始年, 終了年) のタプル
@@ -767,76 +813,33 @@ class OriconScraper:
 
         actual_top_year = self._actual_top_year
 
-        for year in range(end_year, start_year - 1, -1):  # 新しい年から古い年へ
-
-            if year == actual_top_year:
-                # トップページの年度と一致 → 年度なしURL
-                url = top_url
-                logger.info(f"{year}年: トップページURL使用 {url}")
-            elif year > actual_top_year:
-                # まだ発表されていない年度 → スキップ
-                logger.info(f"{year}年: 未発表のためスキップ（現在の最新: {actual_top_year}年）")
-                self.used_urls["overall"].append({
-                    "year": year,
-                    "url": "-",
-                    "survey_type": self.survey_type,
-                    "status": "not_published"
-                })
-                continue
-            else:
-                # 過去年度 - サブパスがある場合は /subpath/year/ 形式を優先
-                # 例: rank_fitness/24hours/2024/ （正しい形式）
-                url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/{year}/"
-
-            data = self._fetch_ranking_page(url, self.survey_type)
-            if data:
-                results[str(year)] = data  # 文字列で統一
-                self.used_urls["overall"].append({"year": str(year), "url": url, "survey_type": self.survey_type, "status": "success"})
-            else:
-                # 代替パターン1: /year/subpath/ 形式を試す
-                # 例: rank_fitness/2024/24hours/
-                if self.subpath:
-                    alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/"
-                    data = self._fetch_ranking_page(alt_url, self.survey_type)
-                    if data:
-                        results[str(year)] = data  # 文字列で統一
-                        self.used_urls["overall"].append({"year": str(year), "url": alt_url, "survey_type": self.survey_type, "status": "success"})
-                        continue
-
-                # 代替パターン2: 特殊年度パターン（例: 2014-2015 → 2015年度として扱う）
-                # FXなど一部のランキングでは「2014-2015」形式で公開されている
-                special_url = f"{self.BASE_URL}/{self.url_prefix}/{year}-{year+1}{subpath_part}/"
-                data = self._fetch_ranking_page(special_url, self.survey_type)
+        # 並列処理で年度ごとのデータを取得（v8.1追加）
+        years_to_fetch = list(range(end_year, start_year - 1, -1))
+        max_workers = min(5, len(years_to_fetch))  # 最大5並列（サーバー負荷考慮）
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(self._fetch_year_data, year, actual_top_year, top_url, subpath_part): year
+                for year in years_to_fetch
+            }
+            
+            for future in as_completed(futures):
+                year, data, url_info = future.result()
+                self.used_urls["overall"].append(url_info)
+                
                 if data:
-                    # 2014-2015 形式は後ろの年度（2015）として扱う
-                    # ただし results には year+1 キーで格納
-                    results[str(year + 1)] = data  # 文字列で統一
-                    self.used_urls["overall"].append({
-                        "year": str(year + 1),  # 実際の年度（後ろの年度）
-                        "year_format": f"{year}-{year+1}",  # URL上の表記
-                        "url": special_url,
-                        "survey_type": self.survey_type,
-                        "status": "success"
-                    })
-                    logger.info(f"{year}-{year+1}形式を{year+1}年度として取得: {special_url}")
-                else:
-                    self.used_urls["overall"].append({"year": str(year), "url": url, "survey_type": self.survey_type, "status": "not_found"})
-
-            time.sleep(0.3)  # サーバー負荷軽減
+                    year_key = str(year) if isinstance(year, int) else year
+                    results[year_key] = data
 
         # 特殊年度パターン（YYYY-YYYY形式）を独立した年度として追加取得
-        # FXなど一部のランキングでは「2014-2015」形式で別の調査データが公開されている
         for year in range(end_year - 1, start_year - 1, -1):
             special_year_str = f"{year}-{year+1}"
-            special_url = f"{self.BASE_URL}/{self.url_prefix}/{special_year_str}{subpath_part}/"
-
-            # 既に取得済みの場合はスキップ
             if special_year_str in results:
                 continue
 
+            special_url = f"{self.BASE_URL}/{self.url_prefix}/{special_year_str}{subpath_part}/"
             data = self._fetch_ranking_page(special_url, self.survey_type)
             if data:
-                # 文字列キーで保存（例: "2014-2015"）
                 results[special_year_str] = data
                 self.used_urls["overall"].append({
                     "year": special_year_str,
@@ -846,8 +849,6 @@ class OriconScraper:
                     "note": "特殊年度形式（独立データ）"
                 })
                 logger.info(f"特殊年度形式を独立データとして取得: {special_year_str} ({special_url})")
-
-            time.sleep(0.3)  # サーバー負荷軽減
 
         return results
 

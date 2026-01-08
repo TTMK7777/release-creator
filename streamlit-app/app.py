@@ -1257,7 +1257,7 @@ if run_button:
             st.error(f"エラーが発生しました。入力データやネットワーク接続を確認してください。")
             # デバッグ用: エラー詳細を折りたたみ表示（v7.9: 環境変数で制御）
             # 本番環境ではSHOW_DEBUG_INFO=falseに設定してセキュリティを向上
-            if os.environ.get("SHOW_DEBUG_INFO", "true").lower() == "true":
+            if os.environ.get("SHOW_DEBUG_INFO", "false").lower() == "true":
                 with st.expander("🔍 エラー詳細（開発者向け）", expanded=False):
                     st.code(error_detail, language="python")
 
@@ -1473,8 +1473,8 @@ if st.session_state.results_data:
                     top_df = pd.DataFrame([
                         {
                             "年度": year,
-                            "1位企業": top_by_year[year]["company"],
-                            "得点": f"{top_by_year[year]['score']}点"
+                            "1位企業": top_by_year[year].get("company", "-") if isinstance(top_by_year.get(year), dict) else "-",
+                            "得点": f"{top_by_year[year].get('score', '-')}点" if isinstance(top_by_year.get(year), dict) else "-"
                         }
                         for year in sorted(top_by_year.keys(), key=_year_sort_key, reverse=True)
                     ])
@@ -1895,13 +1895,15 @@ if st.session_state.results_data:
                         st.markdown("**📈 1位の推移**")
                         history = []
                         for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
-                            if year_data[year]:
-                                top = year_data[year][0]
-                                history.append({
-                                    "年度": year,
-                                    "1位": top.get("company", "-"),
-                                    "得点": top.get("score", "-")
-                                })
+                            year_list = year_data.get(year)
+                            if year_list and isinstance(year_list, list) and len(year_list) > 0:
+                                top = year_list[0]
+                                if top and isinstance(top, dict):
+                                    history.append({
+                                        "年度": year,
+                                        "1位": top.get("company", "-"),
+                                        "得点": top.get("score", "-")
+                                    })
                         if history:
                             st.dataframe(pd.DataFrame(history), use_container_width=True)
 
@@ -2072,13 +2074,15 @@ if st.session_state.results_data:
                         st.markdown("**📈 1位の推移**")
                         history = []
                         for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
-                            if year_data[year]:
-                                top = year_data[year][0]
-                                history.append({
-                                    "年度": year,
-                                    "1位": top.get("company", "-"),
-                                    "得点": top.get("score", "-")
-                                })
+                            year_list = year_data.get(year)
+                            if year_list and isinstance(year_list, list) and len(year_list) > 0:
+                                top = year_list[0]
+                                if top and isinstance(top, dict):
+                                    history.append({
+                                        "年度": year,
+                                        "1位": top.get("company", "-"),
+                                        "得点": top.get("score", "-")
+                                    })
                         if history:
                             st.dataframe(pd.DataFrame(history), use_container_width=True)
 
