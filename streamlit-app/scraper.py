@@ -883,8 +883,15 @@ class OriconScraper:
 
         for item_slug, item_name in items.items():
             results[item_name] = {}
+            consecutive_not_found = 0  # v7.11: 連続404カウンタ
+            MAX_CONSECUTIVE_NOT_FOUND = 3  # 連続3回404で残りの年度をスキップ
 
             for year in years:
+                # v7.11: 連続404が続いたら早期終了
+                if consecutive_not_found >= MAX_CONSECUTIVE_NOT_FOUND:
+                    logger.debug(f"{item_name}: 連続{MAX_CONSECUTIVE_NOT_FOUND}回404のため残りの年度をスキップ")
+                    break
+
                 # 未発表年度はスキップ
                 if year > actual_top_year:
                     self.used_urls["items"].append({
@@ -916,6 +923,7 @@ class OriconScraper:
                         "item_slug": item_slug,
                         "year": str(year)  # 文字列で統一
                     })
+                    consecutive_not_found = 0  # v7.11: 成功時はカウンタリセット
                 else:
                     # 代替パターン: /year/subpath/ 形式を試す
                     if self.subpath:
@@ -933,6 +941,7 @@ class OriconScraper:
                                 "item_slug": item_slug,
                                 "year": str(year)  # 文字列で統一
                             })
+                            consecutive_not_found = 0  # v7.11: 成功時はカウンタリセット
                             continue
 
                     self.used_urls["items"].append({
@@ -943,6 +952,7 @@ class OriconScraper:
                         "item_slug": item_slug,
                         "year": year
                     })
+                    consecutive_not_found += 1  # v7.11: 404時はカウンタ増加
 
                 time.sleep(0.3)
 
@@ -980,8 +990,15 @@ class OriconScraper:
 
         for dept_path, dept_name in departments.items():
             results[dept_name] = {}
+            consecutive_not_found = 0  # v7.11: 連続404カウンタ
+            MAX_CONSECUTIVE_NOT_FOUND = 3  # 連続3回404で残りの年度をスキップ
 
             for year in years:
+                # v7.11: 連続404が続いたら早期終了（過去データが存在しない部門を効率的に処理）
+                if consecutive_not_found >= MAX_CONSECUTIVE_NOT_FOUND:
+                    logger.debug(f"{dept_name}: 連続{MAX_CONSECUTIVE_NOT_FOUND}回404のため残りの年度をスキップ")
+                    break
+
                 # 未発表年度はスキップ
                 if year > actual_top_year:
                     self.used_urls["departments"].append({
@@ -1013,6 +1030,7 @@ class OriconScraper:
                         "dept_path": dept_path,
                         "year": str(year)  # 文字列で統一
                     })
+                    consecutive_not_found = 0  # v7.11: 成功時はカウンタリセット
                 else:
                     # 代替パターン: /year/subpath/ 形式を試す
                     if self.subpath:
@@ -1030,6 +1048,7 @@ class OriconScraper:
                                 "dept_path": dept_path,
                                 "year": str(year)  # 文字列で統一
                             })
+                            consecutive_not_found = 0  # v7.11: 成功時はカウンタリセット
                             continue
 
                     self.used_urls["departments"].append({
@@ -1040,6 +1059,7 @@ class OriconScraper:
                         "dept_path": dept_path,
                         "year": year
                     })
+                    consecutive_not_found += 1  # v7.11: 404時はカウンタ増加
 
                 time.sleep(0.3)
 
