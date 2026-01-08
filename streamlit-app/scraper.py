@@ -40,6 +40,7 @@ from typing import Dict, List, Optional
 import time
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 # v7.9: SiteStructureAnalyzer統合
 from site_analyzer import SiteStructureAnalyzer, SiteStructure
@@ -324,6 +325,8 @@ class OriconScraper:
             "items": [],
             "departments": []
         }
+        # スレッドセーフ用ロック（v8.1追加）
+        self._url_lock = threading.Lock()
         # トップページの実際の年度をキャッシュ
         self._actual_top_year = None
         # トップページの更新日をキャッシュ (year, month)
@@ -740,10 +743,13 @@ class OriconScraper:
     def _fetch_year_data(self, year: int, actual_top_year: int, top_url: str, subpath_part: str) -> tuple:
         """
         年度ごとのデータ取得（並列処理用ヘルパー）
-        
+
         Returns:
             (year, data, url_info) のタプル
         """
+        # 並列実行時のサーバー負荷軽減
+        time.sleep(0.1)
+
         if year == actual_top_year:
             url = top_url
             logger.info(f"{year}年: トップページURL使用 {url}")
@@ -825,8 +831,10 @@ class OriconScraper:
             
             for future in as_completed(futures):
                 year, data, url_info = future.result()
-                self.used_urls["overall"].append(url_info)
-                
+                # スレッドセーフにURL情報を追加
+                with self._url_lock:
+                    self.used_urls["overall"].append(url_info)
+
                 if data:
                     year_key = str(year) if isinstance(year, int) else year
                     results[year_key] = data
@@ -849,6 +857,8 @@ class OriconScraper:
                     "note": "特殊年度形式（独立データ）"
                 })
                 logger.info(f"特殊年度形式を独立データとして取得: {special_year_str} ({special_url})")
+
+            time.sleep(0.3)  # サーバー負荷軽減
 
         return results
 
