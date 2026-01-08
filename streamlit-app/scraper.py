@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 オリコン顧客満足度サイトのスクレイパー
+v7.11 - URLバリデーション機能追加
+- validate_url()でURL存在確認（404検出）
+- 代替URL提案機能（サブドメイン/スラッグ修正候補）
+- URL_SLUG_MAPで最新のURL構造に対応
+
 v7.10 - リソース管理改善
 - close()メソッドを追加してセッションリソースを解放
 - コンテキストマネージャー（with文）対応
@@ -185,6 +190,33 @@ class OriconScraper:
         # ========================================
     }
 
+    # ========================================
+    # v7.11: URL変換マップ（旧スラッグ→新スラッグ）
+    # オリコンサイトでURL構造が変更されたものを修正
+    # ========================================
+    URL_SLUG_MAP = {
+        # life.oricon.co.jp の変更
+        "moving-company": {"slug": "_move", "domain": "life"},  # 引越し会社
+        "travel-reservation-site": {"slug": "travel-website", "domain": "life"},  # 旅行予約サイト
+        "fitness-gym": {"slug": "_fitness", "domain": "life"},  # フィットネスジム
+        "_hikari": {"slug": "_internet", "domain": "life"},  # 光回線
+        "home-wifi": {"slug": "_internet", "domain": "life"},  # ホームWi-Fi→光回線
+        # life → career への移動
+        "_site": {"slug": "job-change", "domain": "career"},  # 転職サイト
+        "_haken": {"slug": "_staffing", "domain": "career"},  # 派遣会社
+        # life → juken への移動
+        "english-school": {"slug": "_english", "domain": "juken"},  # 英会話スクール
+        "programming-school": {"slug": "kids-programming", "domain": "juken"},  # プログラミングスクール
+        # juken.oricon.co.jp の変更
+        "kids-english-school": {"slug": "kids-english", "domain": "juken"},  # 子ども英語教室
+        "swimming-school": {"slug": "kids-swimming", "domain": "juken"},  # スイミングスクール
+    }
+
+    # サブパスの変換マップ（旧サブパス→新サブパス）
+    SUBPATH_MAP = {
+        "infant": "preschooler",  # 幼児 → 未就学児
+    }
+
     # 評価項目の日英対応表
     EVALUATION_ITEMS = {
         "procedure": "加入手続き",
@@ -314,12 +346,223 @@ class OriconScraper:
         self.close()
         return False
 
-    def analyze_structure(self) -> SiteStructure:
+    # ========================================
+    # v7.11: URLバリデーション機能
+    # ========================================
+
+    def validate_url(self, url: str = None) -> dict:
         """
-        サイト構造を解析（v7.9追加）
+        URLの有効性を確認（v7.11追加）
+
+        Args:
+            url: 検証するURL。Noneの場合はトップページURLを使用
+
+        Returns:
+            {
+                "is_valid": bool,           # URLが有効か（200-299ステータス）
+                "status_code": int|None,    # HTTPステータスコード
+                "url_tested": str,          # テスト対象URL
+                "error_type": str|None,     # エラータイプ（"404", "timeout"等）
+                "suggestions": List[dict]   # 代替URL提案
+            }
+        """
+        if url is None:
+            subpath_part = f"/{self.subpath}" if self.subpath else ""
+            url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/"
+
+        result = {
+            "is_valid": False,
+            "status_code": None,
+            "url_tested": url,
+            "error_type": None,
+            "suggestions": []
+        }
+
+        try:
+            # HEADリクエストを試行（軽量）
+            response = self.session.head(url, timeout=5, allow_redirects=True)
+
+            # 405 Method Not Allowed の場合はGETに切り替え
+            if response.status_code == 405:
+                response = self.session.get(url, timeout=5)
+
+            result["status_code"] = response.status_code
+            result["is_valid"] = 200 <= response.status_code < 300
+
+            if not result["is_valid"]:
+                result["error_type"] = self._classify_http_error(response.status_code)
+                # 404の場合は代替URLを提案
+                if response.status_code == 404:
+                    result["suggestions"] = self._suggest_alternative_urls(url)
+
+        except requests.exceptions.Timeout:
+            result["error_type"] = "timeout"
+            result["suggestions"] = [{"url": url, "reason": "タイムアウト - 再試行してください"}]
+        except requests.exceptions.ConnectionError as e:
+            if "name resolution" in str(e).lower() or "dns" in str(e).lower():
+                result["error_type"] = "dns_error"
+            else:
+                result["error_type"] = "connection_error"
+            result["suggestions"] = self._suggest_alternative_urls(url)
+        except Exception as e:
+            result["error_type"] = "unknown_error"
+            logger.error(f"URLバリデーションエラー: {e}")
+
+        return result
+
+    def _classify_http_error(self, status_code: int) -> str:
+        """HTTPステータスコードからエラータイプを分類"""
+        if status_code == 404:
+            return "404_not_found"
+        elif status_code == 403:
+            return "403_forbidden"
+        elif status_code >= 500:
+            return "server_error"
+        else:
+            return f"http_{status_code}"
+
+    def _suggest_alternative_urls(self, failed_url: str) -> list:
+        """
+        失敗したURLから代替URLを提案（v7.11追加）
+
+        提案ロジック:
+        1. URL_SLUG_MAPに一致するスラッグがあれば変換
+        2. サブドメインを変更（life↔juken↔career）
+        3. スラッグの命名規則を変換（rank-xxx ↔ rank_xxx）
+        """
+        suggestions = []
+
+        # 現在のURLからスラッグとサブドメインを抽出
+        import urllib.parse
+        parsed = urllib.parse.urlparse(failed_url)
+        current_domain = parsed.netloc.split('.')[0]  # life, juken, career
+
+        # パスからスラッグを抽出（例: /rank-xxx/subpath/ → xxx）
+        path_parts = parsed.path.strip('/').split('/')
+        if not path_parts:
+            return suggestions
+
+        slug_part = path_parts[0]
+        # rank- または rank_ プレフィックスを除去
+        if slug_part.startswith('rank-'):
+            base_slug = slug_part[5:]
+        elif slug_part.startswith('rank_'):
+            base_slug = '_' + slug_part[5:]
+        else:
+            base_slug = slug_part
+
+        # 1. URL_SLUG_MAPでの変換チェック
+        if base_slug in self.URL_SLUG_MAP:
+            mapping = self.URL_SLUG_MAP[base_slug]
+            new_slug = mapping["slug"]
+            new_domain = mapping["domain"]
+
+            # 新しいURLプレフィックスを構築
+            if new_slug.startswith('_'):
+                new_prefix = f"rank{new_slug}"
+            else:
+                new_prefix = f"rank-{new_slug}"
+
+            # サブパスを取得（あれば）
+            subpath_parts = path_parts[1:] if len(path_parts) > 1 else []
+            # サブパスの変換（例: infant → preschooler）
+            converted_subpath = []
+            for sp in subpath_parts:
+                if sp in self.SUBPATH_MAP:
+                    converted_subpath.append(self.SUBPATH_MAP[sp])
+                else:
+                    converted_subpath.append(sp)
+            subpath_str = '/' + '/'.join(converted_subpath) if converted_subpath else ''
+
+            new_url = f"https://{new_domain}.oricon.co.jp/{new_prefix}{subpath_str}/"
+            suggestions.append({
+                "url": new_url,
+                "reason": f"URL構造変更: {base_slug} → {new_slug} ({new_domain}ドメイン)",
+                "confidence": "high"
+            })
+
+        # 2. サブドメイン変更の提案
+        other_domains = [d for d in ["life", "juken", "career"] if d != current_domain]
+        for alt_domain in other_domains:
+            alt_url = failed_url.replace(
+                f"https://{current_domain}.oricon.co.jp",
+                f"https://{alt_domain}.oricon.co.jp"
+            )
+            suggestions.append({
+                "url": alt_url,
+                "reason": f"サブドメイン変更: {current_domain} → {alt_domain}",
+                "confidence": "medium"
+            })
+
+        # 3. スラッグ命名規則の変換（rank- ↔ rank_）
+        if 'rank-' in failed_url:
+            alt_url = failed_url.replace('rank-', 'rank_')
+            suggestions.append({
+                "url": alt_url,
+                "reason": "URLパターン変更: rank- → rank_",
+                "confidence": "medium"
+            })
+        elif 'rank_' in failed_url:
+            alt_url = failed_url.replace('rank_', 'rank-')
+            suggestions.append({
+                "url": alt_url,
+                "reason": "URLパターン変更: rank_ → rank-",
+                "confidence": "medium"
+            })
+
+        # 重複を除去し、最大5件に制限
+        seen_urls = set()
+        unique_suggestions = []
+        for s in suggestions:
+            if s["url"] not in seen_urls and s["url"] != failed_url:
+                seen_urls.add(s["url"])
+                unique_suggestions.append(s)
+        return unique_suggestions[:5]
+
+    def get_corrected_url(self) -> str:
+        """
+        URL_SLUG_MAPを適用した正しいURLを返す（v7.11追加）
+
+        Returns:
+            修正後のトップページURL
+        """
+        base_slug = self.ranking_slug.split('/')[0] if '/' in self.ranking_slug else self.ranking_slug
+
+        # URL_SLUG_MAPに一致するか確認
+        if base_slug in self.URL_SLUG_MAP:
+            mapping = self.URL_SLUG_MAP[base_slug]
+            new_slug = mapping["slug"]
+            new_domain = mapping["domain"]
+
+            # 新しいURLプレフィックスを構築
+            if new_slug.startswith('_'):
+                new_prefix = f"rank{new_slug}"
+            else:
+                new_prefix = f"rank-{new_slug}"
+
+            # サブパスの変換
+            subpath = self.subpath
+            if subpath in self.SUBPATH_MAP:
+                subpath = self.SUBPATH_MAP[subpath]
+
+            subpath_part = f"/{subpath}" if subpath else ""
+            return f"https://{new_domain}.oricon.co.jp/{new_prefix}{subpath_part}/"
+
+        # 変換不要な場合は通常のURLを返す
+        subpath_part = f"/{self.subpath}" if self.subpath else ""
+        return f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/"
+
+    def analyze_structure(self, auto_correct: bool = True) -> SiteStructure:
+        """
+        サイト構造を解析（v7.9追加, v7.11強化）
 
         1回のHTTPリクエストで評価項目・部門・過去年度を一括取得。
         結果はキャッシュされ、2回目以降は即座に返す。
+
+        v7.11追加: auto_correct=TrueでURL自動修正を試行
+
+        Args:
+            auto_correct: 404時に代替URLを自動的に試行するか（デフォルトTrue）
 
         Returns:
             SiteStructure: サイト構造情報
@@ -329,6 +572,24 @@ class OriconScraper:
 
         subpath_part = f"/{self.subpath}" if self.subpath else ""
         top_url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/"
+
+        # v7.11: URLバリデーションを追加
+        validation = self.validate_url(top_url)
+        if not validation["is_valid"] and auto_correct:
+            logger.warning(f"URLアクセス失敗: {top_url} ({validation['error_type']})")
+
+            # 代替URLを試行
+            for suggestion in validation["suggestions"]:
+                alt_url = suggestion["url"]
+                alt_validation = self.validate_url(alt_url)
+                if alt_validation["is_valid"]:
+                    logger.info(f"代替URL成功: {alt_url} ({suggestion['reason']})")
+                    top_url = alt_url
+                    break
+            else:
+                # 全ての代替URLが失敗した場合
+                if validation["suggestions"]:
+                    logger.warning(f"代替URLの提案: {[s['url'] for s in validation['suggestions'][:3]]}")
 
         self._site_structure = self._structure_analyzer.analyze(top_url, self.url_prefix)
 
