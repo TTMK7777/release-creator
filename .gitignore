@@ -54,12 +54,14 @@ vba_modules/
 # ドキュメント（ローカルパス含む）
 docs/
 scripts/
+!scripts/generate_docs.py
 
 # プロンプト・分析レポート
 プロンプトアプローチ/
 *.md
 !streamlit-app/*.md
 !README.md
+!HANDOVER.md
 
 # その他
 files/

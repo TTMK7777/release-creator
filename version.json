@@ -1,28 +1,79 @@
 {
   "name": "Release Creator - プレスリリース自動生成システム",
-  "version": "1.0",
+  "version": "7.10",
   "edition": "",
   "release_date": "2025-12",
-  "description": "Release Creator - プレスリリース自動生成システム",
-  "highlights": [],
+  "description": "Streamlit WebアプリでExcelランキングデータからプレスリリース用の表を自動生成",
+  "highlights": [
+    "全215ランキング対応検証済み",
+    "ハイブリッド自動検出（sort-nav優先 + レガシーフォールバック）",
+    "Word出力機能",
+    "Streamlit Cloud デプロイ済み"
+  ],
   "features": [
-    "Automation Scripts",
-    "GitHub Actions CI/CD"
+    "Excel (.xlsx) ファイルのアップロード",
+    "総合ランキング/評価項目/部門別の自動解析",
+    "プレスリリース用表の自動生成",
+    "トレンドグラフ表示",
+    "画像ダウンロード機能",
+    "複数部門対応（ネット証券、FX、クレジットカード等）",
+    "社名正規化・エイリアス対応"
   ],
   "changelog": [
     {
-      "version": "1.0",
+      "version": "7.10",
       "date": "2025-12",
       "changes": [
-        "Initial release"
+        "最新安定版"
+      ]
+    },
+    {
+      "version": "7.0",
+      "date": "2025-12",
+      "changes": [
+        "ハイブリッド自動検出",
+        "社名正規化・エイリアス対応",
+        "Word出力機能",
+        "全215ランキング対応検証済み"
+      ]
+    },
+    {
+      "version": "6.2",
+      "date": "2025-12-02",
+      "changes": [
+        "コードレビュー・リファクタリング",
+        "SVODジャンル別部門名抽出修正"
+      ]
+    },
+    {
+      "version": "6.0",
+      "date": "2025-12-02",
+      "changes": [
+        "ネット証券部門対応",
+        "トレンドグラフをタブ上部に配置"
+      ]
+    },
+    {
+      "version": "5.0",
+      "date": "2025-11-25",
+      "changes": [
+        "Streamlit Cloud対応",
+        "UI全面改善"
       ]
     }
   ],
   "quick_start": {
-    "install": "",
-    "run": "",
+    "install": "pip install -r streamlit-app/requirements.txt",
+    "run": "cd streamlit-app && streamlit run app.py",
     "env_vars": []
   },
-  "tech_stack": [],
-  "project_type": "Unknown"
+  "tech_stack": [
+    "Python 3.11+",
+    "Streamlit",
+    "pandas",
+    "openpyxl",
+    "python-docx"
+  ],
+  "project_type": "Web Application",
+  "app_url": "https://release-creator.streamlit.app/"
 }

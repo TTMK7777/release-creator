@@ -1,91 +1,71 @@
 # Release Creator - プレスリリース自動生成システム
 
-Streamlit WebアプリでExcelランキングデータからプレスリリース用の表を自動生成します。
+![Version](https://img.shields.io/badge/version-7.10-blue)
+![Updated](https://img.shields.io/badge/updated-2026-1-9-green)
 
-**現バージョン**: v7.10
-**アプリURL**: https://release-creator.streamlit.app/
+> Streamlit WebアプリでExcelランキングデータからプレスリリース用の表を自動生成
 
----
+## Highlights
 
-## 機能
+- 全215ランキング対応検証済み
+- ハイブリッド自動検出（sort-nav優先 + レガシーフォールバック）
+- Word出力機能
+- Streamlit Cloud デプロイ済み
+
+## Features
 
 - Excel (.xlsx) ファイルのアップロード
 - 総合ランキング/評価項目/部門別の自動解析
 - プレスリリース用表の自動生成
-- トレンドグラフ表示（評価項目・部門タブ上部）
+- トレンドグラフ表示
 - 画像ダウンロード機能
 - 複数部門対応（ネット証券、FX、クレジットカード等）
-- **v7.0+新機能**:
-  - ハイブリッド自動検出（sort-nav優先 + レガシーフォールバック）
-  - 社名正規化・エイリアス対応
-  - Word出力機能
-  - 全215ランキング対応検証済み
+- 社名正規化・エイリアス対応
 
----
-
-## クイックスタート
-
-### ローカル実行
+## Quick Start
 
 ```bash
-cd streamlit-app
-streamlit run app.py
-```
-
-または、`起動.bat`をダブルクリック
-
-### 依存パッケージ
-
-```bash
+# Install
 pip install -r streamlit-app/requirements.txt
 ```
 
----
-
-## プロジェクト構成
-
-```
-release-creator/
-├── README.md                 # このファイル
-├── 起動.bat                  # ルートからの起動用
-│
-├── streamlit-app/            # メインアプリケーション
-│   ├── app.py               # Streamlitアプリ本体
-│   ├── scraper.py           # Excel解析ロジック
-│   ├── HANDOVER.md          # 引継ぎ資料・バージョン履歴
-│   ├── requirements.txt     # Python依存関係
-│   ├── 起動.bat             # アプリ起動バッチ
-│   └── test/                # テスト用Excelファイル
-│
-└── _archive/                 # 旧VBA版（アーカイブ）
-    ├── docs/
-    ├── scripts/
-    ├── vba_modules/
-    └── テンプレート/
+```bash
+# Run
+cd streamlit-app && streamlit run app.py
 ```
 
+## Tech Stack
+
+- Python 3.11+
+- Streamlit
+- pandas
+- openpyxl
+- python-docx
+
+## Changelog
+
+### v7.10 (2025-12)
+- 最新安定版
+
+### v7.0 (2025-12)
+- ハイブリッド自動検出
+- 社名正規化・エイリアス対応
+- Word出力機能
+- 全215ランキング対応検証済み
+
+### v6.2 (2025-12-02)
+- コードレビュー・リファクタリング
+- SVODジャンル別部門名抽出修正
+
+### v6.0 (2025-12-02)
+- ネット証券部門対応
+- トレンドグラフをタブ上部に配置
+
+### v5.0 (2025-11-25)
+- Streamlit Cloud対応
+- UI全面改善
+
 ---
 
-## バージョン履歴
-
-| Version | Date | Changes |
-|---------|------|---------|
-| v6.2 | 2025-12-02 | コードレビュー・リファクタリング、SVODジャンル別部門名抽出修正、genre/パターン追加 |
-| v6.1 | 2025-12-02 | 連続記録計算修正、評価項目・部門タブのレイアウト変更、子ども英語教室部門検出追加 |
-| v6.0 | 2025-12-02 | ネット証券部門対応、トレンドグラフをタブ上部に配置 |
-| v5.9 | 2025-12-01 | 部門タブ改善、エラーハンドリング強化 |
-| v5.0 | 2025-11-25 | Streamlit Cloud対応、UI全面改善 |
-
-詳細は `streamlit-app/HANDOVER.md` を参照
-
----
-
-## 開発情報
-
-- **フレームワーク**: Streamlit
-- **言語**: Python 3.11+
-- **デプロイ**: Streamlit Cloud
-
----
-
-**最終更新**: 2025年12月2日
+最終更新: 2026-01-09
+バージョン: v7.10
