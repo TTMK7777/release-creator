@@ -1089,6 +1089,8 @@ if run_button:
 
         def log(message):
             debug_logs.append(message)
+            # 標準ロガーにも出力（ログファイルに記録されるように）
+            logger.info(message)
             with debug_expander:
                 st.text("\n".join(debug_logs))
 
