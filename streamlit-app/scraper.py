@@ -774,7 +774,16 @@ class OriconScraper:
             if data:
                 return (year, data, {"year": str(year), "url": alt_url, "survey_type": self.survey_type, "status": "success"})
 
-        # 代替パターン2: 特殊年度パターン
+        # 代替パターン2: サブパスなしの親パス（過去年は分類がない場合）
+        # 例: credit-card/free-annual/2023/ → credit-card/2023/
+        if self.subpath:
+            parent_url = f"{self.BASE_URL}/{self.url_prefix}/{year}/"
+            data = self._fetch_ranking_page(parent_url, self.survey_type)
+            if data:
+                logger.info(f"{year}年: サブパスなし親パスにフォールバック {parent_url}")
+                return (year, data, {"year": str(year), "url": parent_url, "survey_type": self.survey_type, "status": "success", "fallback": "parent_path"})
+
+        # 代替パターン3: 特殊年度パターン
         special_url = f"{self.BASE_URL}/{self.url_prefix}/{year}-{year+1}{subpath_part}/"
         data = self._fetch_ranking_page(special_url, self.survey_type)
         if data:
