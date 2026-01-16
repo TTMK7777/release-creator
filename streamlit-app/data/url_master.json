@@ -1,0 +1,3131 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "source": "CSDataViewer",
+    "generated_at": "2026-01-09T15:52:47.157921",
+    "total_count": 390,
+    "description": "オリコンCS満足度ランキングURLマスター"
+  },
+  "rankings": {
+    "online-english": {
+      "id": 2078,
+      "name": "オンライン英会話",
+      "url": "https://juken.oricon.co.jp/rank-online-english/",
+      "subdomain": "juken",
+      "category": "英語・英会話",
+      "is_active": true
+    },
+    "kids-english/preschooler": {
+      "id": 2079,
+      "name": "子ども英語教室 幼児",
+      "url": "https://juken.oricon.co.jp/rank-kids-english/preschooler/",
+      "subdomain": "juken",
+      "category": "英語・英会話",
+      "is_active": true
+    },
+    "kids-english/grade-schooler": {
+      "id": 2080,
+      "name": "子ども英語教室 小学生",
+      "url": "https://juken.oricon.co.jp/rank-kids-english/grade-schooler/",
+      "subdomain": "juken",
+      "category": "英語・英会話",
+      "is_active": true
+    },
+    "_english": {
+      "id": 2081,
+      "name": "英会話教室",
+      "url": "https://juken.oricon.co.jp/rank_english/",
+      "subdomain": "juken",
+      "category": "英語・英会話",
+      "is_active": true
+    },
+    "tutor": {
+      "id": 2082,
+      "name": "家庭教師",
+      "url": "https://juken.oricon.co.jp/rank-tutor/",
+      "subdomain": "juken",
+      "category": "教育（その他）",
+      "is_active": true
+    },
+    "_certificate": {
+      "id": 2083,
+      "name": "ネット証券",
+      "url": "https://life.oricon.co.jp/rank_certificate/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_fx": {
+      "id": 2084,
+      "name": "FX",
+      "url": "https://life.oricon.co.jp/rank_fx/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "card-loan": {
+      "id": 2085,
+      "name": "銀行カードローン",
+      "url": "https://life.oricon.co.jp/rank-card-loan/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "card-loan/nonbank": {
+      "id": 2086,
+      "name": "ノンバンクカードローン",
+      "url": "https://life.oricon.co.jp/rank-card-loan/nonbank/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "ideco": {
+      "id": 2087,
+      "name": "iDeCo 証券会社",
+      "url": "https://life.oricon.co.jp/rank-ideco/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "bicycle-insurance": {
+      "id": 2088,
+      "name": "自転車保険",
+      "url": "https://life.oricon.co.jp/rank-bicycle-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_bike": {
+      "id": 2089,
+      "name": "バイク保険 ダイレクト型",
+      "url": "https://life.oricon.co.jp/rank_bike/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_bike/agency": {
+      "id": 2090,
+      "name": "バイク保険 代理店型",
+      "url": "https://life.oricon.co.jp/rank_bike/agency/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_insurance": {
+      "id": 2091,
+      "name": "自動車保険 ダイレクト型",
+      "url": "https://life.oricon.co.jp/rank_insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_insurance/agency": {
+      "id": 2092,
+      "name": "自動車保険 代理店型",
+      "url": "https://life.oricon.co.jp/rank_insurance/agency/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "life-insurance": {
+      "id": 2093,
+      "name": "生命保険",
+      "url": "https://life.oricon.co.jp/rank-life-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "medical-insurance": {
+      "id": 2094,
+      "name": "医療保険",
+      "url": "https://life.oricon.co.jp/rank-medical-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "cancer-insurance": {
+      "id": 2095,
+      "name": "がん保険",
+      "url": "https://life.oricon.co.jp/rank-cancer-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "fire-insurance": {
+      "id": 2096,
+      "name": "火災保険",
+      "url": "https://life.oricon.co.jp/rank-fire-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "educational-insurance": {
+      "id": 2097,
+      "name": "学資保険",
+      "url": "https://life.oricon.co.jp/rank-educational-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_agent": {
+      "id": 2098,
+      "name": "転職エージェント",
+      "url": "https://career.oricon.co.jp/rank_agent/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "_agent_hi-and-middle-class": {
+      "id": 2099,
+      "name": "ハイクラス・ミドルクラス転職",
+      "url": "https://career.oricon.co.jp/rank_agent_hi-and-middle-class/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "_agent_nurse": {
+      "id": 2100,
+      "name": "看護師転職",
+      "url": "https://career.oricon.co.jp/rank_agent_nurse/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "_agent_nursing": {
+      "id": 2101,
+      "name": "介護転職",
+      "url": "https://career.oricon.co.jp/rank_agent_nursing/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "_staffing": {
+      "id": 2102,
+      "name": "派遣会社",
+      "url": "https://career.oricon.co.jp/rank_staffing/",
+      "subdomain": "career",
+      "category": "派遣",
+      "is_active": true
+    },
+    "_staffing_manufacture": {
+      "id": 2103,
+      "name": "工場・製造業派遣",
+      "url": "https://career.oricon.co.jp/rank_staffing_manufacture/",
+      "subdomain": "career",
+      "category": "派遣",
+      "is_active": true
+    },
+    "_move": {
+      "id": 2104,
+      "name": "引越し会社",
+      "url": "https://life.oricon.co.jp/rank_move/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "online-study/elementary": {
+      "id": 2105,
+      "name": "小学生 通信教育",
+      "url": "https://juken.oricon.co.jp/rank-online-study/elementary/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "online-study/junior-hs": {
+      "id": 2106,
+      "name": "中学生 通信教育",
+      "url": "https://juken.oricon.co.jp/rank-online-study/junior-hs/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "online-study/highschool": {
+      "id": 2107,
+      "name": "高校生 通信教育",
+      "url": "https://juken.oricon.co.jp/rank-online-study/highschool/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "_insurance/rankfp_direct": {
+      "id": 2108,
+      "name": "自動車保険 ダイレクト型（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank_insurance/rankfp_direct/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_insurance/rankfp_agency": {
+      "id": 2109,
+      "name": "自動車保険 代理店型（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank_insurance/rankfp_agency/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "fire-insurance/rankfp_fire-insurance": {
+      "id": 2110,
+      "name": "火災保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-fire-insurance/rankfp_fire-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "life-insurance/rankfp_life-type": {
+      "id": 2111,
+      "name": "終身型生命保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-life-insurance/rankfp_life-type/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "life-insurance/rankfp_regular-type": {
+      "id": 2112,
+      "name": "定期型生命保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-life-insurance/rankfp_regular-type/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "life-insurance/rankfp_income-type": {
+      "id": 2113,
+      "name": "収入保障保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-life-insurance/rankfp_income-type/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "medical-insurance/rankfp_life-type": {
+      "id": 2114,
+      "name": "終身型医療保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-medical-insurance/rankfp_life-type/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "medical-insurance/rankfp_regular-type": {
+      "id": 2115,
+      "name": "定期型医療保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-medical-insurance/rankfp_regular-type/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "medical-insurance/rankfp_relaxed-type": {
+      "id": 2116,
+      "name": "引受基準緩和型医療保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-medical-insurance/rankfp_relaxed-type/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "rankfp_disability-income-insurance": {
+      "id": 2117,
+      "name": "就業不能保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rankfp_disability-income-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "cancer-insurance/rankfp_life-type": {
+      "id": 2118,
+      "name": "終身型がん保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-cancer-insurance/rankfp_life-type/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "cancer-insurance/rankfp_regular-type": {
+      "id": 2119,
+      "name": "定期型がん保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-cancer-insurance/rankfp_regular-type/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "rankfp_foreign-currency-insurance": {
+      "id": 2120,
+      "name": "外貨建て保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rankfp_foreign-currency-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "rankfp_dementia-insurance": {
+      "id": 2121,
+      "name": "認知症保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rankfp_dementia-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "rankfp_nursing-insurance": {
+      "id": 2122,
+      "name": "介護保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rankfp_nursing-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "rankfp_comprehensive-insurance": {
+      "id": 2123,
+      "name": "総合保障保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rankfp_comprehensive-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "rankfp_personal-pension-insurance": {
+      "id": 2124,
+      "name": "個人年金保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rankfp_personal-pension-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "rankfp_variable-insurance": {
+      "id": 2125,
+      "name": "変額保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rankfp_variable-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "educational-insurance/rankfp-educational-insurance": {
+      "id": 2126,
+      "name": "学資保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-educational-insurance/rankfp-educational-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "rankfp-savings-insurance": {
+      "id": 2127,
+      "name": "積立保険（専門家評価）",
+      "url": "https://life.oricon.co.jp/rankfp-savings-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_bike/rankfp_direct": {
+      "id": 2128,
+      "name": "バイク保険 ダイレクト型（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank_bike/rankfp_direct/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_bike/rankfp_agency": {
+      "id": 2129,
+      "name": "バイク保険 代理店型（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank_bike/rankfp_agency/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_certificate/rankfp_certificate": {
+      "id": 2130,
+      "name": "ネット証券（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank_certificate/rankfp_certificate/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "ideco/rankfp-ideco-certificate": {
+      "id": 2131,
+      "name": "iDeCo証券会社（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-ideco/rankfp-ideco-certificate/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "ideco/rankfp-ideco-bank": {
+      "id": 2132,
+      "name": "iDeCo銀行（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank-ideco/rankfp-ideco-bank/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_fx/rankfp_fx": {
+      "id": 2133,
+      "name": "FX（専門家評価）",
+      "url": "https://life.oricon.co.jp/rank_fx/rankfp_fx/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_reform/large": {
+      "id": 2069,
+      "name": "フルリフォーム",
+      "url": "https://life.oricon.co.jp/rank_reform/large/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "_reform/mansion": {
+      "id": 2070,
+      "name": "マンションリフォーム",
+      "url": "https://life.oricon.co.jp/rank_reform/mansion/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "_reform/kodate": {
+      "id": 2071,
+      "name": "戸建てリフォーム",
+      "url": "https://life.oricon.co.jp/rank_reform/kodate/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "mvno/sim": {
+      "id": 2072,
+      "name": "格安SIM",
+      "url": "https://life.oricon.co.jp/rank-mvno/sim/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "mvno/sp": {
+      "id": 2073,
+      "name": "格安スマホ",
+      "url": "https://life.oricon.co.jp/rank-mvno/sp/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "mobile-carrier": {
+      "id": 2074,
+      "name": "携帯キャリア",
+      "url": "https://life.oricon.co.jp/rank-mobile-carrier/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "mobile-carrier/reasonable": {
+      "id": 2075,
+      "name": "携帯キャリア格安ブランド",
+      "url": "https://life.oricon.co.jp/rank-mobile-carrier/reasonable/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "car-lease": {
+      "id": 2076,
+      "name": "カーリース",
+      "url": "https://life.oricon.co.jp/rank-car-lease/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rankb2b-car-lease": {
+      "id": 2077,
+      "name": "法人カーリース",
+      "url": "https://life.oricon.co.jp/rankb2b-car-lease/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_hokenshop": {
+      "id": 2030,
+      "name": "保険相談ショップ",
+      "url": "https://life.oricon.co.jp/rank_hokenshop/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "svod": {
+      "id": 2031,
+      "name": "定額制動画配信サービス",
+      "url": "https://life.oricon.co.jp/rank-svod/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "_college/syutoken": {
+      "id": 2032,
+      "name": "大学受験 塾・予備校 現役 首都圏",
+      "url": "https://juken.oricon.co.jp/rank_college/syutoken/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "_college/tokai": {
+      "id": 2033,
+      "name": "大学受験 塾・予備校 現役 東海",
+      "url": "https://juken.oricon.co.jp/rank_college/tokai/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "_college/kinki": {
+      "id": 2034,
+      "name": "大学受験 塾・予備校 現役 近畿",
+      "url": "https://juken.oricon.co.jp/rank_college/kinki/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "college-individual/syutoken": {
+      "id": 2035,
+      "name": "大学受験 個別指導塾 現役 首都圏",
+      "url": "https://juken.oricon.co.jp/rank-college-individual/syutoken/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "college-individual/tokai": {
+      "id": 2036,
+      "name": "大学受験 個別指導塾 現役 東海",
+      "url": "https://juken.oricon.co.jp/rank-college-individual/tokai/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "college-individual/kinki": {
+      "id": 2037,
+      "name": "大学受験 個別指導塾 現役 近畿",
+      "url": "https://juken.oricon.co.jp/rank-college-individual/kinki/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "_college/elite": {
+      "id": 2038,
+      "name": "大学受験 難関大学特化型 現役 首都圏",
+      "url": "https://juken.oricon.co.jp/rank_college/elite/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool/hokkaido": {
+      "id": 2039,
+      "name": "高校受験 塾 北海道",
+      "url": "https://juken.oricon.co.jp/rank-highschool/hokkaido/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool/tohoku": {
+      "id": 2040,
+      "name": "高校受験 塾 東北",
+      "url": "https://juken.oricon.co.jp/rank-highschool/tohoku/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool/kitakanto": {
+      "id": 2041,
+      "name": "高校受験 塾 北関東",
+      "url": "https://juken.oricon.co.jp/rank-highschool/kitakanto/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool/syutoken": {
+      "id": 2042,
+      "name": "高校受験 塾 首都圏",
+      "url": "https://juken.oricon.co.jp/rank-highschool/syutoken/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool/koshinetsu-hokuriku": {
+      "id": 2043,
+      "name": "高校受験 塾 甲信越・北陸",
+      "url": "https://juken.oricon.co.jp/rank-highschool/koshinetsu-hokuriku/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool/tokai": {
+      "id": 2044,
+      "name": "高校受験 塾 東海",
+      "url": "https://juken.oricon.co.jp/rank-highschool/tokai/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool/kinki": {
+      "id": 2045,
+      "name": "高校受験 塾 近畿",
+      "url": "https://juken.oricon.co.jp/rank-highschool/kinki/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool/chugoku-shikoku": {
+      "id": 2046,
+      "name": "高校受験 塾 中国・四国",
+      "url": "https://juken.oricon.co.jp/rank-highschool/chugoku-shikoku/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool/kyusyu": {
+      "id": 2047,
+      "name": "高校受験 塾 九州・沖縄",
+      "url": "https://juken.oricon.co.jp/rank-highschool/kyusyu/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool-individual/hokkaido": {
+      "id": 2048,
+      "name": "高校受験 個別指導塾 北海道",
+      "url": "https://juken.oricon.co.jp/rank-highschool-individual/hokkaido/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool-individual/tohoku": {
+      "id": 2049,
+      "name": "高校受験 個別指導塾 東北",
+      "url": "https://juken.oricon.co.jp/rank-highschool-individual/tohoku/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool-individual/kitakanto": {
+      "id": 2050,
+      "name": "高校受験 個別指導塾 北関東",
+      "url": "https://juken.oricon.co.jp/rank-highschool-individual/kitakanto/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool-individual/syutoken": {
+      "id": 2051,
+      "name": "高校受験 個別指導塾 首都圏",
+      "url": "https://juken.oricon.co.jp/rank-highschool-individual/syutoken/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool-individual/koshinetsu-hokuriku": {
+      "id": 2052,
+      "name": "高校受験 個別指導塾 甲信越・北陸",
+      "url": "https://juken.oricon.co.jp/rank-highschool-individual/koshinetsu-hokuriku/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool-individual/tokai": {
+      "id": 2053,
+      "name": "高校受験 個別指導塾 東海",
+      "url": "https://juken.oricon.co.jp/rank-highschool-individual/tokai/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool-individual/kinki": {
+      "id": 2054,
+      "name": "高校受験 個別指導塾 近畿",
+      "url": "https://juken.oricon.co.jp/rank-highschool-individual/kinki/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool-individual/chugoku-shikoku": {
+      "id": 2055,
+      "name": "高校受験 個別指導塾 中国・四国",
+      "url": "https://juken.oricon.co.jp/rank-highschool-individual/chugoku-shikoku/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "highschool-individual/kyusyu": {
+      "id": 2056,
+      "name": "高校受験 個別指導塾 九州・沖縄",
+      "url": "https://juken.oricon.co.jp/rank-highschool-individual/kyusyu/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "_junior/syutoken": {
+      "id": 2057,
+      "name": "中学受験 塾 首都圏",
+      "url": "https://juken.oricon.co.jp/rank_junior/syutoken/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "_junior/tokai": {
+      "id": 2058,
+      "name": "中学受験 塾 東海",
+      "url": "https://juken.oricon.co.jp/rank_junior/tokai/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "_junior/kinki": {
+      "id": 2059,
+      "name": "中学受験 塾 近畿",
+      "url": "https://juken.oricon.co.jp/rank_junior/kinki/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "_junior/individual": {
+      "id": 2060,
+      "name": "中学受験 個別指導塾 首都圏",
+      "url": "https://juken.oricon.co.jp/rank_junior/individual/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "_junior/junior-and-high": {
+      "id": 2061,
+      "name": "公立中高一貫校対策 塾 首都圏",
+      "url": "https://juken.oricon.co.jp/rank_junior/junior-and-high/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "public-junior/syutoken": {
+      "id": 2062,
+      "name": "小学生 塾 首都圏",
+      "url": "https://juken.oricon.co.jp/rank-public-junior/syutoken/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "public-junior/tokai": {
+      "id": 2063,
+      "name": "小学生 塾 東海",
+      "url": "https://juken.oricon.co.jp/rank-public-junior/tokai/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "public-junior/kinki": {
+      "id": 2064,
+      "name": "小学生 塾 近畿",
+      "url": "https://juken.oricon.co.jp/rank-public-junior/kinki/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "public-junior/individual/syutoken": {
+      "id": 2065,
+      "name": "小学生 個別指導塾 首都圏",
+      "url": "https://juken.oricon.co.jp/rank-public-junior/individual/syutoken/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "public-junior/individual/tokai": {
+      "id": 2066,
+      "name": "小学生 個別指導塾 東海",
+      "url": "https://juken.oricon.co.jp/rank-public-junior/individual/tokai/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "public-junior/individual/kinki": {
+      "id": 2067,
+      "name": "小学生 個別指導塾 近畿",
+      "url": "https://juken.oricon.co.jp/rank-public-junior/individual/kinki/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "kids-school/intellectual": {
+      "id": 2068,
+      "name": "幼児教室 知育",
+      "url": "https://juken.oricon.co.jp/rank-kids-school/intellectual/",
+      "subdomain": "juken",
+      "category": "教育（その他）",
+      "is_active": true
+    },
+    "rankb2b-training/new-graduate": {
+      "id": 2020,
+      "name": "企業研修 新卒社員向け公開講座",
+      "url": "https://life.oricon.co.jp/rankb2b-training/new-graduate/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rankb2b-training/young-mid-level": {
+      "id": 2021,
+      "name": "企業研修 若手・一般社員向け公開講座",
+      "url": "https://life.oricon.co.jp/rankb2b-training/young-mid-level/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_pet": {
+      "id": 2022,
+      "name": "ペット保険",
+      "url": "https://life.oricon.co.jp/rank_pet/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "rental-housing/website": {
+      "id": 2023,
+      "name": "賃貸情報サイト",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/website/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_carbuyer": {
+      "id": 2024,
+      "name": "車買取会社",
+      "url": "https://life.oricon.co.jp/rank_carbuyer/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "manga-apps/general": {
+      "id": 2025,
+      "name": "電子コミックサービス 総合型",
+      "url": "https://life.oricon.co.jp/rank-manga-apps/general/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "manga-apps/publisher": {
+      "id": 2026,
+      "name": "電子コミックサービス 出版社",
+      "url": "https://life.oricon.co.jp/rank-manga-apps/publisher/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_pet/rankfp_pet-insurance": {
+      "id": 2027,
+      "name": "ペット保険（FP評価）",
+      "url": "https://life.oricon.co.jp/rank_pet/rankfp_pet-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_pet/rankfp_small-dogs": {
+      "id": 2028,
+      "name": "ペット保険 小型犬（FP評価）",
+      "url": "https://life.oricon.co.jp/rank_pet/rankfp_small-dogs/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "_pet/rankfp_cat": {
+      "id": 2029,
+      "name": "ペット保険 猫（FP評価）",
+      "url": "https://life.oricon.co.jp/rank_pet/rankfp_cat/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "estate-agency-sell/kodate": {
+      "id": 2005,
+      "name": "不動産仲介 売却 戸建て",
+      "url": "https://life.oricon.co.jp/rank-estate-agency-sell/kodate/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "estate-agency-sell/mansion": {
+      "id": 2006,
+      "name": "不動産仲介 売却 マンション",
+      "url": "https://life.oricon.co.jp/rank-estate-agency-sell/mansion/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "estate-agency-sell/land": {
+      "id": 2007,
+      "name": "不動産仲介 売却 土地",
+      "url": "https://life.oricon.co.jp/rank-estate-agency-sell/land/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "estate-agency-buy/kodate": {
+      "id": 2008,
+      "name": "不動産仲介 購入 戸建て",
+      "url": "https://life.oricon.co.jp/rank-estate-agency-buy/kodate/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "estate-agency-buy/mansion": {
+      "id": 2009,
+      "name": "不動産仲介 購入 マンション",
+      "url": "https://life.oricon.co.jp/rank-estate-agency-buy/mansion/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "rental-housing": {
+      "id": 2010,
+      "name": "不動産仲介 賃貸",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "mansion-maintenance/syutoken": {
+      "id": 2011,
+      "name": "分譲マンション管理会社 首都圏",
+      "url": "https://life.oricon.co.jp/rank-mansion-maintenance/syutoken/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "mansion-maintenance/tokai": {
+      "id": 2012,
+      "name": "分譲マンション管理会社 東海",
+      "url": "https://life.oricon.co.jp/rank-mansion-maintenance/tokai/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "mansion-maintenance/kinki": {
+      "id": 2013,
+      "name": "分譲マンション管理会社 近畿",
+      "url": "https://life.oricon.co.jp/rank-mansion-maintenance/kinki/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "mansion-maintenance/kyusyu": {
+      "id": 2014,
+      "name": "分譲マンション管理会社 九州",
+      "url": "https://life.oricon.co.jp/rank-mansion-maintenance/kyusyu/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "rental-condominiums": {
+      "id": 2015,
+      "name": "賃貸マンション",
+      "url": "https://life.oricon.co.jp/rank-rental-condominiums/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "hometown-tax-website": {
+      "id": 2016,
+      "name": "ふるさと納税サイト",
+      "url": "https://life.oricon.co.jp/rank-hometown-tax-website/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "vehicle-inspection": {
+      "id": 2017,
+      "name": "車検",
+      "url": "https://life.oricon.co.jp/rank-vehicle-inspection/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "car-maintenance": {
+      "id": 2018,
+      "name": "カーメンテナンスサービス",
+      "url": "https://life.oricon.co.jp/rank-car-maintenance/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "smartphone-payment": {
+      "id": 2019,
+      "name": "キャッシュレス決済アプリ",
+      "url": "https://life.oricon.co.jp/rank-smartphone-payment/",
+      "subdomain": "life",
+      "category": "クレジットカード・決済",
+      "is_active": true
+    },
+    "new-graduates-hiring-website": {
+      "id": 1996,
+      "name": "就活サイト",
+      "url": "https://career.oricon.co.jp/rank-new-graduates-hiring-website/",
+      "subdomain": "career",
+      "category": "就活",
+      "is_active": true
+    },
+    "new-graduates-hiring": {
+      "id": 1997,
+      "name": "就活エージェント",
+      "url": "https://career.oricon.co.jp/rank-new-graduates-hiring/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "reversed-job-offer": {
+      "id": 1998,
+      "name": "逆求人型就活サービス",
+      "url": "https://career.oricon.co.jp/rank-reversed-job-offer/",
+      "subdomain": "career",
+      "category": "就活",
+      "is_active": true
+    },
+    "_housingloan": {
+      "id": 1999,
+      "name": "住宅ローン",
+      "url": "https://life.oricon.co.jp/rank_housingloan/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "wedding/website": {
+      "id": 2000,
+      "name": "結婚式場情報サイト",
+      "url": "https://life.oricon.co.jp/rank-wedding/website/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "wedding/consultation-counter": {
+      "id": 2001,
+      "name": "結婚式場相談カウンター",
+      "url": "https://life.oricon.co.jp/rank-wedding/consultation-counter/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "wedding-produce/reasonable": {
+      "id": 2002,
+      "name": "格安ウエディング",
+      "url": "https://life.oricon.co.jp/rank-wedding-produce/reasonable/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "wedding-produce": {
+      "id": 2003,
+      "name": "ハウスウエディング",
+      "url": "https://life.oricon.co.jp/rank-wedding-produce/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "_housingloan/rankhousingloan_fp": {
+      "id": 2004,
+      "name": "住宅ローン（FP評価）",
+      "url": "https://life.oricon.co.jp/rank_housingloan/rankhousingloan_fp/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_marriage": {
+      "id": 1986,
+      "name": "結婚相談所",
+      "url": "https://life.oricon.co.jp/rank_marriage/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "matchmaking-apps": {
+      "id": 1987,
+      "name": "マッチングアプリ",
+      "url": "https://life.oricon.co.jp/rank-matchmaking-apps/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_nisa": {
+      "id": 1988,
+      "name": "NISA 証券会社",
+      "url": "https://life.oricon.co.jp/rank_nisa/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_nisa/bank": {
+      "id": 1989,
+      "name": "NISA 銀行",
+      "url": "https://life.oricon.co.jp/rank_nisa/bank/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_nisa/rankfp_nisa_certificate": {
+      "id": 1991,
+      "name": "NISA 証券会社（FP評価）",
+      "url": "https://life.oricon.co.jp/rank_nisa/rankfp_nisa_certificate/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_nisa/rankfp_nisa_bank": {
+      "id": 1992,
+      "name": "NISA 銀行（FP評価）",
+      "url": "https://life.oricon.co.jp/rank_nisa/rankfp_nisa_bank/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "employment": {
+      "id": 1968,
+      "name": "求人情報サービス",
+      "url": "https://career.oricon.co.jp/rank-employment/",
+      "subdomain": "career",
+      "category": "キャリア（その他）",
+      "is_active": true
+    },
+    "job-change": {
+      "id": 1969,
+      "name": "転職サイト",
+      "url": "https://career.oricon.co.jp/rank-job-change/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "temp-staff": {
+      "id": 1970,
+      "name": "派遣求人サイト",
+      "url": "https://career.oricon.co.jp/rank-temp-staff/",
+      "subdomain": "career",
+      "category": "派遣",
+      "is_active": true
+    },
+    "job-change_scout": {
+      "id": 1971,
+      "name": "転職スカウトサービス",
+      "url": "https://career.oricon.co.jp/rank-job-change_scout/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "_netbank/bank": {
+      "id": 1972,
+      "name": "ネット銀行",
+      "url": "https://life.oricon.co.jp/rank_netbank/bank/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_netbank/banking": {
+      "id": 1973,
+      "name": "インターネットバンキング",
+      "url": "https://life.oricon.co.jp/rank_netbank/banking/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "foreign-currency-deposits": {
+      "id": 1974,
+      "name": "外貨預金",
+      "url": "https://life.oricon.co.jp/rank-foreign-currency-deposits/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_internet/large-region": {
+      "id": 1975,
+      "name": "インターネット回線 広域企業",
+      "url": "https://life.oricon.co.jp/rank_internet/large-region/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/hokkaido": {
+      "id": 1976,
+      "name": "インターネット回線 北海道",
+      "url": "https://life.oricon.co.jp/rank_internet/hokkaido/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/tohoku": {
+      "id": 1977,
+      "name": "インターネット回線 東北",
+      "url": "https://life.oricon.co.jp/rank_internet/tohoku/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/kanto": {
+      "id": 1978,
+      "name": "インターネット回線 関東",
+      "url": "https://life.oricon.co.jp/rank_internet/kanto/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/koshinetsu-hokuriku": {
+      "id": 1979,
+      "name": "インターネット回線 甲信越・北陸",
+      "url": "https://life.oricon.co.jp/rank_internet/koshinetsu-hokuriku/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/tokai": {
+      "id": 1980,
+      "name": "インターネット回線 東海",
+      "url": "https://life.oricon.co.jp/rank_internet/tokai/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/kinki": {
+      "id": 1981,
+      "name": "インターネット回線 近畿",
+      "url": "https://life.oricon.co.jp/rank_internet/kinki/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/chugoku": {
+      "id": 1982,
+      "name": "インターネット回線 中国",
+      "url": "https://life.oricon.co.jp/rank_internet/chugoku/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/shikoku": {
+      "id": 1983,
+      "name": "インターネット回線 四国",
+      "url": "https://life.oricon.co.jp/rank_internet/shikoku/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/kyusyu-okinawa": {
+      "id": 1984,
+      "name": "インターネット回線 九州・沖縄",
+      "url": "https://life.oricon.co.jp/rank_internet/kyusyu-okinawa/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "kids-programming": {
+      "id": 1985,
+      "name": "子どもプログラミング教室",
+      "url": "https://juken.oricon.co.jp/rank-kids-programming/",
+      "subdomain": "juken",
+      "category": "教育（その他）",
+      "is_active": true
+    },
+    "net-printing": {
+      "id": 1963,
+      "name": "ネット印刷通販",
+      "url": "https://life.oricon.co.jp/rank-net-printing/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "robo-advisor": {
+      "id": 1964,
+      "name": "ロボアドバイザー",
+      "url": "https://life.oricon.co.jp/rank-robo-advisor/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_waterserver": {
+      "id": 1965,
+      "name": "ウォーターサーバー",
+      "url": "https://life.oricon.co.jp/rank_waterserver/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_waterserver/purifier": {
+      "id": 1966,
+      "name": "浄水型ウォーターサーバー",
+      "url": "https://life.oricon.co.jp/rank_waterserver/purifier/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "travel-insurance": {
+      "id": 1967,
+      "name": "海外旅行保険",
+      "url": "https://life.oricon.co.jp/rank-travel-insurance/",
+      "subdomain": "life",
+      "category": "保険",
+      "is_active": true
+    },
+    "house-cleaning": {
+      "id": 1959,
+      "name": "ハウスクリーニング",
+      "url": "https://life.oricon.co.jp/rank-house-cleaning/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "used-car-sell/specialty": {
+      "id": 1960,
+      "name": "中古車販売店",
+      "url": "https://life.oricon.co.jp/rank-used-car-sell/specialty/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "cryptocurrency/cash-transaction": {
+      "id": 1961,
+      "name": "暗号資産取引所 現物取引（仮想通貨）",
+      "url": "https://life.oricon.co.jp/rank-cryptocurrency/cash-transaction/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "cryptocurrency/margin-transaction": {
+      "id": 1962,
+      "name": "暗号資産取引所 証拠金取引（仮想通貨）",
+      "url": "https://life.oricon.co.jp/rank-cryptocurrency/margin-transaction/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_esthe/facial": {
+      "id": 1955,
+      "name": "フェイシャルエステ",
+      "url": "https://life.oricon.co.jp/rank_esthe/facial/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_esthe/slim": {
+      "id": 1956,
+      "name": "痩身・ボディエステ",
+      "url": "https://life.oricon.co.jp/rank_esthe/slim/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "bargain-hotels-website": {
+      "id": 1957,
+      "name": "ホテル比較サイト",
+      "url": "https://life.oricon.co.jp/rank-bargain-hotels-website/",
+      "subdomain": "life",
+      "category": "トラベル",
+      "is_active": true
+    },
+    "bargain-airline-website": {
+      "id": 1958,
+      "name": "航空券比較サイト",
+      "url": "https://life.oricon.co.jp/rank-bargain-airline-website/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "house-maker": {
+      "id": 1930,
+      "name": "ハウスメーカー 注文住宅",
+      "url": "https://life.oricon.co.jp/rank-house-maker/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-condominiums/syutoken": {
+      "id": 1931,
+      "name": "新築分譲マンション 首都圏",
+      "url": "https://life.oricon.co.jp/rank-new-condominiums/syutoken/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-condominiums/tokai": {
+      "id": 1932,
+      "name": "新築分譲マンション 東海",
+      "url": "https://life.oricon.co.jp/rank-new-condominiums/tokai/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-condominiums/kinki": {
+      "id": 1933,
+      "name": "新築分譲マンション 近畿",
+      "url": "https://life.oricon.co.jp/rank-new-condominiums/kinki/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-condominiums/kyusyu": {
+      "id": 1934,
+      "name": "新築分譲マンション 九州",
+      "url": "https://life.oricon.co.jp/rank-new-condominiums/kyusyu/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "child-gps": {
+      "id": 1935,
+      "name": "子ども見守りGPS",
+      "url": "https://life.oricon.co.jp/rank-child-gps/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "kids-swimming/preschooler": {
+      "id": 1936,
+      "name": "キッズスイミングスクール 幼児",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/preschooler/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "kids-swimming/grade-schooler": {
+      "id": 1937,
+      "name": "キッズスイミングスクール 小学生",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/grade-schooler/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "_fitness": {
+      "id": 1938,
+      "name": "フィットネスクラブ",
+      "url": "https://life.oricon.co.jp/rank_fitness/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_fitness/24hours": {
+      "id": 1939,
+      "name": "24時間ジム",
+      "url": "https://life.oricon.co.jp/rank_fitness/24hours/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "food-delivery/syutoken": {
+      "id": 1940,
+      "name": "食材宅配 首都圏",
+      "url": "https://life.oricon.co.jp/rank-food-delivery/syutoken/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "food-delivery/tokai": {
+      "id": 1941,
+      "name": "食材宅配 東海",
+      "url": "https://life.oricon.co.jp/rank-food-delivery/tokai/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "food-delivery/kinki": {
+      "id": 1942,
+      "name": "食材宅配 近畿",
+      "url": "https://life.oricon.co.jp/rank-food-delivery/kinki/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "food-delivery/meal-kit/syutoken": {
+      "id": 1943,
+      "name": "ミールキット 首都圏",
+      "url": "https://life.oricon.co.jp/rank-food-delivery/meal-kit/syutoken/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "food-delivery/meal-kit/tokai": {
+      "id": 1944,
+      "name": "ミールキット 東海",
+      "url": "https://life.oricon.co.jp/rank-food-delivery/meal-kit/tokai/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "food-delivery/meal-kit/kinki": {
+      "id": 1945,
+      "name": "ミールキット 近畿",
+      "url": "https://life.oricon.co.jp/rank-food-delivery/meal-kit/kinki/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "credit-card/free-annual": {
+      "id": 1946,
+      "name": "クレジットカード 年会費無料",
+      "url": "https://life.oricon.co.jp/rank-credit-card/free-annual/",
+      "subdomain": "life",
+      "category": "クレジットカード・決済",
+      "is_active": true
+    },
+    "credit-card/general": {
+      "id": 1947,
+      "name": "クレジットカード",
+      "url": "https://life.oricon.co.jp/rank-credit-card/general/",
+      "subdomain": "life",
+      "category": "クレジットカード・決済",
+      "is_active": true
+    },
+    "credit-card/gold-card": {
+      "id": 1948,
+      "name": "ゴールドカード",
+      "url": "https://life.oricon.co.jp/rank-credit-card/gold-card/",
+      "subdomain": "life",
+      "category": "クレジットカード・決済",
+      "is_active": true
+    },
+    "new-ready-built-house/powerbuilder/tohoku": {
+      "id": 1949,
+      "name": "建売住宅 ビルダー 東北",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/powerbuilder/tohoku/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-ready-built-house/powerbuilder/kitakanto": {
+      "id": 1950,
+      "name": "建売住宅 ビルダー 北関東",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/powerbuilder/kitakanto/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-ready-built-house/powerbuilder/syutoken": {
+      "id": 1951,
+      "name": "建売住宅 ビルダー 首都圏",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/powerbuilder/syutoken/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-ready-built-house/powerbuilder/tokai": {
+      "id": 1952,
+      "name": "建売住宅 ビルダー 東海",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/powerbuilder/tokai/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-ready-built-house/powerbuilder/kinki": {
+      "id": 1953,
+      "name": "建売住宅 ビルダー 近畿",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/powerbuilder/kinki/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-ready-built-house/powerbuilder/kyusyu": {
+      "id": 1954,
+      "name": "建売住宅 ビルダー 九州",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/powerbuilder/kyusyu/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "mansion-large-repair": {
+      "id": 1811,
+      "name": "マンション大規模修繕",
+      "url": "https://life.oricon.co.jp/rank-mansion-large-repair/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "manga-apps/original-only": {
+      "id": 1648,
+      "name": "電子コミックサービス オリジナル作品限定型",
+      "url": "https://life.oricon.co.jp/rank-manga-apps/original-only/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "cc/fp": {
+      "id": 1633,
+      "name": "通信講座 FP",
+      "url": "https://juken.oricon.co.jp/rank-cc/fp/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "cc/mo": {
+      "id": 1634,
+      "name": "通信講座 医療事務",
+      "url": "https://juken.oricon.co.jp/rank-cc/mo/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "cc/takken": {
+      "id": 1635,
+      "name": "通信講座 宅建",
+      "url": "https://juken.oricon.co.jp/rank-cc/takken/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "cc/bookkeeping": {
+      "id": 1636,
+      "name": "通信講座 簿記",
+      "url": "https://juken.oricon.co.jp/rank-cc/bookkeeping/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "cc/it-certification": {
+      "id": 1637,
+      "name": "通信講座 ITパスポート",
+      "url": "https://juken.oricon.co.jp/rank-cc/it-certification/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "kids-photo-studio": {
+      "id": 1640,
+      "name": "子ども写真スタジオ",
+      "url": "https://life.oricon.co.jp/rank-kids-photo-studio/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "bike-sell/specialty": {
+      "id": 1612,
+      "name": "バイク専門販売店",
+      "url": "https://life.oricon.co.jp/rank-bike-sell/specialty/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "bike-sell/manufacturer": {
+      "id": 1613,
+      "name": "メーカー系バイク販売店",
+      "url": "https://life.oricon.co.jp/rank-bike-sell/manufacturer/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "used-car-sell/manufacturer": {
+      "id": 1585,
+      "name": "メーカー系中古車販売店",
+      "url": "https://life.oricon.co.jp/rank-used-car-sell/manufacturer/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_esthe/bridal": {
+      "id": 1578,
+      "name": "ブライダルエステ",
+      "url": "https://life.oricon.co.jp/rank_esthe/bridal/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_depilation/salon": {
+      "id": 1579,
+      "name": "脱毛サロン",
+      "url": "https://life.oricon.co.jp/rank_depilation/salon/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_depilation/clinic": {
+      "id": 1580,
+      "name": "脱毛クリニック",
+      "url": "https://life.oricon.co.jp/rank_depilation/clinic/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "kids-swimming": {
+      "id": 1552,
+      "name": "キッズスイミングスクール",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "trunk-room/rental-storage-space": {
+      "id": 1555,
+      "name": "トランクルーム レンタル収納スペース",
+      "url": "https://life.oricon.co.jp/rank-trunk-room/rental-storage-space/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "trunk-room/container": {
+      "id": 1556,
+      "name": "トランクルーム コンテナ",
+      "url": "https://life.oricon.co.jp/rank-trunk-room/container/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "trunk-room/delivery": {
+      "id": 1557,
+      "name": "宅配型トランクルーム",
+      "url": "https://life.oricon.co.jp/rank-trunk-room/delivery/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "new-ready-built-house/housemaker": {
+      "id": 1565,
+      "name": "建売住宅 ハウスメーカー",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/housemaker/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-ready-built-house/estate": {
+      "id": 1566,
+      "name": "建売住宅 デベロッパー",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/estate/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "credit-card/2023": {
+      "id": 1574,
+      "name": "クレジットカード",
+      "url": "https://life.oricon.co.jp/rank-credit-card/2023/",
+      "subdomain": "life",
+      "category": "クレジットカード・決済",
+      "is_active": true
+    },
+    "_certificate/sp-sec": {
+      "id": 1515,
+      "name": "スマホ専業証券",
+      "url": "https://life.oricon.co.jp/rank_certificate/sp-sec/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_provider/large-region": {
+      "id": 1495,
+      "name": "プロバイダ 広域企業",
+      "url": "https://life.oricon.co.jp/rank_provider/large-region/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/hokkaido": {
+      "id": 1496,
+      "name": "プロバイダ 北海道",
+      "url": "https://life.oricon.co.jp/rank_provider/hokkaido/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/tohoku": {
+      "id": 1497,
+      "name": "プロバイダ 東北",
+      "url": "https://life.oricon.co.jp/rank_provider/tohoku/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/kanto": {
+      "id": 1498,
+      "name": "プロバイダ 関東",
+      "url": "https://life.oricon.co.jp/rank_provider/kanto/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/koshinetsu-hokuriku": {
+      "id": 1499,
+      "name": "プロバイダ 甲信越・北陸",
+      "url": "https://life.oricon.co.jp/rank_provider/koshinetsu-hokuriku/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/tokai": {
+      "id": 1500,
+      "name": "プロバイダ 東海",
+      "url": "https://life.oricon.co.jp/rank_provider/tokai/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/kinki": {
+      "id": 1501,
+      "name": "プロバイダ 近畿",
+      "url": "https://life.oricon.co.jp/rank_provider/kinki/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/chugoku": {
+      "id": 1502,
+      "name": "プロバイダ 中国",
+      "url": "https://life.oricon.co.jp/rank_provider/chugoku/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/shikoku": {
+      "id": 1503,
+      "name": "プロバイダ 四国",
+      "url": "https://life.oricon.co.jp/rank_provider/shikoku/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/kyushu-okinawa": {
+      "id": 1504,
+      "name": "プロバイダ 九州・沖縄",
+      "url": "https://life.oricon.co.jp/rank_provider/kyushu-okinawa/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "supplementary-school": {
+      "id": 1509,
+      "name": "幼児・小学生 学習教室",
+      "url": "https://juken.oricon.co.jp/rank-supplementary-school/",
+      "subdomain": "juken",
+      "category": "教育（その他）",
+      "is_active": true
+    },
+    "rental-housing/large-region/2022": {
+      "id": 1440,
+      "name": "賃貸情報店舗 広域企業",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/large-region/2022/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rental-housing/hokkaido/2022": {
+      "id": 1441,
+      "name": "賃貸情報店舗 北海道",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/hokkaido/2022/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rental-housing/tohoku/2022": {
+      "id": 1442,
+      "name": "賃貸情報店舗 東北",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/tohoku/2022/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rental-housing/kanto/2022": {
+      "id": 1443,
+      "name": "賃貸情報店舗 関東",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/kanto/2022/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rental-housing/koshinetsu-hokuriku/2022": {
+      "id": 1444,
+      "name": "賃貸情報店舗 甲信越・北陸",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/koshinetsu-hokuriku/2022/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rental-housing/tokai/2022": {
+      "id": 1445,
+      "name": "賃貸情報店舗 東海",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/tokai/2022/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rental-housing/kinki/2022": {
+      "id": 1446,
+      "name": "賃貸情報店舗 近畿",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/kinki/2022/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rental-housing/chugoku-shikoku/2022": {
+      "id": 1447,
+      "name": "賃貸情報店舗 中国・四国",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/chugoku-shikoku/2022/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rental-housing/kyushu-okinawa/2022": {
+      "id": 1448,
+      "name": "賃貸情報店舗 九州・沖縄",
+      "url": "https://life.oricon.co.jp/rank-rental-housing/kyushu-okinawa/2022/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "business-chat-tool": {
+      "id": 1451,
+      "name": "ビジネスチャットツール",
+      "url": "https://life.oricon.co.jp/rank-business-chat-tool/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "video-conferencing-tool": {
+      "id": 1452,
+      "name": "Web会議ツール",
+      "url": "https://life.oricon.co.jp/rank-video-conferencing-tool/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "cc/labor-and-social-security": {
+      "id": 1430,
+      "name": "通信講座 社会保険労務士",
+      "url": "https://juken.oricon.co.jp/rank-cc/labor-and-social-security/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "cc/public-notary": {
+      "id": 1431,
+      "name": "通信講座 行政書士",
+      "url": "https://juken.oricon.co.jp/rank-cc/public-notary/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "cc/care-manager": {
+      "id": 1432,
+      "name": "通信講座 ケアマネジャー",
+      "url": "https://juken.oricon.co.jp/rank-cc/care-manager/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "cc/public-officer": {
+      "id": 1433,
+      "name": "通信講座 公務員",
+      "url": "https://juken.oricon.co.jp/rank-cc/public-officer/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "tire-specialty-store": {
+      "id": 1413,
+      "name": "タイヤ専門店",
+      "url": "https://life.oricon.co.jp/rank-tire-specialty-store/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "car-supplies-store": {
+      "id": 1414,
+      "name": "カー用品店",
+      "url": "https://life.oricon.co.jp/rank-car-supplies-store/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "electricity/retailing": {
+      "id": 1373,
+      "name": "電力会社 小売",
+      "url": "https://life.oricon.co.jp/rank-electricity/retailing/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "tours-website": {
+      "id": 1376,
+      "name": "ツアー比較サイト",
+      "url": "https://life.oricon.co.jp/rank-tours-website/",
+      "subdomain": "life",
+      "category": "トラベル",
+      "is_active": true
+    },
+    "movie-theater/hokkaido": {
+      "id": 1194,
+      "name": "映画館 北海道",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/hokkaido/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "movie-theater/tohoku": {
+      "id": 1195,
+      "name": "映画館 東北",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/tohoku/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "movie-theater/kanto": {
+      "id": 1196,
+      "name": "映画館 関東",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/kanto/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "movie-theater/koshinetsu-hokuriku": {
+      "id": 1197,
+      "name": "映画館 甲信越・北陸",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/koshinetsu-hokuriku/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "movie-theater/tokai": {
+      "id": 1198,
+      "name": "映画館 東海",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/tokai/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "movie-theater/kinki": {
+      "id": 1199,
+      "name": "映画館 近畿",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/kinki/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "movie-theater/chugoku-shikoku": {
+      "id": 1200,
+      "name": "映画館 中国・四国",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/chugoku-shikoku/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "movie-theater/kyushu-okinawa": {
+      "id": 1201,
+      "name": "映画館 九州・沖縄",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/kyushu-okinawa/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "movie-theater/nationwide": {
+      "id": 1202,
+      "name": "映画館 全国",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/nationwide/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "salon-website": {
+      "id": 1179,
+      "name": "サロン検索予約サイト",
+      "url": "https://life.oricon.co.jp/rank-salon-website/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_internet/chugoku-shikoku/2021": {
+      "id": 1191,
+      "name": "インターネット回線 中国・四国",
+      "url": "https://life.oricon.co.jp/rank_internet/chugoku-shikoku/2021/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "net-super": {
+      "id": 1165,
+      "name": "ネットスーパー",
+      "url": "https://life.oricon.co.jp/rank-net-super/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "food-delivery-service": {
+      "id": 1109,
+      "name": "フードデリバリーサービス",
+      "url": "https://life.oricon.co.jp/rank-food-delivery-service/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "used-car/website": {
+      "id": 1047,
+      "name": "中古車情報サイト",
+      "url": "https://life.oricon.co.jp/rank-used-car/website/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "manga-apps/original": {
+      "id": 1051,
+      "name": "マンガアプリ オリジナル",
+      "url": "https://life.oricon.co.jp/rank-manga-apps/original/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "ebook": {
+      "id": 1053,
+      "name": "電子書籍サービス",
+      "url": "https://life.oricon.co.jp/rank-ebook/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "mens-clothing": {
+      "id": 1019,
+      "name": "紳士服専門店",
+      "url": "https://life.oricon.co.jp/rank-mens-clothing/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "suit-shop": {
+      "id": 1020,
+      "name": "スーツショップ",
+      "url": "https://life.oricon.co.jp/rank-suit-shop/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "license/fp": {
+      "id": 1021,
+      "name": "資格スクール FP",
+      "url": "https://juken.oricon.co.jp/rank-license/fp/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "license/mo": {
+      "id": 1022,
+      "name": "資格スクール 医療事務",
+      "url": "https://juken.oricon.co.jp/rank-license/mo/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "license/takken": {
+      "id": 1023,
+      "name": "資格スクール 宅建",
+      "url": "https://juken.oricon.co.jp/rank-license/takken/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "license/bookkeeping": {
+      "id": 1024,
+      "name": "資格スクール 簿記",
+      "url": "https://juken.oricon.co.jp/rank-license/bookkeeping/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "license/labor-and-social-security": {
+      "id": 1025,
+      "name": "資格スクール 社会保険労務士",
+      "url": "https://juken.oricon.co.jp/rank-license/labor-and-social-security/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "license/public-officer": {
+      "id": 1026,
+      "name": "公務員試験予備校",
+      "url": "https://juken.oricon.co.jp/rank-license/public-officer/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "karaoke": {
+      "id": 999,
+      "name": "カラオケボックス",
+      "url": "https://life.oricon.co.jp/rank-karaoke/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "drug-store": {
+      "id": 1002,
+      "name": "ドラッグストア",
+      "url": "https://life.oricon.co.jp/rank-drug-store/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "cafe": {
+      "id": 1003,
+      "name": "カフェ",
+      "url": "https://life.oricon.co.jp/rank-cafe/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "job-change_woman": {
+      "id": 983,
+      "name": "転職サイト 女性",
+      "url": "https://career.oricon.co.jp/rank-job-change_woman/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "electronics-retail-store": {
+      "id": 989,
+      "name": "家電量販店",
+      "url": "https://life.oricon.co.jp/rank-electronics-retail-store/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "movie-theater/hokkaido-tohoku": {
+      "id": 990,
+      "name": "映画館 北海道・東北",
+      "url": "https://life.oricon.co.jp/rank-movie-theater/hokkaido-tohoku/",
+      "subdomain": "life",
+      "category": "エンタメ",
+      "is_active": true
+    },
+    "theme-park/east": {
+      "id": 997,
+      "name": "テーマパーク 東日本",
+      "url": "https://life.oricon.co.jp/rank-theme-park/east/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "theme-park/west": {
+      "id": 998,
+      "name": "テーマパーク 西日本",
+      "url": "https://life.oricon.co.jp/rank-theme-park/west/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "housekeeping": {
+      "id": 979,
+      "name": "家事代行サービス",
+      "url": "https://life.oricon.co.jp/rank-housekeeping/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "hotel/business": {
+      "id": 980,
+      "name": "ホテル ビジネス利用",
+      "url": "https://life.oricon.co.jp/rank-hotel/business/",
+      "subdomain": "life",
+      "category": "トラベル",
+      "is_active": true
+    },
+    "hotel/sightseeing": {
+      "id": 981,
+      "name": "ホテル 観光利用",
+      "url": "https://life.oricon.co.jp/rank-hotel/sightseeing/",
+      "subdomain": "life",
+      "category": "トラベル",
+      "is_active": true
+    },
+    "arbeit": {
+      "id": 975,
+      "name": "アルバイト情報サイト",
+      "url": "https://career.oricon.co.jp/rank-arbeit/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "rent-a-car": {
+      "id": 969,
+      "name": "レンタカー",
+      "url": "https://life.oricon.co.jp/rank-rent-a-car/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rent-a-car/reasonable": {
+      "id": 970,
+      "name": "格安レンタカー",
+      "url": "https://life.oricon.co.jp/rank-rent-a-car/reasonable/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "carsharing": {
+      "id": 971,
+      "name": "カーシェアリング",
+      "url": "https://life.oricon.co.jp/rank-carsharing/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "travel-website/domestic": {
+      "id": 964,
+      "name": "旅行予約サイト 国内旅行",
+      "url": "https://life.oricon.co.jp/rank-travel-website/domestic/",
+      "subdomain": "life",
+      "category": "トラベル",
+      "is_active": true
+    },
+    "travel-website/overseas": {
+      "id": 965,
+      "name": "旅行予約サイト 海外旅行",
+      "url": "https://life.oricon.co.jp/rank-travel-website/overseas/",
+      "subdomain": "life",
+      "category": "トラベル",
+      "is_active": true
+    },
+    "rankb2b-new-graduates-hiring-website": {
+      "id": 856,
+      "name": "新卒採用サイト 採用担当向け",
+      "url": "https://life.oricon.co.jp/rankb2b-new-graduates-hiring-website/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rankb2b-new-graduates-hiring": {
+      "id": 857,
+      "name": "新卒エージェント 採用担当向け",
+      "url": "https://life.oricon.co.jp/rankb2b-new-graduates-hiring/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rankb2b-training/executive": {
+      "id": 837,
+      "name": "企業研修 経営者向け公開講座",
+      "url": "https://life.oricon.co.jp/rankb2b-training/executive/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rankb2b-training/manager": {
+      "id": 838,
+      "name": "企業研修 管理職向け公開講座",
+      "url": "https://life.oricon.co.jp/rankb2b-training/manager/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "laundromat": {
+      "id": 845,
+      "name": "コインランドリー",
+      "url": "https://life.oricon.co.jp/rank-laundromat/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "new-ready-built-house/powerbuilder": {
+      "id": 784,
+      "name": "建売住宅 パワービルダー 関東",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/powerbuilder/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "new-ready-built-house/kanto/2018": {
+      "id": 636,
+      "name": "新築建売住宅 関東",
+      "url": "https://life.oricon.co.jp/rank-new-ready-built-house/kanto/2018/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "rankb2b_english": {
+      "id": 607,
+      "name": "法人向け英会話スクール",
+      "url": "https://life.oricon.co.jp/rankb2b_english/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "college-video": {
+      "id": 591,
+      "name": "大学受験 映像授業",
+      "url": "https://juken.oricon.co.jp/rank-college-video/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "brand-sell": {
+      "id": 577,
+      "name": "ブランド品買取 店舗",
+      "url": "https://life.oricon.co.jp/rank-brand-sell/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "cc/toeic": {
+      "id": 552,
+      "name": "通信講座 TOEIC",
+      "url": "https://juken.oricon.co.jp/rank-cc/toeic/",
+      "subdomain": "juken",
+      "category": "通信教育・資格",
+      "is_active": true
+    },
+    "rankb2b-office-mail-order": {
+      "id": 359,
+      "name": "オフィス通販",
+      "url": "https://life.oricon.co.jp/rankb2b-office-mail-order/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rankb2b-office-multifunction-printer": {
+      "id": 360,
+      "name": "オフィス複合機",
+      "url": "https://life.oricon.co.jp/rankb2b-office-multifunction-printer/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rankb2b-arbeit-advertisement": {
+      "id": 362,
+      "name": "アルバイト求人広告（採用担当向け）",
+      "url": "https://career.oricon.co.jp/rankb2b-arbeit-advertisement/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "rankb2b-job-change": {
+      "id": 357,
+      "name": "転職サイト（採用担当向け）",
+      "url": "https://career.oricon.co.jp/rankb2b-job-change/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "rankb2b-move": {
+      "id": 358,
+      "name": "オフィス引越し",
+      "url": "https://life.oricon.co.jp/rankb2b-move/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rankb2b-welfare": {
+      "id": 354,
+      "name": "福利厚生サービス",
+      "url": "https://life.oricon.co.jp/rankb2b-welfare/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "rankb2b_shoukai": {
+      "id": 355,
+      "name": "人材紹介会社（採用担当向け）",
+      "url": "https://career.oricon.co.jp/rankb2b_shoukai/",
+      "subdomain": "career",
+      "category": "キャリア（その他）",
+      "is_active": true
+    },
+    "rankb2b_agency": {
+      "id": 356,
+      "name": "人材派遣会社（採用担当向け）",
+      "url": "https://career.oricon.co.jp/rankb2b_agency/",
+      "subdomain": "career",
+      "category": "派遣",
+      "is_active": true
+    },
+    "lcc/domestic": {
+      "id": 332,
+      "name": "格安航空券 LCC 国内線",
+      "url": "https://life.oricon.co.jp/rank-lcc/domestic/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "lcc/overseas": {
+      "id": 333,
+      "name": "格安航空券 LCC 国際線",
+      "url": "https://life.oricon.co.jp/rank-lcc/overseas/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_provider/chugoku-shikoku/2016": {
+      "id": 299,
+      "name": "プロバイダ 中国・四国",
+      "url": "https://life.oricon.co.jp/rank_provider/chugoku-shikoku/2016/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "mvno/2016": {
+      "id": 302,
+      "name": "MVNO SIM",
+      "url": "https://life.oricon.co.jp/rank-mvno/2016/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_marriage/man/2016": {
+      "id": 236,
+      "name": "結婚情報サービス 男性",
+      "url": "https://life.oricon.co.jp/rank_marriage/man/2016/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_marriage/woman/2016": {
+      "id": 237,
+      "name": "結婚情報サービス 女性",
+      "url": "https://life.oricon.co.jp/rank_marriage/woman/2016/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_marriage/20s-30s/2016": {
+      "id": 238,
+      "name": "結婚情報サービス 20代・30代",
+      "url": "https://life.oricon.co.jp/rank_marriage/20s-30s/2016/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_marriage/40s/2016": {
+      "id": 239,
+      "name": "結婚情報サービス 40代以上",
+      "url": "https://life.oricon.co.jp/rank_marriage/40s/2016/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "arbeit/student/2016": {
+      "id": 240,
+      "name": "アルバイト情報サイト 学生",
+      "url": "https://career.oricon.co.jp/rank-arbeit/student/2016/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/homemarker/2016": {
+      "id": 241,
+      "name": "アルバイト情報サイト 専業主婦（主夫）",
+      "url": "https://career.oricon.co.jp/rank-arbeit/homemarker/2016/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/part-time-worker/2016": {
+      "id": 242,
+      "name": "アルバイト情報サイト フリーター・パートタイマー",
+      "url": "https://career.oricon.co.jp/rank-arbeit/part-time-worker/2016/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/retail/2016": {
+      "id": 243,
+      "name": "アルバイト情報サイト 店舗販売",
+      "url": "https://career.oricon.co.jp/rank-arbeit/retail/2016/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/food/2016": {
+      "id": 244,
+      "name": "アルバイト情報サイト 飲食・フード",
+      "url": "https://career.oricon.co.jp/rank-arbeit/food/2016/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/service/2016": {
+      "id": 245,
+      "name": "アルバイト情報サイト 接客・サービス",
+      "url": "https://career.oricon.co.jp/rank-arbeit/service/2016/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/cleaning/2016": {
+      "id": 246,
+      "name": "アルバイト情報サイト 軽作業・清掃・警備",
+      "url": "https://career.oricon.co.jp/rank-arbeit/cleaning/2016/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/operator/2016": {
+      "id": 247,
+      "name": "アルバイト情報サイト データ入力・オペレーター",
+      "url": "https://career.oricon.co.jp/rank-arbeit/operator/2016/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/hokkaido": {
+      "id": 248,
+      "name": "アルバイト情報サイト 北海道・東北",
+      "url": "https://career.oricon.co.jp/rank-arbeit/hokkaido/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/kanto": {
+      "id": 249,
+      "name": "アルバイト情報サイト 関東",
+      "url": "https://career.oricon.co.jp/rank-arbeit/kanto/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/chubu-hokuriku": {
+      "id": 250,
+      "name": "アルバイト情報サイト 中部・北陸",
+      "url": "https://career.oricon.co.jp/rank-arbeit/chubu-hokuriku/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/kinki": {
+      "id": 251,
+      "name": "アルバイト情報サイト 近畿",
+      "url": "https://career.oricon.co.jp/rank-arbeit/kinki/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "arbeit/kyushu-okinawa": {
+      "id": 252,
+      "name": "アルバイト情報サイト 九州・沖縄",
+      "url": "https://career.oricon.co.jp/rank-arbeit/kyushu-okinawa/",
+      "subdomain": "career",
+      "category": "アルバイト",
+      "is_active": true
+    },
+    "temp-staff/man/2016": {
+      "id": 230,
+      "name": "派遣情報サイト 男性",
+      "url": "https://career.oricon.co.jp/rank-temp-staff/man/2016/",
+      "subdomain": "career",
+      "category": "派遣",
+      "is_active": true
+    },
+    "temp-staff/woman/2016": {
+      "id": 231,
+      "name": "派遣情報サイト 女性",
+      "url": "https://career.oricon.co.jp/rank-temp-staff/woman/2016/",
+      "subdomain": "career",
+      "category": "派遣",
+      "is_active": true
+    },
+    "job-change/man/2016": {
+      "id": 232,
+      "name": "転職サイト 男性",
+      "url": "https://career.oricon.co.jp/rank-job-change/man/2016/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "job-change/office/2016": {
+      "id": 234,
+      "name": "転職サイト 事務職",
+      "url": "https://career.oricon.co.jp/rank-job-change/office/2016/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "job-change/sales/2016": {
+      "id": 235,
+      "name": "転職サイト 営業職",
+      "url": "https://career.oricon.co.jp/rank-job-change/sales/2016/",
+      "subdomain": "career",
+      "category": "転職・人材",
+      "is_active": true
+    },
+    "_waterserver/nmw": {
+      "id": 226,
+      "name": "ウォーターサーバー ナチュラルミネラルウォーター",
+      "url": "https://life.oricon.co.jp/rank_waterserver/nmw/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_waterserver/ro/2016": {
+      "id": 227,
+      "name": "ウォーターサーバー RO水",
+      "url": "https://life.oricon.co.jp/rank_waterserver/ro/2016/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_esthe/slim/middle-class": {
+      "id": 224,
+      "name": "エステサロン ボディ ミドルクラス",
+      "url": "https://life.oricon.co.jp/rank_esthe/slim/middle-class/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_esthe/slim/high-class": {
+      "id": 225,
+      "name": "エステサロン ボディ ハイクラス",
+      "url": "https://life.oricon.co.jp/rank_esthe/slim/high-class/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_mens/facial": {
+      "id": 218,
+      "name": "メンズエステ フェイシャル",
+      "url": "https://life.oricon.co.jp/rank_mens/facial/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_mens/slim": {
+      "id": 219,
+      "name": "メンズエステ ボディ",
+      "url": "https://life.oricon.co.jp/rank_mens/slim/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_esthe/facial/middle-class": {
+      "id": 220,
+      "name": "エステサロン フェイシャル ミドルクラス",
+      "url": "https://life.oricon.co.jp/rank_esthe/facial/middle-class/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_esthe/facial/high-class": {
+      "id": 221,
+      "name": "エステサロン フェイシャル ハイクラス",
+      "url": "https://life.oricon.co.jp/rank_esthe/facial/high-class/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_esthe/facial/cosme": {
+      "id": 222,
+      "name": "エステサロン フェイシャル メイクブランド",
+      "url": "https://life.oricon.co.jp/rank_esthe/facial/cosme/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_esthe/facial/esthe": {
+      "id": 223,
+      "name": "エステサロン フェイシャル エステブランド",
+      "url": "https://life.oricon.co.jp/rank_esthe/facial/esthe/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_fitness/hokkaido": {
+      "id": 201,
+      "name": "フィットネスクラブ（北海道）",
+      "url": "https://life.oricon.co.jp/rank_fitness/hokkaido/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_fitness/tohoku": {
+      "id": 202,
+      "name": "フィットネスクラブ（東北）",
+      "url": "https://life.oricon.co.jp/rank_fitness/tohoku/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_fitness/kanto/2016": {
+      "id": 203,
+      "name": "フィットネスクラブ（関東）",
+      "url": "https://life.oricon.co.jp/rank_fitness/kanto/2016/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_fitness/koshinetsu-hokuriku": {
+      "id": 204,
+      "name": "フィットネスクラブ（甲信越・北陸）",
+      "url": "https://life.oricon.co.jp/rank_fitness/koshinetsu-hokuriku/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_fitness/tokai": {
+      "id": 205,
+      "name": "フィットネスクラブ（東海）",
+      "url": "https://life.oricon.co.jp/rank_fitness/tokai/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_fitness/kinki": {
+      "id": 206,
+      "name": "フィットネスクラブ（近畿）",
+      "url": "https://life.oricon.co.jp/rank_fitness/kinki/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_fitness/chugoku-shikoku": {
+      "id": 207,
+      "name": "フィットネスクラブ（中国・四国）",
+      "url": "https://life.oricon.co.jp/rank_fitness/chugoku-shikoku/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_fitness/kyushu-okinawa": {
+      "id": 208,
+      "name": "フィットネスクラブ（九州・沖縄）",
+      "url": "https://life.oricon.co.jp/rank_fitness/kyushu-okinawa/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "kids-swimming/kanto/2016": {
+      "id": 184,
+      "name": "キッズスイミングスクール（関東）",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/kanto/2016/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "kids-swimming/kinki/2016": {
+      "id": 185,
+      "name": "キッズスイミングスクール（近畿）",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/kinki/2016/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "kids-swimming/kyushu-okinawa/2016": {
+      "id": 186,
+      "name": "キッズスイミングスクール（九州・沖縄）",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/kyushu-okinawa/2016/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "kids-swimming/chugoku-shikoku/2016": {
+      "id": 187,
+      "name": "キッズスイミングスクール（中国・四国）",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/chugoku-shikoku/2016/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "kids-swimming/tokai/2016": {
+      "id": 188,
+      "name": "キッズスイミングスクール（東海）",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/tokai/2016/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "kids-swimming/tohoku/2016": {
+      "id": 189,
+      "name": "キッズスイミングスクール（東北）",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/tohoku/2016/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "kids-swimming/hokkaido/2016": {
+      "id": 190,
+      "name": "キッズスイミングスクール（北海道）",
+      "url": "https://juken.oricon.co.jp/rank-kids-swimming/hokkaido/2016/",
+      "subdomain": "juken",
+      "category": "スポーツ",
+      "is_active": true
+    },
+    "jf-restaurant": {
+      "id": 154,
+      "name": "和食ファミリーレストラン",
+      "url": "https://life.oricon.co.jp/rank-jf-restaurant/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "wf-restaurant": {
+      "id": 155,
+      "name": "洋風ファミリーレストラン",
+      "url": "https://life.oricon.co.jp/rank-wf-restaurant/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "shf-restaurant": {
+      "id": 156,
+      "name": "ステーキ・ハンバーグファミリーレストラン",
+      "url": "https://life.oricon.co.jp/rank-shf-restaurant/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "w-restaurant": {
+      "id": 157,
+      "name": "洋食レストラン",
+      "url": "https://life.oricon.co.jp/rank-w-restaurant/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "pasta-pizza": {
+      "id": 158,
+      "name": "パスタ・ピザレストラン",
+      "url": "https://life.oricon.co.jp/rank-pasta-pizza/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "sushi": {
+      "id": 159,
+      "name": "回転寿司",
+      "url": "https://life.oricon.co.jp/rank-sushi/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "curry-shop": {
+      "id": 166,
+      "name": "カレーショップ",
+      "url": "https://life.oricon.co.jp/rank-curry-shop/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "pizza": {
+      "id": 167,
+      "name": "宅配ピザ",
+      "url": "https://life.oricon.co.jp/rank-pizza/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "yakiniku": {
+      "id": 169,
+      "name": "焼肉チェーン",
+      "url": "https://life.oricon.co.jp/rank-yakiniku/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "gyudon": {
+      "id": 170,
+      "name": "牛丼チェーン",
+      "url": "https://life.oricon.co.jp/rank-gyudon/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_provider/hokkaido-tohoku/2015": {
+      "id": 126,
+      "name": "プロバイダ（北海道・東北）",
+      "url": "https://life.oricon.co.jp/rank_provider/hokkaido-tohoku/2015/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/chubu-hokuriku/2015": {
+      "id": 127,
+      "name": "プロバイダ（中部・北陸）",
+      "url": "https://life.oricon.co.jp/rank_provider/chubu-hokuriku/2015/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "tutor/2015": {
+      "id": 160,
+      "name": "家庭教師",
+      "url": "https://juken.oricon.co.jp/rank-tutor/2015/",
+      "subdomain": "juken",
+      "category": "教育（その他）",
+      "is_active": true
+    },
+    "stock-market": {
+      "id": 163,
+      "name": "株取引（ネット）",
+      "url": "https://life.oricon.co.jp/rank-stock-market/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "_certificate/face-to-face": {
+      "id": 164,
+      "name": "対面証券",
+      "url": "https://life.oricon.co.jp/rank_certificate/face-to-face/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "home-security": {
+      "id": 100,
+      "name": "ホームセキュリティ",
+      "url": "https://life.oricon.co.jp/rank-home-security/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "yoga": {
+      "id": 101,
+      "name": "ヨガスタジオ（首都圏）",
+      "url": "https://life.oricon.co.jp/rank-yoga/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    },
+    "mobilephone": {
+      "id": 93,
+      "name": "携帯メーカー",
+      "url": "https://life.oricon.co.jp/rank-mobilephone/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "mobilephone/model": {
+      "id": 94,
+      "name": "携帯端末",
+      "url": "https://life.oricon.co.jp/rank-mobilephone/model/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_housingloan/2014": {
+      "id": 433,
+      "name": "住宅ローン",
+      "url": "https://life.oricon.co.jp/rank_housingloan/2014/",
+      "subdomain": "life",
+      "category": "金融・投資",
+      "is_active": true
+    },
+    "_college/tokai/2014": {
+      "id": 468,
+      "name": "大学受験 塾・予備校 現役：東海",
+      "url": "https://juken.oricon.co.jp/rank_college/tokai/2014/",
+      "subdomain": "juken",
+      "category": "塾・受験",
+      "is_active": true
+    },
+    "_esthe/2014": {
+      "id": 491,
+      "name": "エステサロン",
+      "url": "https://life.oricon.co.jp/rank_esthe/2014/",
+      "subdomain": "life",
+      "category": "美容・ウエディング",
+      "is_active": true
+    },
+    "_provider/adsl/2008": {
+      "id": 493,
+      "name": "プロバイダADSL",
+      "url": "https://life.oricon.co.jp/rank_provider/adsl/2008/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_provider/2014-2015": {
+      "id": 500,
+      "name": "プロバイダ",
+      "url": "https://life.oricon.co.jp/rank_provider/2014-2015/",
+      "subdomain": "life",
+      "category": "通信",
+      "is_active": true
+    },
+    "_reform/2014": {
+      "id": 506,
+      "name": "リフォーム",
+      "url": "https://life.oricon.co.jp/rank_reform/2014/",
+      "subdomain": "life",
+      "category": "住宅・不動産",
+      "is_active": true
+    },
+    "kids-english/2014": {
+      "id": 525,
+      "name": "子ども英語",
+      "url": "https://juken.oricon.co.jp/rank-kids-english/2014/",
+      "subdomain": "juken",
+      "category": "英語・英会話",
+      "is_active": true
+    },
+    "mobile-data/2014-2015": {
+      "id": 527,
+      "name": "モバイルデータ通信",
+      "url": "https://life.oricon.co.jp/rank-mobile-data/2014-2015/",
+      "subdomain": "life",
+      "category": "生活サービス",
+      "is_active": true
+    }
+  }
+}
