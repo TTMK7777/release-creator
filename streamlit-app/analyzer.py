@@ -95,11 +95,24 @@ def _load_company_aliases() -> Dict[str, str]:
 # モジュール読み込み時にエイリアスをロード
 COMPANY_ALIASES = _load_company_aliases()
 
+# v8.0.1: 正規表現パターンをモジュールレベルでコンパイル（パフォーマンス向上）
+BRACKET_PATTERN = re.compile(r'[（(][^）)]*[）)]')
+WHITESPACE_PATTERN = re.compile(r'[\s　]+')
+
 
 def normalize_company_name(company: str) -> str:
-    """社名を正規化する（エイリアスを正規社名に変換）
+    """社名を正規化する（汎用ルールベース + エイリアス）
 
-    v7.3.1: 前処理追加（全角/半角変換、空白正規化）
+    v8.0: 汎用正規化ルール追加（ハードコーディング回避）
+    - 全角→半角変換
+    - 括弧と中身の自動除去（読み仮名、旧社名表記など）
+    - 空白正規化
+    - エイリアス適用
+
+    正規化例:
+    - Oisix（おいしっくすくらぶ）→ Oisix
+    - 外貨ex byGMO（旧:YJFX!）→ 外貨ex byGMO
+    - Ｚ会の通信教育 → Z会の通信教育
 
     Args:
         company: 企業名
@@ -108,22 +121,31 @@ def normalize_company_name(company: str) -> str:
         正規化された企業名
     """
     if not company:
-        return company
+        return ""  # v8.0.1: None/空文字の場合は空文字列を返す（レビュー指摘対応）
 
     # 前処理: 文字列の正規化
     normalized = company.strip()
 
-    # 全角英数字→半角英数字
+    # 1. 全角英数字→半角英数字
     zen_to_han = str.maketrans(
         'ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ０１２３４５６７８９',
         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     )
     normalized = normalized.translate(zen_to_han)
 
-    # 連続する空白を1つに（全角スペースも含む）
-    normalized = re.sub(r'[\s　]+', ' ', normalized)
+    # 2. 括弧と中身を除去（読み仮名、旧社名表記など）
+    # 汎用ルール: 全ての括弧パターンを除去
+    # 例: Oisix（おいしっくすくらぶ）→ Oisix
+    # 例: 外貨ex byGMO（旧:YJFX!）→ 外貨ex byGMO
+    # 例: 三菱UFJ eスマート証券（旧:auカブコム証券）→ 三菱UFJ eスマート証券
+    normalized = BRACKET_PATTERN.sub('', normalized)  # v8.0.1: コンパイル済みパターン使用
 
-    # エイリアス適用（元の値と正規化後の値の両方でチェック）
+    # 3. 連続する空白を1つに（全角スペースも含む）
+    normalized = WHITESPACE_PATTERN.sub(' ', normalized)  # v8.0.1: コンパイル済みパターン使用
+    normalized = normalized.strip()
+
+    # 4. エイリアス適用（元の値と正規化後の値の両方でチェック）
+    # エイリアスファイルで個別対応が必要な場合はここで適用
     if company in COMPANY_ALIASES:
         return COMPANY_ALIASES[company]
     if normalized in COMPANY_ALIASES:

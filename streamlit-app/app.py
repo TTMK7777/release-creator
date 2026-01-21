@@ -1524,7 +1524,7 @@ if st.session_state.results_data:
                             break
                 # expanderのタイトル（URLはクリック可能にするため中に表示）
                 expander_title = f"{source_mark} {year}年"
-                with st.expander(expander_title, expanded=(year == max(overall_data.keys(), key=_year_sort_key))):
+                with st.expander(expander_title, expanded=True):  # v8.0: 常時展開（一覧性向上）
                     # URLを表の上にクリック可能なリンクとして表示
                     if year_url:
                         st.markdown(f"🔗 **参照URL**: [{year_url}]({year_url})")
@@ -1657,7 +1657,7 @@ if st.session_state.results_data:
                 if name_change_info and name_change_info.get("latest_name"):
                     display_name = name_change_info["latest_name"]
 
-                with st.expander(f"📌 {display_name}", expanded=False):
+                with st.expander(f"📌 {display_name}", expanded=True):  # v8.0: 常時展開（一覧性向上）
                     # v6.1: レイアウト変更 - 名称変更 → 1位の推移 → 経年推移 → 年数/URL の順
 
                     # 1. 名称変更があれば注記を表示
@@ -1667,6 +1667,7 @@ if st.session_state.results_data:
 
                     if isinstance(year_data, dict) and len(year_data) > 1:
                         # 2. 1位の推移（名称変更の直後に配置）
+                        # v8.0: 同点1位対応 - 同じ得点の企業をすべて表示
                         st.markdown("**📈 1位の推移**")
                         history = []
                         for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
@@ -1674,10 +1675,24 @@ if st.session_state.results_data:
                             if year_list and isinstance(year_list, list) and len(year_list) > 0:
                                 top = year_list[0]
                                 if top and isinstance(top, dict):
+                                    top_score = top.get("score")
+                                    # v8.0.1: 同点1位を検出（top_scoreがNoneの場合はスコア比較をスキップ）
+                                    top_companies = []
+                                    if top_score is not None:
+                                        for entry in year_list:
+                                            if isinstance(entry, dict) and entry.get("score") == top_score:
+                                                top_companies.append(entry.get("company", "-"))
+                                            else:
+                                                break  # 得点が異なったら終了
+                                    else:
+                                        # scoreがない場合は1位のみ表示
+                                        top_companies.append(top.get("company", "-"))
+                                    # 同点の場合は「A社 / B社」形式で表示
+                                    company_str = " / ".join(top_companies) if top_companies else "-"
                                     history.append({
                                         "年度": year,
-                                        "1位": top.get("company", "-"),
-                                        "得点": top.get("score", "-")
+                                        "1位": company_str,
+                                        "得点": top_score if top_score is not None else "-"
                                     })
                         if history:
                             st.dataframe(pd.DataFrame(history), use_container_width=True)
@@ -1836,7 +1851,7 @@ if st.session_state.results_data:
                 if name_change_info and name_change_info.get("latest_name"):
                     display_name = name_change_info["latest_name"]
 
-                with st.expander(f"📌 {display_name}", expanded=False):
+                with st.expander(f"📌 {display_name}", expanded=True):  # v8.0: 常時展開（一覧性向上）
                     # v6.1: レイアウト変更 - 名称変更 → 1位の推移 → 経年推移 → 年数/URL の順（評価項目別と同じ）
 
                     # 1. 名称変更があれば注記を表示
@@ -1846,6 +1861,7 @@ if st.session_state.results_data:
 
                     if isinstance(year_data, dict) and len(year_data) > 1:
                         # 2. 1位の推移（名称変更の直後に配置）
+                        # v8.0: 同点1位対応 - 同じ得点の企業をすべて表示
                         st.markdown("**📈 1位の推移**")
                         history = []
                         for year in sorted(year_data.keys(), key=_year_sort_key, reverse=True):
@@ -1853,10 +1869,24 @@ if st.session_state.results_data:
                             if year_list and isinstance(year_list, list) and len(year_list) > 0:
                                 top = year_list[0]
                                 if top and isinstance(top, dict):
+                                    top_score = top.get("score")
+                                    # v8.0.1: 同点1位を検出（top_scoreがNoneの場合はスコア比較をスキップ）
+                                    top_companies = []
+                                    if top_score is not None:
+                                        for entry in year_list:
+                                            if isinstance(entry, dict) and entry.get("score") == top_score:
+                                                top_companies.append(entry.get("company", "-"))
+                                            else:
+                                                break  # 得点が異なったら終了
+                                    else:
+                                        # scoreがない場合は1位のみ表示
+                                        top_companies.append(top.get("company", "-"))
+                                    # 同点の場合は「A社 / B社」形式で表示
+                                    company_str = " / ".join(top_companies) if top_companies else "-"
                                     history.append({
                                         "年度": year,
-                                        "1位": top.get("company", "-"),
-                                        "得点": top.get("score", "-")
+                                        "1位": company_str,
+                                        "得点": top_score if top_score is not None else "-"
                                     })
                         if history:
                             st.dataframe(pd.DataFrame(history), use_container_width=True)
