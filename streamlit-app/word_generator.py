@@ -334,7 +334,7 @@ class WordGenerator:
             for i, entry in enumerate(overall_data[:10], 1):
                 replacements[f"RANK_{i}_COMPANY"] = entry.get("company", "")
                 score = entry.get("score")
-                replacements[f"RANK_{i}_SCORE"] = f"{score:.1f}" if score else ""
+                replacements[f"RANK_{i}_SCORE"] = f"{score:.1f}" if score is not None else ""
                 replacements[f"RANK_{i}_RANK"] = str(entry.get("rank", i))
 
                 # 前年比（前年データがある場合）
@@ -401,7 +401,7 @@ class WordGenerator:
             ]
             if show_score:
                 score = entry.get('score')
-                row.append(f"{score:.2f}点" if score else "-")
+                row.append(f"{score:.2f}点" if score is not None else "-")
             data.append(row)
 
         self._create_styled_table(
@@ -565,7 +565,7 @@ class WordGenerator:
             row = [
                 f"{curr_rank}位",
                 company,
-                f"{score:.2f}点" if score else "-",
+                f"{score:.2f}点" if score is not None else "-",
                 f"{prev_rank}位" if prev_rank != "-" else "-",
                 change
             ]

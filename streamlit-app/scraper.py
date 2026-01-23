@@ -97,6 +97,8 @@ class OriconScraper:
         r"/(category)/([^/]+)\.html",  # カテゴリ別（agent等）
         # v7.5で追加した evaluation-item パターンは v7.6 で削除
         # 理由: evaluation-item は「評価項目別」であり「部門別」ではない
+        # v7.12追加: 価格帯別パターン
+        r"/(price)(?:/|\.html)",  # ハウスメーカー注文住宅: 価格帯別（2000万円未満、2000-3000万円等）
     ]
 
     # 除外パターン（部門ページではないもの）
@@ -633,6 +635,8 @@ class OriconScraper:
         4. 過去リンクからの推定（フォールバック）
 
         ※調査期間は使用しない（更新日が正式な年度基準のため）
+        ※整合性チェック: 更新日年度とタイトル年度が異なる場合はタイトル優先
+          （サイトメンテナンスで更新日のみ変更されるケースへの対応）
 
         Returns:
             検出された年度（例: 2024）、検出できない場合はNone
@@ -643,37 +647,39 @@ class OriconScraper:
             soup = BeautifulSoup(response.text, "html.parser")
             text = soup.get_text()
 
-            # パターン1: 最終更新日から検出（最も信頼性が高い）
+            # 各パターンから年度を検出（整合性チェック用に変数に保持）
+            update_year = None
+            title_year = None
+            header_year = None
+            inferred_year = None
+
+            # パターン1: 最終更新日から検出
             # 例: 「最終更新日：2025-11-01」「更新日: 2025/11/01」
             update_match = re.search(r'(?:最終)?更新日[：:\s]*(\d{4})[-/]\d{1,2}[-/]\d{1,2}', text)
             if update_match:
-                year = int(update_match.group(1))
-                logger.info(f"最終更新日から年度検出: {year}年")
-                return year
+                update_year = int(update_match.group(1))
+                logger.debug(f"最終更新日から年度検出: {update_year}年")
 
             # パターン2: タイトルから検出（ページ上部に表示されることが多い）
             # 例: 「2025年 オリコン顧客満足度」「2025年オリコン」
             title_match = re.search(r'(\d{4})年\s*オリコン', text)
             if title_match:
-                year = int(title_match.group(1))
-                logger.info(f"タイトルから年度検出: {year}年")
-                return year
+                title_year = int(title_match.group(1))
+                logger.debug(f"タイトルから年度検出: {title_year}年")
 
             # パターン3: ページ冒頭の年度表記
             # 例: 「2025年 ネット証券」のような表記
-            # 最初の数行内で「20XX年」を探す
             lines = text.split('\n')[:30]  # 最初の30行を対象
             for line in lines:
                 year_match = re.search(r'^.*?(\d{4})年', line.strip())
                 if year_match:
                     year = int(year_match.group(1))
                     if 2000 <= year <= 2030:  # 妥当な年度範囲
-                        logger.info(f"ページ冒頭から年度検出: {year}年")
-                        return year
+                        header_year = year
+                        logger.debug(f"ページ冒頭から年度検出: {header_year}年")
+                        break
 
             # パターン4: 過去ランキングリンクから推定（フォールバック、信頼性低）
-            # 最新の過去年度リンク + 1 = 現在の年度
-            # ※ 年度が飛んでいる場合は不正確になるため、最終手段として使用
             # ※ 2014-2015形式にも対応
             past_links = soup.find_all('a', href=re.compile(r'/\d{4}(?:-\d{4})?/?$'))
             if past_links:
@@ -690,10 +696,35 @@ class OriconScraper:
                             years.append(int(year_str))
                 if years:
                     max_past_year = max(years)
-                    # 過去年度の最大値 + 1 が現在の年度
                     inferred_year = max_past_year + 1
-                    logger.info(f"過去リンクから年度推定（フォールバック）: {inferred_year}年（過去最大: {max_past_year}年）")
-                    return inferred_year
+                    logger.debug(f"過去リンクから年度推定: {inferred_year}年（過去最大: {max_past_year}年）")
+
+            # ===== 整合性チェック =====
+            # 更新日年度とタイトル年度が両方存在し、かつ異なる場合
+            # → サイトメンテナンスで更新日のみ変更された可能性があるため、タイトル年度を優先
+            if update_year and title_year and update_year != title_year:
+                logger.warning(
+                    f"年度不一致検出: 更新日={update_year}年, タイトル={title_year}年, URL={url} "
+                    f"→ タイトル年度を採用"
+                )
+                return title_year
+
+            # 通常ケース: 既存の優先順位で返す
+            if update_year:
+                logger.info(f"最終更新日から年度検出: {update_year}年")
+                return update_year
+
+            if title_year:
+                logger.info(f"タイトルから年度検出: {title_year}年")
+                return title_year
+
+            if header_year:
+                logger.info(f"ページ冒頭から年度検出: {header_year}年")
+                return header_year
+
+            if inferred_year:
+                logger.info(f"過去リンクから年度推定（フォールバック）: {inferred_year}年")
+                return inferred_year
 
             logger.warning(f"年度を検出できませんでした: {url}")
             return None
@@ -1052,7 +1083,8 @@ class OriconScraper:
                     })
                     consecutive_not_found = 0  # v7.11: 成功時はカウンタリセット
                 else:
-                    # 代替パターン: /year/subpath/ 形式を試す
+                    # 代替パターン1: /year/subpath/ 形式を試す
+                    found_alt = False
                     if self.subpath:
                         alt_url = f"{self.BASE_URL}/{self.url_prefix}/{year}{subpath_part}/{dept_path}"
                         data = self._fetch_ranking_page(alt_url, self.survey_type)
@@ -1069,7 +1101,37 @@ class OriconScraper:
                                 "year": str(year)  # 文字列で統一
                             })
                             consecutive_not_found = 0  # v7.11: 成功時はカウンタリセット
-                            continue
+                            found_alt = True
+
+                    # 代替パターン2: YYYY-YYYY 特殊年度形式を試す（2014-2015など）
+                    # 一部のランキングでは年度がハイフン付き形式で表現される
+                    if not found_alt and year >= 2014 and year <= 2016:
+                        special_year_formats = [
+                            f"{year}-{year+1}",  # 例: 2014-2015
+                            f"{year-1}-{year}",  # 例: 2013-2014（yearが終了年の場合）
+                        ]
+                        for special_year in special_year_formats:
+                            special_url = f"{self.BASE_URL}/{self.url_prefix}{subpath_part}/{special_year}/{dept_path}"
+                            data = self._fetch_ranking_page(special_url, self.survey_type)
+                            if data:
+                                page_title = self._extract_page_title_for_dept(special_url)
+                                results[dept_name][str(year)] = data
+                                self.used_urls["departments"].append({
+                                    "name": f"{dept_name}({special_year}年)",
+                                    "url": special_url,
+                                    "survey_type": self.survey_type,
+                                    "status": "success",
+                                    "page_title": page_title,
+                                    "dept_path": dept_path,
+                                    "year": str(year)
+                                })
+                                consecutive_not_found = 0
+                                found_alt = True
+                                logger.info(f"特殊年度形式で取得成功: {special_year} → {dept_name}")
+                                break
+
+                    if found_alt:
+                        continue
 
                     self.used_urls["departments"].append({
                         "name": f"{dept_name}({year}年)",

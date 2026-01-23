@@ -251,7 +251,7 @@ class TableImageGenerator:
                 '前回': f"{prev_rank}位" if prev_rank else "-",
                 '変動': change,
                 '企業名': company,
-                '得点': f"{score}点" if score else "-"
+                '得点': f"{score}点" if score is not None else "-"
             })
 
         df = pd.DataFrame(rows)

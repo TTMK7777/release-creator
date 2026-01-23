@@ -1333,8 +1333,8 @@ if st.session_state.results_data:
 
                 if item_avg_data:
                     item_avg_df = pd.DataFrame(item_avg_data)
-                    # 最新3年度に絞る
-                    latest_years = sorted(item_avg_df["年度"].unique(), key=_year_sort_key, reverse=True)[:3]
+                    # 最新5年度に絞る (v4.4: 3年→5年に拡張)
+                    latest_years = sorted(item_avg_df["年度"].unique(), key=_year_sort_key, reverse=True)[:5]
                     item_avg_df = item_avg_df[item_avg_df["年度"].isin(latest_years)]
 
                     # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
@@ -1374,7 +1374,8 @@ if st.session_state.results_data:
 
                 if dept_avg_data:
                     dept_avg_df = pd.DataFrame(dept_avg_data)
-                    latest_years = sorted(dept_avg_df["年度"].unique(), key=_year_sort_key, reverse=True)[:3]
+                    # 最新5年度に絞る (v4.4: 3年→5年に拡張)
+                    latest_years = sorted(dept_avg_df["年度"].unique(), key=_year_sort_key, reverse=True)[:5]
                     dept_avg_df = dept_avg_df[dept_avg_df["年度"].isin(latest_years)]
 
                     # グループ化縦棒グラフ（年度ごとに横並び）- mark_rectで非0基点
