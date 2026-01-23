@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-プレスリリースタブ モジュール (v1.1)
+プレスリリースタブ モジュール (v1.2)
 app.py のタブとして統合するためのヘルパーモジュール
 
+v1.2: ワンクリック生成機能追加（Excel + スクレイピング → Word出力を1クリックで完結）
+      文章→Word自動連携強化（生成時に自動反映、年度同期）
 v1.1: 設定ヒント表示追加（社名エイリアス、URL形式、同点1位の説明）
 
 使い方:
@@ -81,6 +83,213 @@ except ImportError as e:
     IMAGE_AVAILABLE = False
 
 
+# ========================================
+# ワンクリック生成機能（新機能 v1.2）
+# ========================================
+def _render_quick_release_section(
+    ranking_name: str,
+    overall_data: Dict,
+    item_data: Dict,
+    dept_data: Dict,
+    historical_data: Dict
+):
+    """ワンクリックでプレスリリースを生成するセクション
+
+    Excel + スクレイピングデータ → Word出力を1クリックで完結
+    """
+    st.subheader("🚀 ワンクリック生成")
+    st.caption("データから自動でプレスリリースWord文書を生成します")
+
+    # 年度を取得
+    available_years = sorted(overall_data.keys(), reverse=True) if overall_data else []
+    if not available_years:
+        st.warning("ランキングデータがありません。先にTOPICS出しを実行してください。")
+        return
+
+    # 設定エリア
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        quick_target_year = st.selectbox(
+            "対象年度",
+            available_years,
+            index=0,
+            key="quick_target_year",
+            help="プレスリリースを作成する年度を選択"
+        )
+    with col2:
+        quick_month = st.number_input(
+            "発表月",
+            min_value=1,
+            max_value=12,
+            value=datetime.now().month,
+            key="quick_month"
+        )
+    with col3:
+        quick_day = st.number_input(
+            "発表日",
+            min_value=1,
+            max_value=31,
+            value=datetime.now().day,
+            key="quick_day"
+        )
+
+    # オプション（折りたたみ）
+    with st.expander("📊 出力オプション", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            quick_include_overall = st.checkbox("総合ランキング表を含める", value=True, key="quick_overall")
+            quick_include_comparison = st.checkbox("前年比較表を含める", value=True, key="quick_comparison")
+        with col2:
+            quick_include_items = st.checkbox("評価項目別表を含める", value=False, key="quick_items")
+            quick_include_depts = st.checkbox("部門別表を含める", value=False, key="quick_depts")
+
+    # 生成ボタン
+    if st.button("🚀 ワンクリックでWord生成", key="quick_generate", type="primary", use_container_width=True):
+        if not RELEASE_FEATURES_AVAILABLE:
+            st.error("プレスリリース機能のモジュールが見つかりません。")
+            return
+        if not WORD_AVAILABLE:
+            st.error("Word出力モジュールが見つかりません。")
+            return
+
+        with st.spinner("プレスリリースを自動生成中..."):
+            try:
+                # ========================================
+                # Step 1: 文章自動生成
+                # ========================================
+                content = generate_release(
+                    ranking_name=ranking_name,
+                    year=quick_target_year,
+                    overall_data=overall_data,
+                    item_data=item_data,
+                    dept_data=dept_data,
+                    historical_data=historical_data
+                )
+
+                # ========================================
+                # Step 2: HEADLINE/SUBHEADLINE/TOPICSを自動マッピング
+                # ========================================
+                # ハイライトから見出しを生成
+                headline = content.highlights[0] if content.highlights else f"{ranking_name}ランキング発表"
+                subheadline = content.highlights[1] if len(content.highlights) > 1 else ""
+
+                # ハイライトと本文からTOPICSを構築
+                topics = []
+                topic_details = []
+
+                # ハイライトをTOPICSタイトルに、本文を詳細に
+                for i in range(min(3, len(content.highlights))):
+                    topics.append(content.highlights[i])
+                    if i < len(content.paragraphs):
+                        topic_details.append(content.paragraphs[i])
+                    else:
+                        topic_details.append("")
+
+                # TOPICSが不足している場合は本文から補完
+                if len(topics) < 3 and content.paragraphs:
+                    for i, para in enumerate(content.paragraphs):
+                        if len(topics) >= 3:
+                            break
+                        if i >= len(content.highlights):
+                            # 本文の最初の20文字をタイトルとして使用
+                            short_title = para[:40] + "..." if len(para) > 40 else para
+                            topics.append(short_title)
+                            topic_details.append(para)
+
+                # ========================================
+                # Step 3: データ取得
+                # ========================================
+                year_data = overall_data.get(quick_target_year, [])
+                prev_year = quick_target_year - 1
+                prev_year_data = overall_data.get(prev_year, []) if quick_include_comparison else None
+
+                # 評価項目データを最新年度で取得
+                item_data_for_word = None
+                if quick_include_items and item_data:
+                    item_data_for_word = {}
+                    for item_name, year_entries in item_data.items():
+                        if isinstance(year_entries, dict) and quick_target_year in year_entries:
+                            item_data_for_word[item_name] = year_entries[quick_target_year]
+
+                # ========================================
+                # Step 4: Word生成
+                # ========================================
+                word_buffer = generate_word_release(
+                    ranking_name=ranking_name,
+                    year=quick_target_year,
+                    overall_data=year_data,
+                    topics=topics,
+                    topic_details=topic_details,
+                    highlights=[headline],
+                    subheadline=subheadline,
+                    month=quick_month,
+                    day=quick_day,
+                    include_overall_table=quick_include_overall,
+                    include_comparison_table=quick_include_comparison,
+                    include_item_tables=quick_include_items,
+                    include_dept_tables=quick_include_depts,
+                    item_data=item_data_for_word,
+                    dept_data=dept_data if quick_include_depts else None,
+                    prev_year_data=prev_year_data,
+                    table_top_n=10,
+                    template_version="v4"  # 最新テンプレート使用
+                )
+
+                if word_buffer:
+                    # セッションに保存
+                    st.session_state['quick_word_buffer'] = word_buffer
+                    st.session_state['quick_word_filename'] = f"プレスリリース_{ranking_name}_{quick_target_year}年{quick_month}月{quick_day}日.docx"
+                    st.session_state['quick_content'] = content
+
+                    st.success("✅ プレスリリースの自動生成が完了しました！")
+
+                    # 生成内容のプレビュー
+                    with st.expander("📋 生成内容プレビュー", expanded=True):
+                        st.write(f"**タイトル**: {content.title}")
+                        st.write(f"**見出し**: {headline}")
+                        if subheadline:
+                            st.write(f"**サブ見出し**: {subheadline}")
+                        st.write("**TOPICS**:")
+                        for i, (t, d) in enumerate(zip(topics, topic_details), 1):
+                            st.write(f"  {i}. {t}")
+
+                        # 追加された表
+                        tables_added = []
+                        if quick_include_overall:
+                            tables_added.append("総合ランキング")
+                        if quick_include_comparison:
+                            tables_added.append("前年比較")
+                        if quick_include_items:
+                            tables_added.append("評価項目別")
+                        if quick_include_depts:
+                            tables_added.append("部門別")
+                        if tables_added:
+                            st.write(f"**追加された表**: {', '.join(tables_added)}")
+                else:
+                    st.error("Word文書の生成に失敗しました。テンプレートファイルを確認してください。")
+
+            except Exception as e:
+                logger.error(f"ワンクリック生成エラー: {e}")
+                st.error(f"エラーが発生しました: {e}")
+
+    # ダウンロードボタン（生成後に表示）
+    if 'quick_word_buffer' in st.session_state:
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.download_button(
+                label="📥 Wordファイルをダウンロード",
+                data=st.session_state['quick_word_buffer'].getvalue(),
+                file_name=st.session_state.get('quick_word_filename', 'release.docx'),
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True
+            )
+        with col2:
+            if st.button("🔄 クリア", key="quick_clear"):
+                for key in ['quick_word_buffer', 'quick_word_filename', 'quick_content']:
+                    st.session_state.pop(key, None)
+                st.rerun()
+
+
 def render_release_tab(
     ranking_name: str,
     overall_data: Dict,
@@ -100,6 +309,19 @@ def render_release_tab(
         excel_upload_data: アップロードされたExcelデータ（任意）
     """
     st.header("📝 プレスリリース作成")
+
+    # ========================================
+    # 🚀 ワンクリック生成セクション（新機能）
+    # ========================================
+    _render_quick_release_section(
+        ranking_name=ranking_name,
+        overall_data=overall_data,
+        item_data=item_data,
+        dept_data=dept_data,
+        historical_data=historical_data
+    )
+
+    st.divider()
 
     # 設定ヒント（展開可能）
     with st.expander("💡 設定のヒント", expanded=False):
@@ -340,6 +562,11 @@ def render_release_tab(
                 )
 
                 st.session_state['text_content'] = content
+                st.session_state['text_content_year'] = text_target_year
+
+                # Word出力タブへの自動連携をトリガー（連携フラグをリセット）
+                st.session_state.pop('word_data_synced', None)
+                st.success("✅ 文章を生成しました。「Word出力」タブに自動反映されます。")
 
         # 生成結果の表示
         if 'text_content' in st.session_state:
@@ -404,23 +631,30 @@ def render_release_tab(
             except:
                 available_templates = {}
 
-            # === 文章の自動生成からの連動 ===
-            # text_content がある場合、Word用のデフォルト値を設定
+            # === 文章の自動生成からの連動（強化版 v1.2） ===
+            # text_content がある場合、Word用のデフォルト値を自動設定
             if 'text_content' in st.session_state and 'word_data_synced' not in st.session_state:
                 content = st.session_state['text_content']
-                # 初回のみ同期
-                st.session_state['word_headline_val'] = content.highlights[0] if content.highlights else ""
-                st.session_state['word_subheadline_val'] = content.highlights[1] if len(content.highlights) > 1 else ""
-                # paragraphsをTOPICSとして使用（最初の3つ）
+                highlights = content.highlights if content.highlights else []
                 paragraphs = content.paragraphs if content.paragraphs else []
-                st.session_state['topic1_title_val'] = content.highlights[0] if content.highlights else ""
-                st.session_state['topic1_detail_val'] = paragraphs[0] if len(paragraphs) > 0 else ""
-                st.session_state['topic2_title_val'] = content.highlights[1] if len(content.highlights) > 1 else ""
-                st.session_state['topic2_detail_val'] = paragraphs[1] if len(paragraphs) > 1 else ""
-                st.session_state['topic3_title_val'] = content.highlights[2] if len(content.highlights) > 2 else ""
-                st.session_state['topic3_detail_val'] = paragraphs[2] if len(paragraphs) > 2 else ""
+
+                # HEADLINE / SUBHEADLINE
+                st.session_state['word_headline_val'] = highlights[0] if highlights else ""
+                st.session_state['word_subheadline_val'] = highlights[1] if len(highlights) > 1 else ""
+
+                # TOPICSを自動マッピング（ハイライト→タイトル、本文→詳細）
+                for i in range(3):
+                    title_key = f'topic{i+1}_title_val'
+                    detail_key = f'topic{i+1}_detail_val'
+                    st.session_state[title_key] = highlights[i] if i < len(highlights) else ""
+                    st.session_state[detail_key] = paragraphs[i] if i < len(paragraphs) else ""
+
+                # 年度の同期
+                if 'text_content_year' in st.session_state:
+                    st.session_state['word_synced_year'] = st.session_state['text_content_year']
+
                 st.session_state['word_data_synced'] = True
-                st.success("✅ 「文章の自動生成」の結果を反映しました")
+                st.toast("✅ 「文章の自動生成」の結果をWord出力に反映しました", icon="✅")
 
             # デフォルト値を取得（連動データがあれば使用）
             default_headline = st.session_state.get('word_headline_val', '')
@@ -432,14 +666,25 @@ def render_release_tab(
             default_topic3_title = st.session_state.get('topic3_title_val', '')
             default_topic3_detail = st.session_state.get('topic3_detail_val', '')
 
+            # 同期された年度があればインデックスを計算
+            synced_year = st.session_state.get('word_synced_year')
+            synced_year_index = 0
+            if synced_year and synced_year in available_years:
+                synced_year_index = available_years.index(synced_year)
+
             # === 連動状態の表示 ===
             if 'text_content' in st.session_state:
-                st.info("💡 「文章の自動生成」タブの結果が反映されています。編集して調整できます。")
-                if st.button("🔄 最新の生成結果を再反映", key="resync_word"):
-                    st.session_state.pop('word_data_synced', None)
-                    st.rerun()
+                synced_info = ""
+                if synced_year:
+                    synced_info = f"（{synced_year}年度）"
+                st.success(f"🔗 「文章の自動生成」タブの結果が反映されています{synced_info}。下記で編集・調整できます。")
+                col1, col2 = st.columns([3, 1])
+                with col2:
+                    if st.button("🔄 再反映", key="resync_word", help="最新の生成結果で上書き"):
+                        st.session_state.pop('word_data_synced', None)
+                        st.rerun()
             else:
-                st.info("💡 先に「文章の自動生成」タブで文章を生成すると、ここに自動反映されます。")
+                st.info("💡 先に「📝 文章の自動生成」タブで文章を生成すると、ここに自動反映されます。")
 
             st.divider()
 
@@ -474,7 +719,7 @@ def render_release_tab(
                 word_target_year = st.selectbox(
                     "対象年度",
                     available_years,
-                    index=0,
+                    index=synced_year_index,  # 文章生成タブから同期された年度
                     key="word_target_year"
                 )
             with col2:
