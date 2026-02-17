@@ -18,16 +18,20 @@ Streamlit版 - バージョンはHANDOVER.mdで管理
 __version__ = "β版"
 
 import logging
+import os
+import re
+import traceback
+from datetime import datetime
+from io import BytesIO
+from typing import Any, Dict, List, Optional, Tuple
 
-# ロギング設定（本番環境ではログレベルをINFOに変更推奨）
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# ロギング設定（環境変数 LOG_LEVEL で制御、デフォルト: INFO）
+_log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, _log_level, logging.INFO), format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-import os
 import streamlit as st
 import pandas as pd
-from io import BytesIO
-from datetime import datetime
 from scraper import OriconScraper
 from analyzer import TopicsAnalyzer, HistoricalAnalyzer, _year_sort_key
 from url_manager import get_url_manager
@@ -45,7 +49,7 @@ except ImportError as e:
 ENABLE_UPLOAD = os.environ.get("ENABLE_UPLOAD_FEATURE", "false").lower() == "true"
 
 
-def create_excel_export(ranking_name, overall_data, item_data, dept_data, historical_data, used_urls=None):
+def create_excel_export(ranking_name: str, overall_data: Dict, item_data: Dict, dept_data: Dict, historical_data: Dict, used_urls: Optional[Dict] = None) -> BytesIO:
     """取得データをExcelファイルにエクスポート"""
     output = BytesIO()
 
@@ -245,7 +249,6 @@ def parse_uploaded_excel(uploaded_file, specified_year=None):
             inferred_year = specified_year
         else:
             filename = uploaded_file.name if hasattr(uploaded_file, 'name') else ""
-            import re
             year_match = re.search(r'20\d{2}', filename)
             if year_match:
                 inferred_year = int(year_match.group())
@@ -412,7 +415,7 @@ def parse_uploaded_excel(uploaded_file, specified_year=None):
                         try:
                             val = row.get(eval_item_col)
                             eval_item_name = str(val) if pd.notna(val) and str(val) not in ['nan', 'None', '評価項目'] else None
-                        except:
+                        except (ValueError, TypeError, KeyError):
                             eval_item_name = None
 
                     # シート種別に応じてデータを格納
@@ -461,14 +464,13 @@ def parse_uploaded_excel(uploaded_file, specified_year=None):
 
         return overall_data, item_data, dept_data, None
     except Exception as e:
-        import traceback
         # セキュリティ対策: トレースバック詳細はログのみに出力（ユーザーには非表示）
         logger.error(f"Excel解析エラー: {str(e)}\n{traceback.format_exc()}")
         # ユーザーには一般的なエラーメッセージのみ表示
         return None, None, None, f"Excelファイルの解析中にエラーが発生しました: {str(e)}"
 
 
-def merge_data(uploaded_data, scraped_data):
+def merge_data(uploaded_data: Dict, scraped_data: Dict) -> Dict:
     """アップロードデータとスクレイピングデータを統合（アップロードデータ優先）"""
     merged = {}
 
@@ -483,7 +485,7 @@ def merge_data(uploaded_data, scraped_data):
     return merged
 
 
-def merge_nested_data(uploaded_data, scraped_data):
+def merge_nested_data(uploaded_data: Dict, scraped_data: Dict) -> Dict:
     """評価項目別・部門別データを統合"""
     merged = {}
 
@@ -506,7 +508,7 @@ def merge_nested_data(uploaded_data, scraped_data):
     return merged
 
 
-def detect_name_changes(used_urls, category="items"):
+def detect_name_changes(used_urls: Optional[Dict], category: str = "items") -> Dict:
     """
     同じslug（item_slug/dept_path）でページタイトルが異なるものを検出し、名称変更履歴を返す
 
@@ -607,7 +609,7 @@ def detect_name_changes(used_urls, category="items"):
     return name_changes
 
 
-def display_historical_summary(records, prefix=""):
+def display_historical_summary(records: Optional[Dict], prefix: str = "") -> None:
     """歴代記録・連続記録のサマリーを表示"""
     if not records:
         return
@@ -641,22 +643,36 @@ def display_historical_summary(records, prefix=""):
                 )
 
 
-def display_consecutive_wins_compact(records):
-    """連続1位記録をコンパクトに表示"""
+def _build_consecutive_wins_df(records: Optional[Dict], limit: int = 10) -> Optional[pd.DataFrame]:
+    """連続1位記録のDataFrameを生成（2年以上のみ）
+
+    Args:
+        records: 歴代記録データ
+        limit: 表示上限件数
+
+    Returns:
+        DataFrameまたはNone（該当データなし時）
+    """
     consecutive = records.get("consecutive_wins", [])
-    # 複数回1位を獲得したもののみ対象（1年だけの受賞は除外）
     consecutive_filtered = [r for r in consecutive if r.get("years", 0) >= 2]
-    if consecutive_filtered:
+    if not consecutive_filtered:
+        return None
+    return pd.DataFrame([
+        {
+            "企業名": r["company"],
+            "連続年数": f"{r['years']}年",
+            "期間": f"{r['start_year']}〜{r['end_year']}",
+            "継続中": "✅" if r.get("is_current") else ""
+        }
+        for r in consecutive_filtered[:limit]
+    ])
+
+
+def display_consecutive_wins_compact(records: Optional[Dict]) -> None:
+    """連続1位記録をコンパクトに表示"""
+    cons_df = _build_consecutive_wins_df(records)
+    if cons_df is not None:
         st.markdown("**🥇 連続1位記録（上位10件）**")
-        cons_df = pd.DataFrame([
-            {
-                "企業名": r["company"],
-                "連続年数": f"{r['years']}年",
-                "期間": f"{r['start_year']}〜{r['end_year']}",
-                "継続中": "✅" if r.get("is_current") else ""
-            }
-            for r in consecutive_filtered[:10]
-        ])
         st.dataframe(cons_df, use_container_width=True, hide_index=True)
 
 
@@ -837,8 +853,8 @@ if ENABLE_UPLOAD:
             upload_year = st.number_input(
                 "📅 アップロードデータの年度",
                 min_value=2006,
-                max_value=2030,
-                value=2026,
+                max_value=datetime.now().year + 5,
+                value=datetime.now().year,
                 help="アップロードしたファイルのデータ年度を指定してください（例: 2026年発表データなら2026）"
             )
             st.info(f"📌 **{upload_year}年**のデータとしてアップロードファイルを使用し、それ以外の年度はWebから取得して統合します")
@@ -1026,7 +1042,6 @@ if run_button:
             }
 
         except Exception as e:
-            import traceback
             error_detail = traceback.format_exc()
             logger.error(f"処理エラー: {str(e)}\n{error_detail}")
             st.error(f"エラーが発生しました。入力データやネットワーク接続を確認してください。")
@@ -1194,21 +1209,9 @@ if st.session_state.results_data:
             with col_left:
                 # 連続1位記録（2年以上のみ）
                 st.subheader("🥇 連続1位記録")
-                consecutive = records.get("consecutive_wins", [])
-                if consecutive:
-                    # 2年以上の記録のみ表示
-                    consecutive_filtered = [r for r in consecutive if r.get("years", 0) >= 2]
-                    if consecutive_filtered:
-                        cons_df = pd.DataFrame([
-                            {
-                                "企業名": r["company"],
-                                "連続年数": f"{r['years']}年",
-                                "期間": f"{r['start_year']}〜{r['end_year']}",
-                                "継続中": "✅" if r.get("is_current") else ""
-                            }
-                            for r in consecutive_filtered[:10]
-                        ])
-                        st.dataframe(cons_df, use_container_width=True, hide_index=True)
+                cons_df = _build_consecutive_wins_df(records)
+                if cons_df is not None:
+                    st.dataframe(cons_df, use_container_width=True, hide_index=True)
 
                 # 過去最高得点
                 st.subheader("📈 過去最高得点TOP10")

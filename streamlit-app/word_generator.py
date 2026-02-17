@@ -91,7 +91,7 @@ class WordGenerator:
         try:
             dt = datetime(year, self.month, self.day)
             self.weekday = WEEKDAY_JP[dt.weekday()]
-        except:
+        except (ValueError, TypeError):
             self.weekday = ""
 
     def get_template_path(self) -> str:

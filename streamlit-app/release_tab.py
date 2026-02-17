@@ -628,7 +628,8 @@ def render_release_tab(
             try:
                 from word_generator import get_available_templates
                 available_templates = get_available_templates()
-            except:
+            except (ImportError, AttributeError) as e:
+                logger.debug(f"テンプレート取得失敗: {e}")
                 available_templates = {}
 
             # === 文章の自動生成からの連動（強化版 v1.2） ===

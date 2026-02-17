@@ -23,6 +23,7 @@ from requests.exceptions import RequestException
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 import re
+from datetime import datetime
 from typing import Dict, List, Optional, NamedTuple, Union
 from dataclasses import dataclass, field
 import logging
@@ -87,7 +88,7 @@ class StructureValidator:
     MIN_DEPARTMENTS = 0  # 部門なしのランキングもある
     MAX_DEPARTMENTS = 50
     MIN_YEAR = 2000
-    MAX_YEAR = 2030
+    MAX_YEAR = datetime.now().year + 5
 
     @classmethod
     def validate(cls, structure: SiteStructure) -> SiteStructure:

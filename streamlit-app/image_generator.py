@@ -48,8 +48,9 @@ def setup_japanese_font():
             plt.rcParams['font.family'] = font_name
             logger.info(f"日本語フォント設定: {font_name}")
             return font_name
-        except Exception:
+        except Exception as e:
             # フォントが見つからない場合は次を試す
+            logger.debug(f"フォント '{font_name}' が見つかりません: {e}")
             continue
 
     # フォールバック

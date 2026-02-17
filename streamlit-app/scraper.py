@@ -39,6 +39,7 @@ import re
 from typing import Dict, List, Optional
 import time
 import logging
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
@@ -128,8 +129,8 @@ class OriconScraper:
     INVALID_DEPT_NAMES = [
         # 一般的な無効名
         "ランキング", "一覧", "比較", "おすすめ", "検索結果", "教室一覧",
-        # 年度（例: 2024年, 2023年）
-        "2020年", "2021年", "2022年", "2023年", "2024年", "2025年", "2026年", "2027年",
+        # 年度（例: 2024年, 2023年）— 動的生成
+        *[f"{y}年" for y in range(2020, datetime.now().year + 2)],
     ]
 
     # 除外するh3見出し（sort-nav内で部門ではないセクション）
@@ -283,11 +284,7 @@ class OriconScraper:
                 subdomain = domain
                 break
 
-        # サブドメインの特殊処理（SUBDOMAIN_MAPで漏れた場合のフォールバック）
-        if base_slug in ["online-english", "kids-english", "tutor", "online-study", "kids-swimming", "_english"]:
-            subdomain = "juken"
-        elif base_slug in ["_agent", "_staffing", "_staffing_manufacture", "job-change"]:
-            subdomain = "career"
+        # NOTE: 旧フォールバック処理を削除（SUBDOMAIN_MAPで全カバー済み）
 
         self.BASE_URL = f"https://{subdomain}.oricon.co.jp"
 
