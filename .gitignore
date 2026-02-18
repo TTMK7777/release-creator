@@ -56,16 +56,15 @@ docs/
 scripts/
 !scripts/generate_docs.py
 
-# プロンプト・分析レポート
+# プロンプト・分析レポート・内部ドキュメント
 プロンプトアプローチ/
 *.md
-!streamlit-app/*.md
 !README.md
-!HANDOVER.md
 
 # その他
 files/
 HANDOFF*.md
+HANDOVER.md
 
 # Environment variables
 .env
