@@ -46,6 +46,9 @@ import threading
 # v7.9: SiteStructureAnalyzer統合
 from site_analyzer import SiteStructureAnalyzer, SiteStructure
 
+# v8.2: ローカルデータ参照機構
+from local_data_reader import LocalDataReader
+
 logger = logging.getLogger(__name__)
 
 class OriconScraper:
@@ -772,9 +775,28 @@ class OriconScraper:
         """
         年度ごとのデータ取得（並列処理用ヘルパー）
 
+        v8.2追加: ローカルデータが存在する場合はスクレイピングをスキップ。
+        ローカルデータは LOCAL_DATA_PATH 環境変数で指定した共有フォルダを参照。
+
         Returns:
             (year, data, url_info) のタプル
         """
+        # v8.2: ローカルデータ優先チェック（未公表データ対応）
+        local_reader = LocalDataReader()
+        if local_reader.has_local_data(self.ranking_slug, year):
+            df = local_reader.get_ranking_data(self.ranking_slug, year)
+            if df is not None:
+                df = df.drop(columns=["_source"], errors="ignore")
+                # scraper フォーマット [{"rank": ..., "company": ..., "score": ...}] に変換
+                data = df.to_dict("records")
+                logger.info(f"{year}年: ローカルデータを使用 (slug={self.ranking_slug}, {len(data)}社)")
+                return (year, data, {
+                    "year": str(year),
+                    "url": "local",
+                    "survey_type": self.survey_type,
+                    "status": "local"
+                })
+
         # 並列実行時のサーバー負荷軽減
         time.sleep(0.1)
 

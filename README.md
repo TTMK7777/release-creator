@@ -1,7 +1,7 @@
 # Release Creator - プレスリリース自動生成システム
 
-![Version](https://img.shields.io/badge/version-7.10-blue)
-![Updated](https://img.shields.io/badge/updated-2026-1-9-green)
+![Version](https://img.shields.io/badge/version-8.2-blue)
+![Updated](https://img.shields.io/badge/updated-2026--02--26-green)
 
 > Streamlit WebアプリでExcelランキングデータからプレスリリース用の表を自動生成
 
@@ -11,6 +11,8 @@
 - ハイブリッド自動検出（sort-nav優先 + レガシーフォールバック）
 - Word出力機能
 - Streamlit Cloud デプロイ済み
+- **ポータブル配布対応**（Python未インストールPCで動作）
+- **未公表ローカルデータ参照**（共有フォルダ経由で公開前データを安全参照）
 
 ## Features
 
@@ -24,15 +26,20 @@
 
 ## Quick Start
 
+### 開発者向け
 ```bash
-# Install
 pip install -r streamlit-app/requirements.txt
-```
-
-```bash
-# Run
 cd streamlit-app && streamlit run app.py
 ```
+
+### ポータブル版ビルド
+```bash
+python build/build_portable.py
+# → dist/release-creator-portable/ にパッケージ生成
+```
+
+### エンドユーザー向け
+共有フォルダの `ReleaseCreator.bat` をダブルクリック（Python不要）
 
 ## Tech Stack
 
@@ -43,6 +50,17 @@ cd streamlit-app && streamlit run app.py
 - python-docx
 
 ## Changelog
+
+### v8.2 / LocalDataReader v1.2 (2026-02-26)
+- 未公表ローカルデータ参照機構を追加
+- `local_data_reader.py`: config.json マッピング + Excel ヘッダー自動検出
+- 社内Excel形式（`合計` スコア列）に対応
+- `LOCAL_DATA_PATH` 環境変数で共有フォルダを指定可能
+
+### Portable v1.0 (2026-02)
+- Python embeddable ポータブル配布パッケージ
+- 自動インストール + 差分更新 + デスクトップショートカット
+- ポート 8501-8510 動的フォールバック
 
 ### v7.10 (2025-12)
 - 最新安定版
@@ -67,5 +85,5 @@ cd streamlit-app && streamlit run app.py
 
 ---
 
-最終更新: 2026-01-09
-バージョン: v7.10
+最終更新: 2026-02-26
+バージョン: v8.2 / Portable v1.0 / LocalDataReader v1.2

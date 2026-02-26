@@ -85,6 +85,10 @@ logs-*.txt
 *_export.csv
 nul
 
+# 未公表ランキングデータ（機密・git管理外）
+streamlit-app/data/local_rankings/
+data/local_rankings/
+
 # Test files in streamlit-app
 streamlit-app/test/
 streamlit-app/test_*.py

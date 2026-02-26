@@ -1023,6 +1023,21 @@ if run_button:
             item_name_changes = detect_name_changes(used_urls, "items") if used_urls else {}
             dept_name_changes = detect_name_changes(used_urls, "departments") if used_urls else {}
 
+            # v8.2: ローカルデータ使用年度を used_urls から抽出
+            local_years = []
+            web_scraped_years = []
+            if used_urls and used_urls.get("overall"):
+                for url_info in used_urls["overall"]:
+                    if url_info.get("status") == "local":
+                        local_years.append(str(url_info.get("year", "")))
+                    elif url_info.get("status") == "success":
+                        web_scraped_years.append(str(url_info.get("year", "")))
+            else:
+                web_scraped_years = list(scraped_overall.keys()) if scraped_overall else []
+
+            if local_years:
+                log(f"[OK] ローカルデータ使用年度: {local_years}")
+
             # セッション状態に結果を保存
             st.session_state.results_data = {
                 'ranking_name': ranking_name,
@@ -1033,7 +1048,8 @@ if run_button:
                 'topics': topics,
                 'used_urls': used_urls,
                 'uploaded_years': list(uploaded_years),
-                'scraped_years': list(scraped_overall.keys()) if scraped_overall else [],
+                'scraped_years': web_scraped_years,
+                'local_years': local_years,  # v8.2: ローカルデータ年度
                 'item_most_wins': item_most_wins,
                 'dept_most_wins': dept_most_wins,
                 'item_name_changes': item_name_changes,
@@ -1063,6 +1079,7 @@ if st.session_state.results_data:
     used_urls = data.get('used_urls')
     uploaded_years = data.get('uploaded_years', [])
     scraped_years = data.get('scraped_years', [])
+    local_years = data.get('local_years', [])  # v8.2: ローカルデータ年度
     item_most_wins = data.get('item_most_wins', {})
     dept_most_wins = data.get('dept_most_wins', {})
     item_name_changes = data.get('item_name_changes', {})
@@ -1071,6 +1088,10 @@ if st.session_state.results_data:
 
     # 結果表示
     st.success(f"✅ {ranking_name}のTOPICS出しが完了しました")
+
+    # v8.2: ローカルデータ使用中の警告バッジ（透明性確保）
+    if local_years:
+        st.info(f"📂 **ローカルデータを使用中（未公表）**: {sorted(local_years, key=_year_sort_key)}年 — 共有フォルダの CSV を参照しています")
 
     # データソース情報
     if uploaded_years or scraped_years:

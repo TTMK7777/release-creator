@@ -1,0 +1,10 @@
+# Release Creator - Streamlit ローカル設定
+# ポータブル配布用（ファイル監視無効、統計収集無効）
+# ポートはランチャーがコマンドライン引数で動的設定するため省略
+
+[server]
+headless = true
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
