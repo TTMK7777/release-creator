@@ -30,6 +30,7 @@ config.json 形式（LOCAL_DATA_PATH 直下に配置）:
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -91,13 +92,69 @@ class LocalDataReader:
     # ファイル検索
     # ------------------------------------------------------------------
 
+    def _slug_keywords(self, slug: str) -> list[str]:
+        """slug からファイル名マッチ用キーワードを生成。
+
+        例:
+            "_fx"           → ["fx"]
+            "online-english"→ ["online-english", "online", "english"]
+            "mobile-carrier"→ ["mobile-carrier", "mobile", "carrier"]
+        """
+        clean = slug.lstrip("_").lower()
+        parts = [p for p in re.split(r"-", clean) if p]
+        return list(dict.fromkeys([clean] + parts))  # 重複排除・順序保持
+
+    def _find_file_by_glob(self, slug: str, year: int) -> Optional[Path]:
+        """Glob スキャン: year + slug キーワードでディレクトリを自動検索。
+
+        local_dir 内の全 xlsx/csv を対象に:
+          - ファイル名に year（4桁）が含まれる
+          - ファイル名（小文字）に slug キーワードのいずれかが含まれる
+        の両条件を満たす最初のファイルを返す。
+
+        複数ヒット時はログ警告 + 先頭を返す。
+
+        制限: slug のキーワードがファイル名（英語）に含まれている必要がある。
+        日本語のみのファイル名（例: カードローン_2025.xlsx）は Glob では検出不可。
+        その場合は config.json でファイル名を明示的に指定すること。
+        """
+        year_str = str(year)
+        keywords = self._slug_keywords(slug)
+
+        # local_dir が存在しない場合は安全にスキップ
+        if not self.local_dir.exists():
+            return None
+
+        all_files = (
+            list(self.local_dir.glob("*.xlsx")) +
+            list(self.local_dir.glob("*.csv"))
+        )
+
+        year_files = [f for f in all_files if year_str in f.name]
+        matches = [
+            f for f in year_files
+            if any(kw in f.name.lower() for kw in keywords)
+        ]
+
+        if not matches:
+            return None
+
+        if len(matches) > 1:
+            logger.warning(
+                f"Glob: 複数ファイルがマッチ (slug={slug}, year={year}): "
+                f"{[f.name for f in matches]}。先頭を使用します。"
+            )
+
+        logger.info(f"Glob 自動検出: {slug}__{year} → {matches[0].name}")
+        return matches[0]
+
     def _find_file(self, slug: str, year: int) -> Optional[Path]:
         """ファイルを検索する。
 
         優先順位:
-        1. config.json マッピング（任意のパス・ファイル名）
-        2. {slug}__{year}.xlsx
-        3. {slug}__{year}.csv
+        1. config.json マッピング（絶対パス or local_dir 相対パス両対応）
+        2. {slug}__{year}.xlsx / .csv（命名規則）
+        3. Glob 自動検出（year + slug キーワードでスキャン）
 
         Args:
             slug: ランキングスラッグ（例: "_fx", "online-english"）
@@ -108,14 +165,17 @@ class LocalDataReader:
         """
         key = f"{slug}__{year}"
 
-        # 1. config.json マッピング優先
+        # 1. config.json（絶対パス or local_dir 相対パス両対応）
         config = self._load_config()
         if key in config:
-            mapped = Path(config[key])
-            if mapped.exists():
-                logger.debug(f"config.json マッピング使用: {key} → {mapped}")
-                return mapped
-            logger.warning(f"config.json のパスが存在しません: {mapped}")
+            raw = config[key]
+            path = Path(raw)
+            if not path.is_absolute():
+                path = self.local_dir / raw  # 相対パス対応
+            if path.exists():
+                logger.debug(f"config.json マッピング使用: {key} → {path}")
+                return path
+            logger.warning(f"config.json のパスが存在しません: {path}")
 
         # 2. 命名規則フォールバック
         base = self.local_dir / key
@@ -124,7 +184,8 @@ class LocalDataReader:
             if candidate.exists():
                 return candidate
 
-        return None
+        # 3. Glob 自動検出（年度 + slug キーワードでスキャン）
+        return self._find_file_by_glob(slug, year)
 
     def has_local_data(self, slug: str, year: int) -> bool:
         """指定のスラッグ・年度のローカルデータが存在するか確認する。"""
